@@ -3,24 +3,24 @@
 ## PoC 阶段（2-3周）
 
 ### 第一周
-- [ ] 数据库设计
-  - [ ] 创建 agent_prompts 表
-  - [ ] 创建 content_blocks 表
-- [ ] 实现 POST /api/run-prompt 接口
-  - [ ] 接收 Prompt 内容
-  - [ ] 写入 agent_prompts 表
+- [x] 数据库设计
+  - [x] 创建 agent_prompts 表
+  - [x] 创建 content_blocks 表
+- [x] 实现 POST /api/run-prompt 接口
+  - [x] 接收 Prompt 内容
+  - [x] 写入 agent_prompts 表
 
 ### 第二周
-- [ ] 集成 LLM 调用流程
-  - [ ] 实现 Planner 分析 Prompt
-  - [ ] 实现 Writer 生成结构化内容
-  - [ ] 集成 LangChain/CrewAI
-  - [ ] 实现内容写入 content_blocks
+- [x] 集成 LLM 调用流程
+  - [x] 实现 Planner 分析 Prompt
+  - [x] 实现 Writer 生成结构化内容
+  - [x] 集成 LangChain
+  - [x] 实现内容写入 content_blocks
 
 ### 第三周
-- [ ] 前端开发
-  - [ ] 创建简易 Prompt 输入界面
-  - [ ] 实现 JSON 内容展示
+- [x] 前端开发
+  - [x] 创建简易 Prompt 输入界面
+  - [x] 实现 JSON 内容展示
   - [ ] 实现网页预览渲染
 - [ ] 内部演示准备
   - [ ] 准备演示文档
@@ -34,10 +34,19 @@
   - [ ] UI 完整设计
 
 ## 功能待办
-- [ ] 待添加
+- [ ] 优化错误处理和日志记录
+- [ ] 添加内容预览功能
+- [ ] 实现基本的用户认证
+- [ ] 添加基本的监控和告警
 
 ## 技术债务
-- [ ] 待添加
+- [ ] 优化依赖版本管理
+- [ ] 完善测试用例
+- [ ] 规范化错误处理
+- [ ] 优化数据库连接管理
 
 ## 优化项
-- [ ] 待添加 
+- [ ] 改进前端用户体验
+- [ ] 优化 API 响应时间
+- [ ] 添加缓存机制
+- [ ] 实现基本的性能监控 

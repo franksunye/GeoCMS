@@ -6,13 +6,12 @@
 GeoCMS PoC 阶段专注于验证 LLM 驱动内容生成的核心流程，包括 Prompt 处理、内容生成和数据持久化。
 
 ### 技术栈
-- 后端：Python + FastAPI
+- 后端：Python + FastAPI 0.95.2
 - 数据库：SQLite（PoC阶段）→ PostgreSQL（后续）
-- AI 框架：LangChain + LangGraph
-- LLM：OpenAI/GPT
-- 前端：Streamlit
-- 日志：LangChain tracer + FastAPI logging
-- 配置：.env + pydantic BaseSettings
+- AI 框架：LangChain 0.1.9 + OpenAI 1.12.0
+- 前端：Streamlit 1.31.1
+- 日志：FastAPI logging
+- 配置：.env + pydantic 1.10.13
 - 测试：pytest
 
 ### 系统组件
@@ -25,7 +24,6 @@ GeoCMS PoC 阶段专注于验证 LLM 驱动内容生成的核心流程，包括 
    - LangChain 框架集成
    - Planner：分析 Prompt 并拆解任务
    - Writer：生成结构化内容
-   - LangGraph 可视化流程
 
 3. **数据存储模块**
    - SQLite 数据库（PoC阶段）
@@ -71,18 +69,24 @@ CREATE TABLE content_blocks (
 ```
 /app
   /api
+    __init__.py
     run_prompt.py
   /agents
+    __init__.py
     planner.py
     writer.py
-  /models
-    content_blocks.py
-    agent_prompts.py
-  /db
-    sqlite.py
+  __init__.py
+  db.py
   main.py
+  models.py
 /frontend
   streamlit_app.py
+/docs
+  *.md
+requirements.txt
+.env
+.gitignore
+README.md
 ```
 
 ## 后续架构规划
