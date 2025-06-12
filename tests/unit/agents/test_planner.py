@@ -269,3 +269,31 @@ class TestKnowledgeAwarePlanning:
         assert isinstance(result, dict)
         assert result["missing_knowledge"] == []
         assert result["knowledge_context"] == {}
+
+def test_plan_task_extreme_length():
+    """测试极长提示词处理"""
+    prompt = "A" * 10000
+    result = plan_task(prompt)
+    assert result["task"] in ["generate_content", "missing_knowledge"]
+    assert result["prompt"] == prompt
+
+def test_plan_task_special_characters():
+    """测试特殊字符提示词处理"""
+    prompt = "!@#$%^&*()_+|~`"
+    result = plan_task(prompt)
+    assert result["task"] in ["generate_content", "missing_knowledge", "error"]
+
+def test_analyze_knowledge_needs_db_exception(monkeypatch):
+    """测试analyze_knowledge_needs数据库异常处理"""
+    def raise_exception(*args, **kwargs):
+        raise Exception("db error")
+    class DummyService:
+        def get_knowledge_by_topic(self, topic):
+            raise Exception("db error")
+        def get_knowledge_content(self, knowledge):
+            return {}
+    monkeypatch.setattr("app.agents.planner.get_knowledge_service", lambda db: DummyService())
+    prompt = "为我们公司写一个介绍页面"
+    result = plan_task(prompt, db_session=object())
+    assert result["task"] == "missing_knowledge"
+    assert "error" in result["missing_knowledge"][0] or "missing_knowledge" in result

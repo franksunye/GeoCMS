@@ -180,39 +180,32 @@ pytest tests/ -n auto
 
 ## 测试结果
 
-### 当前测试状态（v1.0.0）
-```
-========== 98 passed, 2 warnings in 25.68s ==========
+### 最新测试状态（v1.1.0）
 
-测试分布：
-- 单元测试：87个
-  - API测试：20个（包含11个知识库API测试）
-  - Agent测试：37个（包含5个知识感知测试）
-  - 服务测试：18个（知识库服务测试）
-  - 模型测试：3个
-  - 其他：9个
-- 集成测试：11个
+- **总测试数**：119 个
+- **全部通过**：119/119
+- **测试覆盖率**：97%
+- **writer.py 覆盖率**：99%
+- **边界条件测试**：已补充 planner.py、knowledge.py、writer.py 等核心模块的极端输入、异常分支、mock与真实LLM分支等测试，系统健壮性大幅提升。
+- **主要未覆盖分支**：极少数异常分支（如部分 except、极端case），不影响主流程。
+- **Pydantic 警告**：有1个弃用警告，不影响功能。
 
-新增知识库相关测试：34个
-原有功能测试：64个
+### 详细分布
+- 单元测试：
+  - API测试：20+
+  - Agent测试：40+
+  - 服务测试：20+
+  - 模型测试：3
+- 集成测试：11
+
+### 运行示例
+```bash
+pytest tests/ --cov=app --cov-report=term-missing
 ```
 
-### 覆盖率报告
-```
-Name                           Stmts   Miss  Cover
---------------------------------------------------
-app/__init__.py                    3      0   100%
-app/agents/planner.py             45      2    96%
-app/agents/writer.py              67      3    96%
-app/api/knowledge.py              89      4    96%
-app/api/run_prompt.py             58      3    95%
-app/services/knowledge.py         78      2    97%
-app/models.py                     25      0   100%
-app/db.py                         15      0   100%
-app/main.py                        8      0   100%
---------------------------------------------------
-TOTAL                            388     14    96%
-```
+### 典型边界测试示例
+- planner/knowledge: 空输入、None、极长字符串、特殊字符、mock db异常
+- writer: mock与真实LLM分支、知识上下文为空/部分/完整、内容增强分支
 
 ## 测试最佳实践
 

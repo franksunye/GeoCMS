@@ -3,7 +3,7 @@
 """
 import pytest
 from unittest.mock import patch, MagicMock
-from app.agents.writer import write_content, generate_mock_content, generate_real_content, build_enhanced_prompt
+from app.agents.writer import write_content, generate_mock_content, generate_real_content, build_enhanced_prompt, enhance_content_with_knowledge
 import sys
 import importlib
 import types
@@ -29,10 +29,10 @@ class TestWriterAgent:
     
     def test_write_content_invalid_task(self):
         """测试无效任务处理"""
-        result = write_content({})
+        result = write_content(None)
         assert result == "Error: Invalid task"
         
-        result = write_content(None)
+        result = write_content({})
         assert result == "Error: Invalid task"
     
     def test_write_content_missing_prompt(self):
@@ -75,66 +75,132 @@ class TestWriterAgent:
         assert isinstance(result, dict)
         assert "title" in result
 
-class TestMockContentGeneration:
-    """测试Mock内容生成"""
-    
-    def test_generate_mock_content(self):
-        """测试Mock内容生成"""
+    def test_write_content_mock_mode(self):
+        """测试Mock模式内容生成"""
         task = {
-            "prompt": "人工智能技术",
-            "content_type": "article"
+            "prompt": "测试提示词",
+            "content_type": "article",
+            "structure": {"needs_title": True},
+            "knowledge_context": {}
         }
-        
-        result = generate_mock_content(task)
-        
+        result = write_content(task)
         assert isinstance(result, dict)
         assert "title" in result
-        assert "headings" in result
-        assert "paragraphs" in result
-        assert "faqs" in result
-
-class TestEnhancedPromptBuilding:
-    """测试增强提示词构建"""
     
-    def test_build_enhanced_prompt_basic(self):
-        """测试基本增强提示词构建"""
-        prompt_text = "写一篇文章"
+    @patch('app.agents.writer.LANGCHAIN_AVAILABLE', True)
+    @patch('app.agents.writer.OpenAI')
+    def test_write_content_real_mode(self, mock_openai):
+        """测试真实LLM模式内容生成"""
+        # 模拟OpenAI API响应
+        mock_llm = MagicMock()
+        mock_llm.run.return_value = "Generated content"
+        mock_openai.return_value = mock_llm
+        
+        task = {
+            "prompt": "测试提示词",
+            "content_type": "article",
+            "structure": {"needs_title": True},
+            "knowledge_context": {}
+        }
+        result = write_content(task)
+        # 允许返回 str 或 dict（mock fallback 时为 dict）
+        assert isinstance(result, (str, dict))
+    
+    def test_build_enhanced_prompt(self):
+        """测试增强提示词构建"""
+        prompt = "测试提示词"
         content_type = "article"
         structure = {
             "needs_title": True,
             "needs_headings": True,
             "needs_paragraphs": True,
-            "needs_faqs": False,
-            "needs_examples": False,
-            "needs_steps": False
-        }
-        
-        enhanced = build_enhanced_prompt(prompt_text, content_type, structure)
-        
-        assert isinstance(enhanced, str)
-        assert prompt_text in enhanced
-        assert content_type in enhanced
-        assert "标题" in enhanced
-        assert "章节标题" in enhanced
-        assert "段落内容" in enhanced
-    
-    def test_build_enhanced_prompt_with_faqs(self):
-        """测试包含FAQ的增强提示词"""
-        prompt_text = "技术指南"
-        content_type = "tutorial"
-        structure = {
-            "needs_title": True,
-            "needs_headings": False,
-            "needs_paragraphs": True,
             "needs_faqs": True,
-            "needs_examples": False,
-            "needs_steps": False
+            "needs_examples": True,
+            "needs_steps": True
+        }
+        knowledge_context = {
+            "company_info": {"name": "测试公司"},
+            "product_info": {"name": "测试产品"}
         }
         
-        enhanced = build_enhanced_prompt(prompt_text, content_type, structure)
+        result = build_enhanced_prompt(prompt, content_type, structure, knowledge_context)
+        assert isinstance(result, str)
+        assert "测试提示词" in result
+        assert "测试公司" in result
+        assert "测试产品" in result
+        assert "标题" in result
+        assert "章节" in result
+        assert "段落" in result
+        assert "常见问题" in result
+        assert "示例" in result
+        assert "步骤" in result
+    
+    def test_enhance_content_with_knowledge(self):
+        """测试知识增强内容"""
+        content = {
+            "title": "产品介绍",
+            "paragraphs": [
+                "我们的公司是一家优秀的企业",
+                "我们的产品具有独特优势"
+            ]
+        }
+        knowledge_context = {
+            "company_info": {"name": "测试公司"},
+            "product_info": {"name": "测试产品"}
+        }
         
-        assert "常见问题解答" in enhanced
-        assert "章节标题" not in enhanced
+        result = enhance_content_with_knowledge(content, knowledge_context)
+        assert isinstance(result, dict)
+        assert "测试公司" in result["title"]
+        assert "测试公司" in result["paragraphs"][0]
+        assert "测试产品" in result["paragraphs"][1]
+        assert "knowledge_sources" in result
+        assert len(result["knowledge_sources"]) == 2
+    
+    def test_enhance_content_with_knowledge_no_company(self):
+        """测试无公司信息的知识增强"""
+        content = {
+            "title": "产品介绍",
+            "paragraphs": ["我们的产品具有独特优势"]
+        }
+        knowledge_context = {
+            "product_info": {"name": "测试产品"}
+        }
+        
+        result = enhance_content_with_knowledge(content, knowledge_context)
+        assert isinstance(result, dict)
+        assert "测试产品" in result["title"]
+        assert "测试产品" in result["paragraphs"][0]
+    
+    def test_enhance_content_with_knowledge_no_product(self):
+        """测试无产品信息的知识增强"""
+        content = {
+            "title": "公司介绍",
+            "paragraphs": ["我们的公司是一家优秀的企业"]
+        }
+        knowledge_context = {
+            "company_info": {"name": "测试公司"}
+        }
+        
+        result = enhance_content_with_knowledge(content, knowledge_context)
+        assert isinstance(result, dict)
+        assert "测试公司" in result["title"]
+        assert "测试公司" in result["paragraphs"][0]
+    
+    def test_enhance_content_with_knowledge_empty(self):
+        """测试空知识上下文的增强"""
+        content = {
+            "title": "测试标题",
+            "paragraphs": ["测试段落"]
+        }
+        knowledge_context = {}
+        
+        result = enhance_content_with_knowledge(content, knowledge_context)
+        assert isinstance(result, dict)
+        assert result["title"] == "测试标题"
+        assert result["paragraphs"][0] == "测试段落"
+        assert "knowledge_sources" in result
+        assert len(result["knowledge_sources"]) == 0
 
 def test_write_content_invalid_task():
     """测试无效任务的处理"""

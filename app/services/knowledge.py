@@ -144,7 +144,7 @@ class KnowledgeService:
         """
         try:
             return json.loads(knowledge.content)
-        except json.JSONDecodeError:
+        except Exception:
             return {"error": "Invalid JSON content"}
 
 def get_knowledge_service(db: Session = None) -> KnowledgeService:

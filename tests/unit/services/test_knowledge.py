@@ -119,6 +119,40 @@ class TestKnowledgeService:
         
         assert "error" in result
 
+    def test_create_knowledge_empty_topic(self, mock_db):
+        """测试创建知识时topic为空"""
+        service = KnowledgeService(mock_db)
+        content = {"name": "测试公司"}
+        knowledge = service.create_knowledge("", content)
+        assert knowledge.topic == ""
+
+    def test_create_knowledge_content_none(self, mock_db):
+        """测试创建知识时content为None"""
+        service = KnowledgeService(mock_db)
+        knowledge = service.create_knowledge("company_info", None)
+        assert knowledge.content == "null"
+
+    def test_update_knowledge_not_found(self, mock_db):
+        """测试更新不存在的知识"""
+        service = KnowledgeService(mock_db)
+        mock_db.query.return_value.filter.return_value.first.return_value = None
+        result = service.update_knowledge(999, topic="new_topic")
+        assert result is None
+
+    def test_search_knowledge_empty_keywords(self, mock_db):
+        """测试搜索知识时关键词为空"""
+        service = KnowledgeService(mock_db)
+        result = service.search_knowledge([])
+        assert result == []
+
+    def test_get_knowledge_content_invalid_json_type(self, mock_db):
+        """测试知识内容为非字符串类型时的异常"""
+        service = KnowledgeService(mock_db)
+        mock_knowledge = MagicMock()
+        mock_knowledge.content = 12345  # 非字符串
+        result = service.get_knowledge_content(mock_knowledge)
+        assert "error" in result
+
 class TestKnowledgeUtils:
     """测试知识库工具函数"""
     
