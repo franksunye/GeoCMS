@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, DateTime
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, declarative_base
 import datetime
 
 # 创建基类

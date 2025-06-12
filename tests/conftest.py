@@ -33,8 +33,14 @@ def mock_openai_response():
 @pytest.fixture
 def client(mock_db):
     """Test client with mocked database"""
-    app.dependency_overrides[get_db] = lambda: mock_db
-    return TestClient(app)
+    def override_get_db():
+        yield mock_db
+
+    app.dependency_overrides[get_db] = override_get_db
+    client = TestClient(app)
+    yield client
+    # 清理依赖覆盖
+    app.dependency_overrides.clear()
 
 @pytest.fixture
 def test_prompt():
