@@ -5,7 +5,7 @@ from typing import Dict, Any
 
 # 页面配置
 st.set_page_config(
-    page_title="GeoCMS PoC - AI内容生成系统",
+    page_title="GeoCMS - AI驱动的智能建站系统",
     page_icon="🌍",
     layout="wide"
 )
@@ -71,13 +71,13 @@ def render_content_preview(content: Any, content_type: str):
         st.markdown(str(content))
 
 # 主界面
-st.title("🌍 GeoCMS PoC - AI内容生成系统")
-st.markdown("基于LLM的智能内容管理系统概念验证")
+st.title("🌍 GeoCMS - AI驱动的智能建站系统")
+st.markdown("基于大语言模型的智能内容生成与管理系统")
 
 # 侧边栏
 with st.sidebar:
-    st.header("⚙️ 设置")
-    api_url = st.text_input("API地址", value="http://localhost:8000")
+    st.header("⚙️ 系统配置")
+    api_url = st.text_input("API服务地址", value="http://localhost:8000")
     st.markdown("---")
     st.header("📊 系统状态")
 
@@ -99,13 +99,13 @@ with col1:
 
     # 提示词输入
     prompt = st.text_area(
-        "请输入您的提示词：",
-        placeholder="例如：写一篇关于人工智能的文章",
+        "请输入您的创意或需求：",
+        placeholder="例如：创建一个关于人工智能的专题页面，包含技术介绍、应用案例和未来展望",
         height=100
     )
 
     # 生成按钮
-    if st.button("🚀 生成内容", type="primary"):
+    if st.button("✨ 智能生成", type="primary"):
         if not prompt.strip():
             st.error("请输入提示词")
         else:
@@ -161,7 +161,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666;'>
-        <p>GeoCMS PoC v1.0 | 基于 FastAPI + Streamlit + LangChain</p>
+        <p>GeoCMS v1.0 | 由 FastAPI + Streamlit + LangChain 驱动的下一代智能建站系统</p>
     </div>
     """,
     unsafe_allow_html=True
