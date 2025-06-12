@@ -2,105 +2,85 @@
 
 ## 概述
 
-GeoCMS 使用 SQLite 作为数据库（PoC阶段），主要存储内容生成记录、用户配置等信息。
+GeoCMS 使用 SQLite 作为数据库，主要存储提示词和生成的内容块。
 
 ## 表结构
 
-### 1. prompts 表
+### 1. agent_prompts 表
 
-存储提示词处理记录。
+存储提示词记录。
 
 ```sql
-CREATE TABLE prompts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    prompt_text TEXT NOT NULL,           -- 原始提示词
-    content_type TEXT NOT NULL,          -- 内容类型（article/webpage/faq等）
-    structure JSON,                      -- 内容结构需求
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE agent_prompts (
+    id INTEGER NOT NULL,
+    prompt_text TEXT NOT NULL,
+    created_at DATETIME,
+    PRIMARY KEY (id)
 );
 ```
 
-### 2. contents 表
+### 2. content_blocks 表
 
-存储生成的内容。
-
-```sql
-CREATE TABLE contents (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    prompt_id INTEGER NOT NULL,          -- 关联的提示词ID
-    content_text TEXT NOT NULL,          -- 生成的内容
-    metadata JSON,                       -- 元数据（标题、章节等）
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (prompt_id) REFERENCES prompts(id)
-);
-```
-
-### 3. settings 表
-
-存储系统配置。
+存储生成的内容块。
 
 ```sql
-CREATE TABLE settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    key TEXT NOT NULL UNIQUE,            -- 配置键
-    value TEXT,                          -- 配置值
-    description TEXT,                    -- 配置说明
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE content_blocks (
+    id INTEGER NOT NULL,
+    prompt_id INTEGER,
+    content TEXT NOT NULL,
+    block_type VARCHAR(50) NOT NULL,
+    created_at DATETIME,
+    PRIMARY KEY (id),
+    FOREIGN KEY(prompt_id) REFERENCES agent_prompts (id)
 );
 ```
 
 ## 索引设计
 
 ```sql
--- prompts 表索引
-CREATE INDEX idx_prompts_content_type ON prompts(content_type);
-CREATE INDEX idx_prompts_created_at ON prompts(created_at);
+-- agent_prompts 表索引
+CREATE INDEX ix_agent_prompts_id ON agent_prompts (id);
 
--- contents 表索引
-CREATE INDEX idx_contents_prompt_id ON contents(prompt_id);
-CREATE INDEX idx_contents_created_at ON contents(created_at);
+-- content_blocks 表索引
+CREATE INDEX ix_content_blocks_id ON content_blocks (id);
 ```
 
 ## 关系图
 
 ```
-prompts 1 ---- * contents
+agent_prompts 1 ---- * content_blocks
    |
-   |-- content_type: 内容类型
-   |-- structure: 内容结构
+   |-- prompt_text: 提示词文本
+   |-- created_at: 创建时间
    |
-contents
+content_blocks
    |
-   |-- content_text: 生成内容
-   |-- metadata: 元数据
+   |-- content: 内容块文本
+   |-- block_type: 内容块类型
+   |-- created_at: 创建时间
 ```
 
 ## 数据模型
 
-### Prompt 模型
+### AgentPrompt 模型
 ```python
-class Prompt(Base):
-    __tablename__ = "prompts"
+class AgentPrompt(Base):
+    __tablename__ = "agent_prompts"
     
     id = Column(Integer, primary_key=True)
     prompt_text = Column(String, nullable=False)
-    content_type = Column(String, nullable=False)
-    structure = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 ```
 
-### Content 模型
+### ContentBlock 模型
 ```python
-class Content(Base):
-    __tablename__ = "contents"
+class ContentBlock(Base):
+    __tablename__ = "content_blocks"
     
     id = Column(Integer, primary_key=True)
-    prompt_id = Column(Integer, ForeignKey("prompts.id"), nullable=False)
-    content_text = Column(String, nullable=False)
-    metadata = Column(JSON)
+    prompt_id = Column(Integer, ForeignKey("agent_prompts.id"))
+    content = Column(String, nullable=False)
+    block_type = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 ```
 
@@ -125,8 +105,8 @@ alembic downgrade -1
 ## 性能优化
 
 1. **索引优化**
-   - 为常用查询字段创建索引
-   - 避免过度索引
+   - 已为 id 字段创建索引
+   - 考虑为常用查询字段添加索引
 
 2. **查询优化**
    - 使用适当的 JOIN 策略
@@ -174,4 +154,5 @@ alembic downgrade -1
 
 | 日期 | 版本 | 更新内容 | 作者 |
 |------|------|----------|------|
-| 2024-06 | 1.0 | 初始版本 | AI Assistant | 
+| 2024-06 | 1.0 | 初始版本 | AI Assistant |
+| 2024-06 | 1.1 | 修正为实际数据库结构 | AI Assistant | 
