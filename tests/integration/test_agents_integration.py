@@ -15,12 +15,6 @@ def test_planner():
     assert "prompt" in result
     assert result["prompt"] == test_prompt
 
-# 测试 Writer 代理
-# 注意：这个测试会实际调用 OpenAI API，需要设置正确的 API 密钥
-@pytest.mark.skipif(
-    not os.environ.get("OPENAI_API_KEY"),
-    reason="需要设置 OPENAI_API_KEY 环境变量"
-)
 def test_writer():
     """测试 Writer 代理是否能生成内容"""
     test_task = {
@@ -28,10 +22,17 @@ def test_writer():
         "prompt": "写一段关于人工智能的简短介绍"
     }
     result = write_content(test_task)
-    
+
     # 验证返回结果不为空
-    assert isinstance(result, str)
-    assert len(result) > 0
+    # 如果有有效的 OpenAI API 密钥，返回字符串；否则返回 Mock 数据（字典）
+    if os.environ.get("OPENAI_API_KEY") and os.environ.get("OPENAI_API_KEY") != "your_api_key_here":
+        assert isinstance(result, str)
+        assert len(result) > 0
+    else:
+        # 使用 Mock 数据时，返回结构化数据
+        assert isinstance(result, dict)
+        assert "title" in result
+        assert "paragraphs" in result
 
 # 测试错误处理
 def test_planner_with_empty_prompt():

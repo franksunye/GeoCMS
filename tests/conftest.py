@@ -11,6 +11,7 @@ def mock_db():
     mock_session = MagicMock()
     # 用于模拟自增 id
     _id_counter = {'prompt': 1, 'content': 1}
+
     def add_side_effect(obj):
         if isinstance(obj, AgentPrompt) and obj.id is None:
             obj.id = _id_counter['prompt']
@@ -18,9 +19,20 @@ def mock_db():
         if isinstance(obj, ContentBlock) and obj.id is None:
             obj.id = _id_counter['content']
             _id_counter['content'] += 1
+
+    def refresh_side_effect(obj):
+        # refresh 操作通常用于获取数据库生成的字段（如 id）
+        # 在 mock 中，我们确保对象已经有了 id
+        if isinstance(obj, AgentPrompt) and obj.id is None:
+            obj.id = _id_counter['prompt']
+            _id_counter['prompt'] += 1
+        if isinstance(obj, ContentBlock) and obj.id is None:
+            obj.id = _id_counter['content']
+            _id_counter['content'] += 1
+
     mock_session.add.side_effect = add_side_effect
     mock_session.commit.side_effect = lambda: None
-    mock_session.refresh.side_effect = lambda obj: None
+    mock_session.refresh.side_effect = refresh_side_effect
     mock_session.query.return_value.filter.return_value.first.return_value = None
     return mock_session
 

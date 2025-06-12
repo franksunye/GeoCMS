@@ -41,6 +41,11 @@ ENV/
 # Logs
 *.log
 
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
