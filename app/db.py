@@ -7,13 +7,19 @@ from typing import Generator
 engine = create_engine("sqlite:///./geo_poc.db", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+def create_tables():
+    """
+    创建所有数据库表
+    """
+    Base.metadata.create_all(bind=engine)
+
 # 创建所有表（如果不存在）
-Base.metadata.create_all(bind=engine)
+create_tables()
 
 def get_db() -> Generator[Session, None, None]:
     """
     获取数据库会话的依赖函数
-    
+
     Yields:
         Session: SQLAlchemy 数据库会话
     """

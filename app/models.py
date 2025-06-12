@@ -21,5 +21,14 @@ class ContentBlock(Base):
     prompt = relationship("AgentPrompt", back_populates="content_blocks")
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
+class KnowledgeBase(Base):
+    __tablename__ = "knowledge_base"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    topic = Column(String(100), nullable=False, index=True)
+    content = Column(Text, nullable=False)  # JSON 格式存储
+    description = Column(Text)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
 # 确保导出 Base
-__all__ = ['Base', 'AgentPrompt', 'ContentBlock']
+__all__ = ['Base', 'AgentPrompt', 'ContentBlock', 'KnowledgeBase']

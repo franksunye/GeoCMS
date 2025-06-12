@@ -2,7 +2,7 @@
 
 ## 概述
 
-GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构设计，专注于将用户的自然语言提示词转换为结构化的内容输出。
+GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构设计，专注于将用户的自然语言提示词转换为结构化的内容输出。现已集成知识库感知功能，实现智能化的知识驱动内容生成。
 
 ## 技术栈
 
@@ -23,23 +23,37 @@ GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构�
 │   Streamlit     │    │   FastAPI       │    │   SQLite        │
 │   Frontend      │◄──►│   Backend       │◄──►│   Database      │
 │                 │    │                 │    │                 │
-│ - 用户界面      │    │ - API 路由      │    │ - 数据持久化    │
-│ - 内容预览      │    │ - 请求处理      │    │ - 关系管理      │
-│ - 交互控制      │    │ - 错误处理      │    │ - 事务支持      │
+│ - 内容生成界面  │    │ - API 路由      │    │ - 数据持久化    │
+│ - 知识库管理    │    │ - 请求处理      │    │ - 关系管理      │
+│ - 内容预览      │    │ - 错误处理      │    │ - 事务支持      │
+│ - 交互控制      │    │                 │    │                 │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   AI Agents     │
+                                │                        │
+                                ▼                        │
+                       ┌─────────────────┐               │
+                       │   AI Agents     │               │
+                       │                 │               │
+                       │ ┌─────────────┐ │               │
+                       │ │  Planner    │ │◄──────────────┤
+                       │ │  Agent      │ │  知识感知      │
+                       │ │ (知识感知)  │ │               │
+                       │ └─────────────┘ │               │
+                       │ ┌─────────────┐ │               │
+                       │ │  Writer     │ │               │
+                       │ │  Agent      │ │               │
+                       │ │ (上下文注入)│ │               │
+                       │ └─────────────┘ │               │
+                       └─────────────────┘               │
+                                │                        │
+                                ▼                        │
+                       ┌─────────────────┐               │
+                       │ Knowledge Base  │◄──────────────┘
+                       │   Service       │
                        │                 │
-                       │ ┌─────────────┐ │
-                       │ │  Planner    │ │
-                       │ │  Agent      │ │
-                       │ └─────────────┘ │
-                       │ ┌─────────────┐ │
-                       │ │  Writer     │ │
-                       │ │  Agent      │ │
-                       │ └─────────────┘ │
+                       │ - 知识存储      │
+                       │ - 需求推理      │
+                       │ - 上下文匹配    │
+                       │ - 模板管理      │
                        └─────────────────┘
                                 │
                                 ▼
@@ -59,24 +73,38 @@ GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构�
 - **职责**: 处理 HTTP 请求，提供 RESTful API
 - **主要组件**:
   - `run_prompt.py`: 核心提示词处理端点
+  - `knowledge.py`: 知识库管理端点（新增）
 - **功能**:
   - 请求验证和参数解析
   - 业务逻辑调用
   - 响应格式化和错误处理
   - 日志记录和监控
+  - 知识库CRUD操作（新增）
 
 ### 2. AI 代理层 (`app/agents/`)
 - **职责**: 智能内容分析和生成
 - **主要组件**:
-  - `planner.py`: 提示词分析和任务规划
-  - `writer.py`: 内容生成和格式化
+  - `planner.py`: 提示词分析和任务规划（支持知识感知）
+  - `writer.py`: 内容生成和格式化（支持知识上下文）
 - **功能**:
   - 提示词语义分析
   - 内容类型识别
+  - **知识需求推理**（新增）
+  - **知识上下文注入**（新增）
   - 结构化内容生成
   - Mock 数据回退机制
 
-### 3. 数据层 (`app/models.py`, `app/db.py`)
+### 3. 服务层 (`app/services/`)
+- **职责**: 业务逻辑处理和知识管理
+- **主要组件**:
+  - `knowledge.py`: 知识库服务（新增）
+- **功能**:
+  - 知识存储和检索
+  - 知识需求推理
+  - 知识模板管理
+  - 知识搜索和匹配
+
+### 4. 数据层 (`app/models.py`, `app/db.py`)
 - **职责**: 数据模型定义和持久化
 - **主要组件**:
   - `models.py`: SQLAlchemy 数据模型
@@ -84,22 +112,38 @@ GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构�
 - **功能**:
   - 提示词存储 (`AgentPrompt`)
   - 内容块存储 (`ContentBlock`)
+  - **知识库存储** (`KnowledgeBase`)（新增）
   - 关系映射和约束
   - 事务管理
 
-### 4. 前端层 (`frontend/`)
+### 5. 前端层 (`frontend/`)
 - **职责**: 用户界面和交互
 - **主要组件**:
-  - `streamlit_app.py`: Web 应用界面
+  - `streamlit_app.py`: Web 应用界面（支持知识库管理）
 - **功能**:
   - 提示词输入界面
+  - **知识库管理界面**（新增）
+  - **缺失知识提示**（新增）
   - 内容预览和渲染
   - API 状态监控
   - 响应结果展示
 
 ## 核心流程
 
-### 1. 请求处理流程
+### 1. 知识感知内容生成流程（新增）
+```
+用户输入 → 知识需求分析 → 知识检索 → 内容生成 → 结果返回
+    │           │             │           │           │
+    ▼           ▼             ▼           ▼           ▼
+Streamlit   Planner      Knowledge    Writer    ContentBlock
+   UI       Agent        Service      Agent       Table
+                            │
+                            ▼
+                      KnowledgeBase
+                         Table
+```
+
+### 2. 传统请求处理流程
 ```
 用户输入 → API 验证 → 数据库保存 → AI 处理 → 结果返回
     │           │           │           │           │
@@ -108,22 +152,32 @@ Streamlit   FastAPI    AgentPrompt   Planner    ContentBlock
    UI      run_prompt     Table      Agent        Table
 ```
 
-### 2. AI 内容生成流程
+### 3. 知识感知AI内容生成流程（增强版）
 ```
-1. Planner Agent 分析
+1. Planner Agent 分析（知识感知）
    ├── 提示词语义理解
    ├── 内容类型识别 (article/webpage/business)
    ├── 结构需求分析 (title/headings/paragraphs/faqs)
-   └── 内容长度估算 (short/medium/long)
+   ├── 内容长度估算 (short/medium/long)
+   ├── **知识需求推理** (company_info/product_info/brand_info/service_info)
+   └── **知识库查询和匹配**
 
-2. Writer Agent 生成
+2. 知识检索和验证
+   ├── 根据推理结果查询知识库
+   ├── 检测缺失的必要知识
+   ├── 返回缺失知识提示 OR 可用知识上下文
+   └── 构建知识上下文字典
+
+3. Writer Agent 生成（上下文增强）
    ├── 检查 OpenAI API 可用性
+   ├── **注入知识上下文到提示词**
    ├── 构建增强提示词
    ├── LLM 调用 / Mock 数据回退
-   └── 结构化内容输出
+   ├── **使用知识增强内容**
+   └── 结构化内容输出 + 知识来源标记
 ```
 
-### 3. 数据持久化流程
+### 4. 数据持久化流程（扩展版）
 ```
 AgentPrompt (1) ──────── (N) ContentBlock
      │                        │
@@ -132,6 +186,15 @@ AgentPrompt (1) ──────── (N) ContentBlock
      ├── created_at           ├── content (JSON)
      └── content_blocks[]     ├── block_type
                               └── created_at
+
+KnowledgeBase (独立表)
+     │
+     ├── id (自增主键)
+     ├── topic (主题，索引)
+     ├── content (JSON格式知识)
+     ├── description (描述)
+     ├── created_at
+     └── updated_at
 ```
 
 ## 数据模型
@@ -158,6 +221,18 @@ class ContentBlock(Base):
     prompt = relationship("AgentPrompt", back_populates="content_blocks")
 ```
 
+### KnowledgeBase（新增）
+```python
+class KnowledgeBase(Base):
+    __tablename__ = "knowledge_base"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    topic = Column(String(100), nullable=False, index=True)
+    content = Column(Text, nullable=False)  # JSON 格式存储
+    description = Column(Text)
+    created_at = Column(DateTime, default=timezone.utc)
+    updated_at = Column(DateTime, default=timezone.utc)
+```
+
 ## 配置管理
 
 ### 环境变量
@@ -177,10 +252,14 @@ class ContentBlock(Base):
 
 ## 测试策略
 
-- **单元测试**: 覆盖所有核心模块 (93% 覆盖率)
-- **集成测试**: 端到端流程验证
+- **单元测试**: 覆盖所有核心模块 (>95% 覆盖率)
+  - 知识库服务测试：18个测试
+  - 知识库API测试：11个测试
+  - 知识感知Planner测试：5个测试
+- **集成测试**: 端到端流程验证（11个测试）
 - **Mock 测试**: AI 服务不可用时的回退机制
 - **API 测试**: 接口功能和错误处理
+- **知识库功能测试**: 完整的知识管理流程测试（新增）
 
 ## 部署架构
 

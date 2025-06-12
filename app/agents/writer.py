@@ -53,7 +53,16 @@ def generate_mock_content(task: Dict[str, Any]) -> Dict[str, Any]:
         结构化的Mock内容
     """
     prompt_text = task["prompt"]
-    return get_mock_content(prompt_text)
+    knowledge_context = task.get("knowledge_context", {})
+
+    # 获取基础 Mock 内容
+    mock_content = get_mock_content(prompt_text)
+
+    # 如果有知识上下文，增强内容
+    if knowledge_context:
+        mock_content = enhance_content_with_knowledge(mock_content, knowledge_context)
+
+    return mock_content
 
 def generate_real_content(task: Dict[str, Any]) -> str:
     """
@@ -68,9 +77,10 @@ def generate_real_content(task: Dict[str, Any]) -> str:
     prompt_text = task["prompt"]
     content_type = task.get("content_type", "general")
     structure = task.get("structure", {})
+    knowledge_context = task.get("knowledge_context", {})
 
     # 构建更详细的提示词
-    enhanced_prompt = build_enhanced_prompt(prompt_text, content_type, structure)
+    enhanced_prompt = build_enhanced_prompt(prompt_text, content_type, structure, knowledge_context)
 
     # 初始化LLM
     llm = OpenAI(temperature=0.7, max_tokens=2000)
@@ -89,7 +99,7 @@ def generate_real_content(task: Dict[str, Any]) -> str:
 
     return result
 
-def build_enhanced_prompt(prompt_text: str, content_type: str, structure: Dict[str, bool]) -> str:
+def build_enhanced_prompt(prompt_text: str, content_type: str, structure: Dict[str, bool], knowledge_context: Dict[str, Any] = None) -> str:
     """
     构建增强的提示词
 
@@ -97,6 +107,7 @@ def build_enhanced_prompt(prompt_text: str, content_type: str, structure: Dict[s
         prompt_text: 原始提示词
         content_type: 内容类型
         structure: 内容结构需求
+        knowledge_context: 知识上下文
 
     Returns:
         增强的提示词
@@ -104,6 +115,13 @@ def build_enhanced_prompt(prompt_text: str, content_type: str, structure: Dict[s
     enhanced_prompt = f"请根据以下要求生成内容：\n\n"
     enhanced_prompt += f"主题：{prompt_text}\n"
     enhanced_prompt += f"内容类型：{content_type}\n\n"
+
+    # 添加知识上下文
+    if knowledge_context:
+        enhanced_prompt += "相关背景信息：\n"
+        for topic, content in knowledge_context.items():
+            enhanced_prompt += f"- {topic}: {json.dumps(content, ensure_ascii=False)}\n"
+        enhanced_prompt += "\n"
 
     enhanced_prompt += "请按照以下结构生成内容：\n"
 
@@ -125,6 +143,58 @@ def build_enhanced_prompt(prompt_text: str, content_type: str, structure: Dict[s
     if structure.get("needs_steps", False):
         enhanced_prompt += "6. 具体的操作步骤\n"
 
-    enhanced_prompt += "\n请确保内容准确、有用且易于理解。"
+    enhanced_prompt += "\n请确保内容准确、有用且易于理解，并充分利用提供的背景信息。"
 
     return enhanced_prompt
+
+def enhance_content_with_knowledge(content: Dict[str, Any], knowledge_context: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    使用知识上下文增强内容
+
+    Args:
+        content: 原始内容
+        knowledge_context: 知识上下文
+
+    Returns:
+        增强后的内容
+    """
+    enhanced_content = content.copy()
+
+    # 增强标题
+    if "title" in enhanced_content and knowledge_context:
+        for topic, knowledge in knowledge_context.items():
+            if topic == "company_info" and "name" in knowledge:
+                enhanced_content["title"] = f"{knowledge['name']} - {enhanced_content['title']}"
+                break
+            elif topic == "product_info" and "name" in knowledge:
+                enhanced_content["title"] = f"{knowledge['name']} - {enhanced_content['title']}"
+                break
+
+    # 增强段落内容
+    if "paragraphs" in enhanced_content and knowledge_context:
+        enhanced_paragraphs = []
+        for paragraph in enhanced_content["paragraphs"]:
+            enhanced_paragraph = paragraph
+
+            # 注入公司信息
+            if "company_info" in knowledge_context:
+                company_info = knowledge_context["company_info"]
+                if "name" in company_info:
+                    enhanced_paragraph = enhanced_paragraph.replace("我们的公司", company_info["name"])
+                    enhanced_paragraph = enhanced_paragraph.replace("本公司", company_info["name"])
+
+            # 注入产品信息
+            if "product_info" in knowledge_context:
+                product_info = knowledge_context["product_info"]
+                if "name" in product_info:
+                    enhanced_paragraph = enhanced_paragraph.replace("我们的产品", product_info["name"])
+                    enhanced_paragraph = enhanced_paragraph.replace("该产品", product_info["name"])
+
+            enhanced_paragraphs.append(enhanced_paragraph)
+
+        enhanced_content["paragraphs"] = enhanced_paragraphs
+
+    # 添加知识来源标记
+    enhanced_content["knowledge_sources"] = list(knowledge_context.keys())
+
+    return enhanced_content

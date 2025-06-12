@@ -43,9 +43,20 @@ def run_prompt(payload: dict):
         db.refresh(prompt)
         logger.info(f"保存提示词记录，ID: {prompt.id}")
 
-        # 规划任务
-        task = plan_task(prompt_text)
+        # 规划任务（包含知识分析）
+        task = plan_task(prompt_text, db)
         logger.info(f"任务规划完成: {task}")
+
+        # 检查是否缺少必要知识
+        if task.get("task") == "missing_knowledge":
+            logger.info("检测到缺失知识，返回缺失信息")
+            return {
+                "status": "missing_knowledge",
+                "prompt_id": prompt.id,
+                "missing_knowledge": task.get("missing_knowledge", []),
+                "available_knowledge": task.get("available_knowledge", []),
+                "message": "需要补充以下知识才能生成更准确的内容"
+            }
 
         # 生成内容
         result = write_content(task)
@@ -73,10 +84,12 @@ def run_prompt(payload: dict):
 
         # 返回统一格式的响应
         response = {
+            "status": "success",
             "id": content_block.id,
             "prompt_id": prompt.id,
             "content": result,
             "content_type": content_type,
+            "knowledge_used": task.get("metadata", {}).get("knowledge_used", []),
             "created_at": content_block.created_at.isoformat() if content_block.created_at else None
         }
 

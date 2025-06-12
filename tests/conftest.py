@@ -39,7 +39,15 @@ def mock_db():
 @pytest.fixture
 def mock_openai_response():
     """Mock OpenAI API response"""
-    with patch('app.api.run_prompt.write_content', return_value="这是一个模拟的响应"):
+    # 返回结构化的mock内容，与实际的generate_mock_content保持一致
+    mock_content = {
+        "title": "测试标题",
+        "headings": ["章节1", "章节2"],
+        "paragraphs": ["这是第一段内容。", "这是第二段内容。"],
+        "faqs": [],
+        "knowledge_sources": []
+    }
+    with patch('app.api.run_prompt.write_content', return_value=mock_content):
         yield
 
 @pytest.fixture
