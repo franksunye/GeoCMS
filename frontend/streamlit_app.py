@@ -6,10 +6,92 @@ from datetime import datetime
 
 # 页面配置
 st.set_page_config(
-    page_title="GeoCMS - AI驱动的智能建站系统",
+    page_title="GeoCMS",
     page_icon="🌍",
     layout="wide"
 )
+
+# 自定义CSS样式
+st.markdown("""
+<style>
+    /* 全局样式 */
+    .stApp {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+    }
+    
+    /* 标题样式 */
+    h1 {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+        margin-bottom: 1.5rem !important;
+    }
+    
+    h2 {
+        font-size: 24px !important;
+        font-weight: 600 !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    h3 {
+        font-size: 20px !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    /* 正文样式 */
+    p, .stMarkdown {
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+    }
+    
+    /* 卡片容器样式 */
+    .card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* 输入框样式 */
+    .stTextArea textarea {
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+    }
+    
+    /* 按钮样式 */
+    .stButton button {
+        font-size: 16px !important;
+        font-weight: 500 !important;
+    }
+    
+    /* 侧边栏样式 */
+    .css-1d391kg {
+        padding: 1rem;
+    }
+    
+    /* 标签页样式 */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: #f8f9fa;
+        border-radius: 4px 4px 0 0;
+        gap: 1rem;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background-color: #ffffff;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # 初始化session state
 if 'current_page' not in st.session_state:
@@ -102,50 +184,45 @@ def render_structured_content(content: Dict[str, Any]) -> str:
 def render_content_preview(content: Any, content_type: str):
     """渲染内容预览"""
     if content_type == "structured" and isinstance(content, dict):
-        # 结构化内容预览
-        st.subheader("📄 内容预览")
+        # 创建标签页
+        preview_tab, web_tab = st.tabs(["内容预览", "网页预览"])
 
-        # 显示标题
-        if 'title' in content:
-            st.markdown(f"# {content['title']}")
+        with preview_tab:
+            # 显示标题
+            if 'title' in content:
+                st.markdown(f"# {content['title']}")
 
-        # 显示章节
-        headings = content.get('headings', [])
-        paragraphs = content.get('paragraphs', [])
+            # 显示章节
+            headings = content.get('headings', [])
+            paragraphs = content.get('paragraphs', [])
 
-        for i, heading in enumerate(headings):
-            st.markdown(f"## {heading}")
-            if i < len(paragraphs):
-                st.markdown(paragraphs[i])
+            for i, heading in enumerate(headings):
+                st.markdown(f"## {heading}")
+                if i < len(paragraphs):
+                    st.markdown(paragraphs[i])
 
-        # 显示FAQ
-        faqs = content.get('faqs', [])
-        if faqs:
-            st.markdown("## 常见问题")
-            for faq in faqs:
-                with st.expander(faq.get('question', '问题')):
-                    st.markdown(faq.get('answer', '答案'))
+            # 显示FAQ
+            faqs = content.get('faqs', [])
+            if faqs:
+                st.markdown("## 常见问题")
+                for faq in faqs:
+                    with st.expander(faq.get('question', '问题')):
+                        st.markdown(faq.get('answer', '答案'))
 
-        # 网页预览
-        st.subheader("🌐 网页预览")
-        html_content = render_structured_content(content)
-        st.components.v1.html(html_content, height=600, scrolling=True)
-
+        with web_tab:
+            html_content = render_structured_content(content)
+            st.components.v1.html(html_content, height=600, scrolling=True)
     else:
         # 文本内容预览
-        st.subheader("📝 生成内容")
         st.markdown(str(content))
 
 # 主界面
-st.title("🌍 GeoCMS - AI驱动的智能建站系统")
-st.markdown("基于大语言模型的智能内容生成与管理系统")
-
 # 侧边栏
 with st.sidebar:
-    st.header("📋 页面导航")
+    st.header("页面导航")
     page_options = {
-        "content_generation": "📝 内容生成",
-        "knowledge_management": "🧠 知识库管理"
+        "content_generation": "网站生成",
+        "knowledge_management": "知识库管理"
     }
 
     # 确保session_state已初始化
@@ -163,13 +240,13 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.header("⚙️ 系统配置")
+    st.header("系统配置")
     api_url = st.text_input("API服务地址", value=st.session_state.get('api_url', 'http://localhost:8000'))
     if api_url != st.session_state.get('api_url', 'http://localhost:8000'):
         st.session_state.api_url = api_url
 
     st.markdown("---")
-    st.header("📊 系统状态")
+    st.header("系统状态")
 
     # 检查API状态
     try:
@@ -187,17 +264,19 @@ def render_content_generation_page(api_url: str):
     col1, col2 = st.columns([1, 2])
 
     with col1:
-        st.header("📝 内容生成")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.header("一句话生成网站")
 
         # 提示词输入
         prompt = st.text_area(
-            "请输入您的创意或需求：",
+            label="输入",
             placeholder="例如：创建一个关于人工智能的专题页面，包含技术介绍、应用案例和未来展望",
-            height=100
+            height=100,
+            label_visibility="collapsed"
         )
 
         # 生成按钮
-        if st.button("✨ 智能生成", type="primary"):
+        if st.button("生成内容", type="primary"):
             if not prompt.strip():
                 st.error("请输入提示词")
             else:
@@ -215,13 +294,13 @@ def render_content_generation_page(api_url: str):
 
                             # 检查是否是缺失知识的响应
                             if result.get("status") == "missing_knowledge":
-                                st.warning("⚠️ 检测到缺失必要知识信息")
+                                st.warning("检测到缺失必要知识信息")
                                 st.session_state['missing_knowledge'] = result.get('missing_knowledge', [])
 
                                 # 显示缺失知识信息
-                                st.subheader("🔍 需要补充的知识")
+                                st.subheader("需要补充的知识")
                                 for missing in result.get('missing_knowledge', []):
-                                    with st.expander(f"📋 {missing.get('description', missing.get('topic', '未知'))}"):
+                                    with st.expander(missing.get('description', missing.get('topic', '未知'))):
                                         st.write(f"**主题**: {missing.get('topic', '未知')}")
                                         st.write(f"**描述**: {missing.get('description', '无描述')}")
                                         if missing.get('suggested_fields'):
@@ -229,37 +308,39 @@ def render_content_generation_page(api_url: str):
                                             for field in missing['suggested_fields']:
                                                 st.write(f"- {field}")
 
-                                        if st.button(f"➕ 添加 {missing.get('topic', '知识')}", key=f"add_{missing.get('topic')}"):
+                                        if st.button(f"添加 {missing.get('topic', '知识')}", key=f"add_{missing.get('topic')}"):
                                             st.session_state.current_page = "knowledge_management"
                                             st.session_state['add_knowledge_topic'] = missing.get('topic')
                                             st.rerun()
                             else:
                                 # 正常生成内容
                                 st.session_state['last_result'] = result
-                                st.success("✅ 内容生成成功！")
+                                st.success("内容生成成功！")
 
                                 # 显示使用的知识
                                 if result.get('knowledge_used'):
-                                    st.info(f"📚 使用了知识: {', '.join(result['knowledge_used'])}")
+                                    st.info(f"使用了知识: {', '.join(result['knowledge_used'])}")
                         else:
-                            st.error(f"❌ 生成失败：{response.json().get('detail', '未知错误')}")
+                            st.error(f"生成失败：{response.json().get('detail', '未知错误')}")
 
                     except requests.exceptions.Timeout:
-                        st.error("❌ 请求超时，请稍后重试")
+                        st.error("请求超时，请稍后重试")
                     except requests.exceptions.ConnectionError:
-                        st.error("❌ 无法连接到API服务")
+                        st.error("无法连接到API服务")
                     except Exception as e:
-                        st.error(f"❌ 发生错误：{str(e)}")
+                        st.error(f"发生错误：{str(e)}")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
-        st.header("📋 生成结果")
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.header("生成结果")
 
         # 显示生成结果
         if 'last_result' in st.session_state:
             result = st.session_state['last_result']
 
             # 显示元数据
-            with st.expander("📊 生成信息"):
+            with st.expander("生成信息"):
                 st.json({
                     "ID": result.get('id'),
                     "Prompt ID": result.get('prompt_id'),
@@ -274,24 +355,26 @@ def render_content_generation_page(api_url: str):
                 result.get('content_type', 'text')
             )
         else:
-            st.info("👆 请在左侧输入提示词并点击生成按钮")
+            st.info("请在左侧输入提示词并点击生成按钮")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 def render_knowledge_management_page(api_url: str):
     """渲染知识库管理页面"""
-    st.header("🧠 知识库管理")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.header("知识库管理")
 
     # 创建标签页
-    tab1, tab2, tab3 = st.tabs(["📋 知识列表", "➕ 添加知识", "📊 统计信息"])
+    tab1, tab2, tab3 = st.tabs(["知识列表", "添加知识", "统计信息"])
 
     with tab1:
-        st.subheader("📋 现有知识")
+        st.subheader("现有知识")
 
         # 获取知识列表
         knowledge_list = get_knowledge_list(api_url)
 
         if knowledge_list:
             for knowledge in knowledge_list:
-                with st.expander(f"📚 {knowledge['topic']} - {knowledge.get('description', '无描述')}"):
+                with st.expander(f"{knowledge['topic']} - {knowledge.get('description', '无描述')}"):
                     col1, col2 = st.columns([3, 1])
 
                     with col1:
@@ -305,14 +388,14 @@ def render_knowledge_management_page(api_url: str):
                         st.json(knowledge['content'])
 
                     with col2:
-                        if st.button("🗑️ 删除", key=f"delete_{knowledge['id']}"):
+                        if st.button("删除", key=f"delete_{knowledge['id']}"):
                             if delete_knowledge(api_url, knowledge['id']):
                                 st.rerun()
         else:
-            st.info("📝 暂无知识条目，请添加一些知识来开始使用。")
+            st.info("暂无知识条目，请添加一些知识来开始使用。")
 
     with tab2:
-        st.subheader("➕ 添加新知识")
+        st.subheader("添加新知识")
 
         # 获取知识模板
         templates_data = get_knowledge_templates(api_url)
@@ -383,7 +466,7 @@ def render_knowledge_management_page(api_url: str):
                 content = {}
 
         # 添加按钮
-        if st.button("💾 保存知识", type="primary"):
+        if st.button("保存知识", type="primary"):
             if not selected_template:
                 st.error("请输入知识主题")
             elif not content:
@@ -393,7 +476,7 @@ def render_knowledge_management_page(api_url: str):
                     st.rerun()
 
     with tab3:
-        st.subheader("📊 知识库统计")
+        st.subheader("知识库统计")
 
         try:
             response = requests.get(f"{api_url}/api/knowledge/stats/summary", timeout=10)
@@ -415,17 +498,18 @@ def render_knowledge_management_page(api_url: str):
 
                 # 显示各类型分布
                 if topic_counts:
-                    st.subheader("📈 知识类型分布")
+                    st.subheader("知识类型分布")
                     st.bar_chart(topic_counts)
 
                 # 显示可用模板
-                st.subheader("📋 可用模板")
+                st.subheader("可用模板")
                 for template in stats.get('available_templates', []):
                     st.write(f"- {template}")
             else:
                 st.error("获取统计信息失败")
         except Exception as e:
             st.error(f"获取统计信息失败: {str(e)}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # 页面路由
 current_page = st.session_state.get('current_page', 'content_generation')
@@ -439,8 +523,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666;'>
-        <p>GeoCMS v1.0 | 由 FastAPI + Streamlit + LangChain 驱动的下一代智能建站系统</p>
-        <p>🧠 现已支持知识库感知的智能内容生成</p>
+        <p>GeoCMS v0.1.0 | 由 FastAPI + Streamlit + LangChain 驱动的智能建站系统</p>
+        <p>支持知识库感知的智能内容生成</p>
     </div>
     """,
     unsafe_allow_html=True
