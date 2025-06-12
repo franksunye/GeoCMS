@@ -1,3 +1,5 @@
+# 本文件为接口级（集成）测试，已从 unit/api 目录迁移到 integration 目录
+# 使用 FastAPI TestClient 进行接口测试
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch

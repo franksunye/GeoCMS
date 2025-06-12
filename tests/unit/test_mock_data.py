@@ -13,103 +13,119 @@ class TestMockDataGenerator:
     
     def test_generate_ai_content(self):
         """测试AI相关内容生成"""
-        prompt = "写一篇关于人工智能的文章"
-        content = self.generator.generate_content(prompt)
+        test_cases = [
+            "写一篇关于人工智能的文章",
+            "AI技术发展",
+            "机器学习应用",
+            "深度学习简介"
+        ]
         
-        assert isinstance(content, dict)
-        assert content["title"] == "人工智能技术概述"
-        assert "headings" in content
-        assert "paragraphs" in content
-        assert "faqs" in content
-        assert len(content["headings"]) > 0
-        assert len(content["paragraphs"]) > 0
-        assert len(content["faqs"]) > 0
+        for prompt in test_cases:
+            content = self.generator.generate_content(prompt)
+            assert isinstance(content, dict)
+            assert content["title"] == "人工智能技术概述"
+            assert "headings" in content
+            assert "paragraphs" in content
+            assert "faqs" in content
+            assert len(content["headings"]) > 0
+            assert len(content["paragraphs"]) > 0
+            assert len(content["faqs"]) > 0
     
     def test_generate_web_content(self):
         """测试Web开发相关内容生成"""
-        prompt = "网站开发最佳实践"
-        content = self.generator.generate_content(prompt)
+        test_cases = [
+            "网站开发最佳实践",
+            "前端技术介绍",
+            "后端架构设计",
+            "web开发教程"
+        ]
         
-        assert isinstance(content, dict)
-        assert content["title"] == "网站开发最佳实践"
-        assert "前端开发技术" in content["headings"]
+        for prompt in test_cases:
+            content = self.generator.generate_content(prompt)
+            assert isinstance(content, dict)
+            assert content["title"] == "网站开发最佳实践"
+            assert "前端开发技术" in content["headings"]
+            assert "后端架构设计" in content["headings"]
     
     def test_generate_business_content(self):
         """测试商业相关内容生成"""
-        prompt = "创业公司发展指南"
-        content = self.generator.generate_content(prompt)
-        
-        assert isinstance(content, dict)
-        assert content["title"] == "创业公司发展指南"
-        assert "商业模式设计" in content["headings"]
-    
-    def test_generate_default_content(self):
-        """测试默认内容生成"""
-        prompt = "一些随机的提示词"
-        content = self.generator.generate_content(prompt)
-        
-        assert isinstance(content, dict)
-        assert "关于'一些随机的提示词...'" in content["title"]
-        assert "headings" in content
-        assert "paragraphs" in content
-    
-    def test_generate_simple_response(self):
-        """测试简单文本响应生成"""
-        prompt = "人工智能"
-        response = self.generator.generate_simple_response(prompt)
-        
-        assert isinstance(response, str)
-        assert "人工智能技术概述" in response
-        assert "##" in response  # 包含标题标记
-        assert "**" in response  # 包含FAQ问题标记
-    
-    def test_keyword_matching_ai(self):
-        """测试AI关键词匹配"""
         test_cases = [
-            "ai技术",
-            "人工智能发展",
-            "机器学习算法",
-            "深度学习应用"
-        ]
-        
-        for prompt in test_cases:
-            content = self.generator.generate_content(prompt)
-            assert content["title"] == "人工智能技术概述"
-    
-    def test_keyword_matching_web(self):
-        """测试Web开发关键词匹配"""
-        test_cases = [
-            "网站建设",
-            "web开发",
-            "前端技术",
-            "后端架构"
-        ]
-        
-        for prompt in test_cases:
-            content = self.generator.generate_content(prompt)
-            assert content["title"] == "网站开发最佳实践"
-    
-    def test_keyword_matching_business(self):
-        """测试商业关键词匹配"""
-        test_cases = [
-            "创业指南",
-            "商业计划",
-            "公司管理",
+            "创业公司发展指南",
+            "商业模式设计",
+            "公司融资策略",
             "business plan"
         ]
         
         for prompt in test_cases:
             content = self.generator.generate_content(prompt)
+            assert isinstance(content, dict)
             assert content["title"] == "创业公司发展指南"
+            assert "商业模式设计" in content["headings"]
+            assert "融资策略" in content["headings"]
+    
+    def test_generate_default_content(self):
+        """测试默认内容生成"""
+        test_cases = [
+            "一些随机的提示词",
+            "不相关的主题",
+            "其他内容"
+        ]
+        
+        for prompt in test_cases:
+            content = self.generator.generate_content(prompt)
+            assert isinstance(content, dict)
+            assert "关于'" in content["title"]
+            assert "..." in content["title"]
+            assert "headings" in content
+            assert "paragraphs" in content
+            assert "faqs" in content
+    
+    def test_generate_simple_response(self):
+        """测试简单文本响应生成"""
+        test_cases = [
+            "人工智能",
+            "网站开发",
+            "创业指南"
+        ]
+        
+        for prompt in test_cases:
+            response = self.generator.generate_simple_response(prompt)
+            assert isinstance(response, str)
+            assert "# " in response  # 包含标题标记
+            assert "## " in response  # 包含章节标记
+            assert "**" in response  # 包含FAQ问题标记
+            assert len(response) > 0
 
 def test_get_mock_content():
     """测试全局Mock内容获取函数"""
-    content = get_mock_content("人工智能")
-    assert isinstance(content, dict)
-    assert "title" in content
+    test_cases = [
+        "人工智能",
+        "网站开发",
+        "创业指南",
+        "其他主题"
+    ]
+    
+    for prompt in test_cases:
+        content = get_mock_content(prompt)
+        assert isinstance(content, dict)
+        assert "title" in content
+        assert "headings" in content
+        assert "paragraphs" in content
+        assert "faqs" in content
 
 def test_get_mock_response():
     """测试全局Mock响应获取函数"""
-    response = get_mock_response("人工智能")
-    assert isinstance(response, str)
-    assert len(response) > 0
+    test_cases = [
+        "人工智能",
+        "网站开发",
+        "创业指南",
+        "其他主题"
+    ]
+    
+    for prompt in test_cases:
+        response = get_mock_response(prompt)
+        assert isinstance(response, str)
+        assert "# " in response
+        assert "## " in response
+        assert "**" in response
+        assert len(response) > 0

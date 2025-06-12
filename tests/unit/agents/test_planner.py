@@ -139,3 +139,72 @@ class TestContentLengthEstimation:
         prompt = "普通的内容请求"
         length = estimate_content_length(prompt)
         assert length == "medium"
+
+def test_plan_task_invalid_input():
+    """测试无效输入的处理"""
+    # 测试 None 输入
+    result = plan_task(None)
+    assert result["task"] == "error"
+    assert result["error"] == "Invalid prompt text"
+    
+    # 测试非字符串输入
+    result = plan_task(123)
+    assert result["task"] == "error"
+    assert result["error"] == "Invalid prompt text"
+    
+    # 测试空字符串
+    result = plan_task("")
+    assert result["task"] == "error"
+    assert result["error"] == "Invalid prompt text"
+
+def test_plan_task_content_types():
+    """测试不同类型内容的识别"""
+    test_cases = [
+        ("写一篇关于AI的文章", "article"),
+        ("创建一个网站首页", "webpage"),
+        ("Python入门教程", "tutorial"),
+        ("产品功能介绍", "overview"),
+        ("随便写点什么", "general")
+    ]
+    
+    for prompt, expected_type in test_cases:
+        result = plan_task(prompt)
+        assert result["content_type"] == expected_type
+        assert result["task"] == "generate_content"
+        assert "structure" in result
+        assert "length" in result
+        assert "metadata" in result
+
+def test_analyze_content_structure():
+    """测试内容结构分析"""
+    # 测试长文本
+    long_prompt = "这是一个很长的提示词" * 10
+    structure = analyze_content_structure(long_prompt)
+    assert structure["needs_headings"] is True
+    
+    # 测试FAQ相关
+    faq_prompt = "常见问题解答"
+    structure = analyze_content_structure(faq_prompt)
+    assert structure["needs_faqs"] is True
+    
+    # 测试示例相关
+    example_prompt = "请给出一些例子"
+    structure = analyze_content_structure(example_prompt)
+    assert structure["needs_examples"] is True
+    
+    # 测试步骤相关
+    steps_prompt = "操作步骤是什么"
+    structure = analyze_content_structure(steps_prompt)
+    assert structure["needs_steps"] is True
+
+def test_estimate_content_length():
+    """测试内容长度估算"""
+    test_cases = [
+        ("这是一个详细的分析", "long"),
+        ("简单介绍一下", "short"),
+        ("普通内容", "medium")
+    ]
+    
+    for prompt, expected_length in test_cases:
+        length = estimate_content_length(prompt)
+        assert length == expected_length

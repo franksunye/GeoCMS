@@ -28,7 +28,7 @@ def plan_task(prompt_text: str) -> Dict[str, Any]:
     content_type = "general"
     if any(keyword in prompt_lower for keyword in ["文章", "博客", "blog", "article"]):
         content_type = "article"
-    elif any(keyword in prompt_lower for keyword in ["网页", "页面", "website", "page"]):
+    elif any(keyword in prompt_lower for keyword in ["网页", "页面", "网站", "website", "page", "首页"]):
         content_type = "webpage"
     elif any(keyword in prompt_lower for keyword in ["教程", "指南", "tutorial", "guide"]):
         content_type = "tutorial"
