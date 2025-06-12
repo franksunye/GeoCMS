@@ -2,10 +2,9 @@
 pytest==7.4.0
 pytest-cov==4.1.0
 httpx==0.24.1
-fastapi==0.95.2
+fastapi
 uvicorn==0.22.0
-pydantic==1.10.13
-pydantic_core==1.10.1
+pydantic
 sqlalchemy==2.0.23
 python-multipart==0.0.6
 python-jose[cryptography]==3.3.0
