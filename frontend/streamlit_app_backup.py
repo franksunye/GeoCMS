@@ -228,25 +228,41 @@ def render_content_preview(content: Any, content_type: str):
         st.markdown(str(content))
 
 # AI Native 对话功能
-def call_ai_api(api_url: str, endpoint: str, data=None, method="POST") -> Dict[str, Any]:
-    """统一的AI API调用函数"""
+def start_ai_conversation(api_url: str, user_intent: str) -> Dict[str, Any]:
+    """开始AI Native对话"""
     try:
-        url = f"{api_url}{endpoint}"
-        if method == "POST":
-            response = requests.post(url, json=data, timeout=30)
-        else:
-            response = requests.get(url, timeout=30)
+        logger.info(f"开始AI对话，用户意图: {user_intent}")
+        if not user_intent.strip():
+            return {"error": "请输入您的意图"}
 
+        response = requests.post(
+            f"{api_url}/api/ai-native/conversations",
+            json={"user_intent": user_intent},
+            timeout=30
+        )
         if response.status_code == 200:
-            return {"success": True, "data": response.json()}
+            result = response.json()
+            logger.info(f"API返回成功: {result}")
+            return result
         else:
-            return {"success": False, "error": f"API调用失败: {response.status_code}"}
+            error_msg = f"启动对话失败: {response.status_code}"
+            try:
+                error_detail = response.json().get("detail", "")
+                if error_detail:
+                    error_msg += f" - {error_detail}"
+            except:
+                pass
+            logger.error(f"API调用失败: {error_msg}")
+            return {"error": error_msg}
     except requests.exceptions.ConnectionError:
-        return {"success": False, "error": "无法连接到API服务，请确保后端服务正在运行"}
+        logger.error("无法连接到API服务")
+        return {"error": "无法连接到API服务，请确保后端服务正在运行"}
     except requests.exceptions.Timeout:
-        return {"success": False, "error": "请求超时，请稍后重试"}
+        logger.error("请求超时")
+        return {"error": "请求超时，请稍后重试"}
     except Exception as e:
-        return {"success": False, "error": f"发生错误: {str(e)}"}
+        logger.error(f"发生异常: {str(e)}")
+        return {"error": f"发生错误: {str(e)}"}
 
 def process_user_input(api_url: str, run_id: int, user_input: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
     """处理用户输入"""
@@ -296,266 +312,279 @@ def generate_content_ai_native(api_url: str, run_id: int, task_data: Dict[str, A
     except Exception as e:
         return {"error": f"连接失败: {str(e)}"}
 
-# 旧的渲染函数已被内联到新的AI Native对话页面中
+def render_conversation_message(message: Dict[str, Any], is_user: bool = True):
+    """渲染对话消息"""
+    # 确保content不为None或字符串"None"
+    content = message.get('content', '')
+    logger.info(f"渲染消息 - 原始content: {repr(content)}, is_user: {is_user}")
+    if content is None or content == "None" or str(content).strip() == "None":
+        content = ''
+        logger.warning(f"Content为None或'None'，已替换为空字符串。原始值: {repr(content)}")
+
+    if is_user:
+        st.markdown(f"""
+        <div style="background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin: 5px 0; margin-left: 20%;">
+            <strong>您:</strong> {content}
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        logger.info(f"渲染AI助手消息: {repr(content)}")
+        st.markdown(f"""
+        <div style="background-color: #f5f5f5; padding: 10px; border-radius: 10px; margin: 5px 0; margin-right: 20%;">
+            <strong>AI助手:</strong> {content}
+        </div>
+        """, unsafe_allow_html=True)
+
+def render_slot_input_form(next_action: Dict[str, Any], api_url: str, run_id: int):
+    """渲染槽位输入表单"""
+    slot_name = next_action.get('slot_name', '')
+    prompt = next_action.get('prompt', '')
+    options = next_action.get('options', [])
+
+    logger.info(f"渲染槽位表单 - slot_name: {slot_name}, 原始prompt: {repr(prompt)}")
+
+    # 确保prompt不为None或字符串"None"
+    if prompt is None or prompt == "None" or str(prompt).strip() == "None":
+        prompt = "请提供更多信息"
+        logger.warning(f"槽位表单prompt为None或'None'，已替换为默认值。原始值: {repr(prompt)}")
+
+    logger.info(f"最终显示的prompt: {repr(prompt)}")
+
+    st.markdown(f"**{prompt}**")
+
+    if options:
+        # 有选项的情况，使用选择框
+        user_input = st.selectbox(
+            "请选择:",
+            options=options,
+            key=f"slot_input_{slot_name}"
+        )
+
+        if st.button("确认选择", key=f"confirm_{slot_name}"):
+            return user_input
+    else:
+        # 没有选项的情况，使用文本输入
+        user_input = st.text_input(
+            "请输入:",
+            key=f"slot_input_{slot_name}",
+            placeholder="请输入您的回答"
+        )
+
+        if st.button("提交", key=f"submit_{slot_name}") and user_input.strip():
+            return user_input
+
+    return None
 
 def render_ai_native_chat_page(api_url: str):
-    """渲染AI Native对话页面 - 工作版本"""
-    # 初始化session state
-    if 'chat_messages' not in st.session_state:
-        st.session_state.chat_messages = []
-    if 'chat_run_id' not in st.session_state:
-        st.session_state.chat_run_id = None
-    if 'waiting_response' not in st.session_state:
-        st.session_state.waiting_response = False
-    if 'current_slot_action' not in st.session_state:
-        st.session_state.current_slot_action = None
-
+    """渲染AI Native对话页面"""
     st.header("🤖 AI Native 智能对话")
     st.markdown("通过多轮对话，AI助手将引导您完成网站内容的创建过程。")
 
-    # 控制区域
+    # 对话控制区域
     col1, col2, col3 = st.columns([2, 1, 1])
 
     with col1:
         if st.button("🆕 开始新对话", type="primary"):
-            st.session_state.chat_messages = []
-            st.session_state.chat_run_id = None
-            st.session_state.waiting_response = False
-            st.session_state.current_slot_action = None
-            st.success("已清理对话历史")
+            logger.info("点击开始新对话按钮，清理session state")
+            st.session_state.conversation_history = []
+            st.session_state.current_run_id = None
+            st.session_state.conversation_state = None
             st.rerun()
 
     with col2:
-        if st.session_state.chat_run_id:
-            st.info(f"对话ID: {st.session_state.chat_run_id}")
+        if st.session_state.current_run_id:
+            if st.button("📊 查看状态"):
+                status = get_conversation_status(api_url, st.session_state.current_run_id)
+                if "error" not in status:
+                    st.session_state.conversation_state = status
 
     with col3:
-        # API状态检查
-        try:
-            response = requests.get(f"{api_url}/docs", timeout=2)
-            if response.status_code == 200:
-                st.success("✅ API正常")
-            else:
-                st.error("❌ API异常")
-        except:
-            st.error("❌ API异常")
+        if st.session_state.current_run_id:
+            if st.button("✅ 完成对话"):
+                try:
+                    response = requests.post(
+                        f"{api_url}/api/ai-native/conversations/{st.session_state.current_run_id}/complete"
+                    )
+                    if response.status_code == 200:
+                        st.success("对话已完成！")
+                        st.session_state.current_run_id = None
+                        st.session_state.conversation_state = None
+                except:
+                    st.error("完成对话失败")
 
-    st.markdown("---")
+    # 显示对话状态
+    if st.session_state.conversation_state:
+        with st.expander("📊 对话状态详情"):
+            state = st.session_state.conversation_state
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("对话ID", state.get('run_id', 'N/A'))
+            with col2:
+                st.metric("状态", state.get('status', 'N/A'))
+            with col3:
+                progress = state.get('progress', 0)
+                st.metric("进度", f"{progress:.1%}")
+
+            # 显示当前状态
+            st.subheader("当前状态")
+            current_state = state.get('current_state', {})
+            for key, value in current_state.items():
+                if value is not None:
+                    st.write(f"**{key}**: {value}")
+
+            # 显示任务历史
+            tasks = state.get('tasks', [])
+            if tasks:
+                st.subheader("任务历史")
+                for task in tasks:
+                    status_icon = "✅" if task['status'] == 'completed' else "⏳" if task['status'] == 'pending' else "❌"
+                    st.write(f"{status_icon} {task['type']} - {task['status']}")
 
     # 主对话区域
-    if not st.session_state.chat_run_id:
-        # 开始新对话
-        st.subheader("开始新的AI对话")
+    st.markdown("---")
 
-        with st.form("start_chat_form", clear_on_submit=True):
-            user_intent = st.text_area(
-                "请描述您想要创建的网站:",
-                placeholder="例如：我想创建一个企业官网，展示我们公司的产品和服务",
-                height=100
-            )
-            start_button = st.form_submit_button("🚀 开始对话", type="primary")
+    # 如果没有活跃对话，显示开始界面
+    if not st.session_state.current_run_id:
+        st.subheader("开始新的对话")
+        user_intent = st.text_input(
+            "请描述您想要创建的网站:",
+            placeholder="例如：我想创建一个企业官网，展示我们公司的产品和服务",
+            key="initial_intent"
+        )
 
-            if start_button:
-                if not user_intent.strip():
-                    st.error("请输入您的意图")
-                else:
-                    with st.spinner("正在启动AI助手..."):
-                        result = call_ai_api(api_url, "/api/ai-native/conversations", {"user_intent": user_intent})
+        # 分离按钮点击和输入验证
+        button_clicked = st.button("开始对话", key="start_conversation")
 
-                        if result["success"]:
-                            data = result["data"]
-                            st.session_state.chat_run_id = data["run_id"]
+        if button_clicked:
+            logger.info(f"按钮被点击，用户输入: {repr(user_intent)}")
+            if not user_intent.strip():
+                st.error("请输入您的意图")
+                logger.warning("用户输入为空")
+            else:
+                logger.info("开始调用API")
+                with st.spinner("正在启动AI助手..."):
+                    result = start_ai_conversation(api_url, user_intent)
 
-                            # 添加用户消息
-                            st.session_state.chat_messages.append({
-                                "role": "user",
-                                "content": user_intent
+                    if "error" in result:
+                        st.error(result["error"])
+                    else:
+                        st.session_state.current_run_id = result["run_id"]
+                        st.session_state.conversation_history.append({
+                            "type": "user",
+                            "content": user_intent
+                        })
+
+                        # 处理第一个响应
+                        next_action = result.get("next_action", {})
+                        logger.info(f"处理第一个响应 - next_action: {next_action}")
+                        if next_action.get("action") == "ask_slot":
+                            prompt_text = next_action.get("prompt", "")
+                            logger.info(f"获取到的prompt_text: {repr(prompt_text)}")
+                            if prompt_text is None or prompt_text == "None" or str(prompt_text).strip() == "None":
+                                prompt_text = "请提供更多信息"
+                                logger.warning(f"prompt_text为None或'None'，已替换为默认值。原始值: {repr(prompt_text)}")
+                            logger.info(f"添加到对话历史的content: {repr(prompt_text)}")
+                            st.session_state.conversation_history.append({
+                                "type": "assistant",
+                                "content": prompt_text,
+                                "next_action": next_action
                             })
 
-                            # 处理AI响应
-                            next_action = data.get("next_action", {})
-                            if next_action.get("action") == "ask_slot":
-                                # 确保prompt正确
-                                ai_prompt = next_action.get("prompt", "请提供更多信息")
-                                if not ai_prompt or ai_prompt == "None":
-                                    ai_prompt = "请提供更多信息"
-
-                                st.session_state.chat_messages.append({
-                                    "role": "assistant",
-                                    "content": ai_prompt
-                                })
-                                st.session_state.waiting_response = True
-                                st.session_state.current_slot_action = next_action
-
-                            st.success("对话已开始！")
-                            st.rerun()
-                        else:
-                            st.error(result["error"])
+                        st.rerun()
 
     # 显示对话历史
-    if st.session_state.chat_messages:
+    if st.session_state.conversation_history:
         st.subheader("对话历史")
+        logger.info(f"显示对话历史，共{len(st.session_state.conversation_history)}条消息")
 
-        for message in st.session_state.chat_messages:
-            if message["role"] == "user":
-                st.markdown(f"""
-                <div style="background-color: #e3f2fd; padding: 15px; border-radius: 10px; margin: 10px 0; margin-left: 15%;">
-                    <strong>👤 您:</strong> {message["content"]}
-                </div>
-                """, unsafe_allow_html=True)
+        for i, message in enumerate(st.session_state.conversation_history):
+            logger.info(f"处理第{i}条消息: {message}")
+            if message["type"] == "user":
+                render_conversation_message(message, is_user=True)
             else:
-                st.markdown(f"""
-                <div style="background-color: #f5f5f5; padding: 15px; border-radius: 10px; margin: 10px 0; margin-right: 15%;">
-                    <strong>🤖 AI助手:</strong> {message["content"]}
-                </div>
-                """, unsafe_allow_html=True)
+                render_conversation_message(message, is_user=False)
 
-    # 处理用户输入
-    if st.session_state.waiting_response and st.session_state.current_slot_action:
-        st.markdown("---")
-        action = st.session_state.current_slot_action
+                # 如果是最后一条消息且包含下一步行动
+                if i == len(st.session_state.conversation_history) - 1 and "next_action" in message:
+                    next_action = message["next_action"]
 
-        if action.get("action") == "ask_slot":
-            options = action.get("options", [])
-            slot_name = action.get("slot_name", "")
+                    if next_action.get("action") == "ask_slot":
+                        st.markdown("---")
+                        user_response = render_slot_input_form(next_action, api_url, st.session_state.current_run_id)
 
-            if options:
-                # 有选项的情况
-                st.subheader("请选择:")
-
-                with st.form("option_form", clear_on_submit=True):
-                    selected_option = st.selectbox(
-                        "选择一个选项:",
-                        options,
-                        key=f"select_{slot_name}"
-                    )
-                    submit_option = st.form_submit_button("✅ 确认选择", type="primary")
-
-                    if submit_option:
-                        with st.spinner("正在处理您的选择..."):
-                            context = {"slot_name": slot_name}
-                            result = call_ai_api(
-                                api_url,
-                                f"/api/ai-native/conversations/{st.session_state.chat_run_id}/input",
-                                {"user_input": selected_option, "context": context}
-                            )
-
-                            if result["success"]:
-                                # 添加用户选择
-                                st.session_state.chat_messages.append({
-                                    "role": "user",
-                                    "content": selected_option
-                                })
-
-                                # 处理AI响应
-                                response_data = result["data"].get("data", {})
-                                if response_data.get("action") == "ask_slot":
-                                    ai_prompt = response_data.get("prompt", "请提供更多信息")
-                                    if not ai_prompt or ai_prompt == "None":
-                                        ai_prompt = "请提供更多信息"
-
-                                    st.session_state.chat_messages.append({
-                                        "role": "assistant",
-                                        "content": ai_prompt
-                                    })
-                                    st.session_state.current_slot_action = response_data
-                                elif response_data.get("action") == "plan":
-                                    st.session_state.chat_messages.append({
-                                        "role": "assistant",
-                                        "content": "太好了！我已经收集到足够的信息，现在可以开始为您生成内容了。"
-                                    })
-                                    st.session_state.waiting_response = False
-                                    st.session_state.current_slot_action = response_data
-                                else:
-                                    st.session_state.waiting_response = False
-                                    st.session_state.current_slot_action = None
-
-                                st.rerun()
-                            else:
-                                st.error(result["error"])
-            else:
-                # 没有选项的情况
-                st.subheader("请输入:")
-
-                with st.form("text_form", clear_on_submit=True):
-                    user_text = st.text_input(
-                        "您的回答:",
-                        placeholder="请输入您的回答",
-                        key=f"text_{slot_name}"
-                    )
-                    submit_text = st.form_submit_button("📝 提交回答", type="primary")
-
-                    if submit_text:
-                        if not user_text.strip():
-                            st.error("请输入您的回答")
-                        else:
+                        if user_response:
                             with st.spinner("正在处理您的回答..."):
-                                context = {"slot_name": slot_name}
-                                result = call_ai_api(
-                                    api_url,
-                                    f"/api/ai-native/conversations/{st.session_state.chat_run_id}/input",
-                                    {"user_input": user_text, "context": context}
-                                )
+                                context = {"slot_name": next_action.get("slot_name")}
+                                result = process_user_input(api_url, st.session_state.current_run_id, user_response, context)
 
-                                if result["success"]:
-                                    # 添加用户回答
-                                    st.session_state.chat_messages.append({
-                                        "role": "user",
-                                        "content": user_text
+                                if "error" in result:
+                                    st.error(result["error"])
+                                else:
+                                    # 添加用户回答到历史
+                                    st.session_state.conversation_history.append({
+                                        "type": "user",
+                                        "content": user_response
                                     })
 
                                     # 处理AI响应
-                                    response_data = result["data"].get("data", {})
-                                    if response_data.get("action") == "ask_slot":
-                                        ai_prompt = response_data.get("prompt", "请提供更多信息")
-                                        if not ai_prompt or ai_prompt == "None":
-                                            ai_prompt = "请提供更多信息"
-
-                                        st.session_state.chat_messages.append({
-                                            "role": "assistant",
-                                            "content": ai_prompt
+                                    action_data = result.get("data", {})
+                                    if action_data.get("action") == "ask_slot":
+                                        prompt_text = action_data.get("prompt", "")
+                                        if prompt_text is None or prompt_text == "None" or str(prompt_text).strip() == "None":
+                                            prompt_text = "请提供更多信息"
+                                        st.session_state.conversation_history.append({
+                                            "type": "assistant",
+                                            "content": prompt_text,
+                                            "next_action": action_data
                                         })
-                                        st.session_state.current_slot_action = response_data
-                                    elif response_data.get("action") == "plan":
-                                        st.session_state.chat_messages.append({
-                                            "role": "assistant",
-                                            "content": "太好了！我已经收集到足够的信息，现在可以开始为您生成内容了。"
+                                    elif action_data.get("action") == "plan":
+                                        st.session_state.conversation_history.append({
+                                            "type": "assistant",
+                                            "content": "太好了！我已经收集到足够的信息，现在可以开始为您生成内容了。",
+                                            "next_action": action_data
                                         })
-                                        st.session_state.waiting_response = False
-                                        st.session_state.current_slot_action = response_data
-                                    else:
-                                        st.session_state.waiting_response = False
-                                        st.session_state.current_slot_action = None
 
                                     st.rerun()
-                                else:
-                                    st.error(result["error"])
 
-    # 如果对话完成，显示生成选项
-    if (st.session_state.current_slot_action and
-        st.session_state.current_slot_action.get("action") == "plan" and
-        not st.session_state.waiting_response):
+                    elif next_action.get("action") == "plan":
+                        st.markdown("---")
+                        st.success("🎉 信息收集完成！现在可以生成内容了。")
 
-        st.markdown("---")
-        st.success("🎉 信息收集完成！")
+                        tasks = next_action.get("tasks", [])
+                        if tasks:
+                            st.subheader("将要生成的内容:")
+                            for task in tasks:
+                                st.write(f"- {task.get('page_type', '页面')}页面")
 
-        tasks = st.session_state.current_slot_action.get("tasks", [])
-        if tasks:
-            st.subheader("📋 将要生成的内容:")
-            for task in tasks:
-                st.write(f"• {task.get('page_type', '页面')}页面")
+                        if st.button("🚀 开始生成内容", key="start_generation"):
+                            with st.spinner("正在生成内容..."):
+                                # 生成第一个任务的内容
+                                if tasks:
+                                    task_data = tasks[0]
+                                    result = generate_content_ai_native(api_url, st.session_state.current_run_id, task_data)
 
-            if st.button("🚀 开始生成内容", type="primary"):
-                st.info("内容生成功能将在后续版本中实现")
+                                    if "error" in result:
+                                        st.error(result["error"])
+                                    else:
+                                        st.success("内容生成成功！")
 
-    # 调试信息（可选）
-    with st.expander("🔍 调试信息"):
-        st.json({
-            "run_id": st.session_state.chat_run_id,
-            "waiting_response": st.session_state.waiting_response,
-            "messages_count": len(st.session_state.chat_messages),
-            "current_action": st.session_state.current_slot_action
-        })
+                                        # 显示生成的内容
+                                        content_data = result.get("data", {})
+                                        content = content_data.get("content", {})
+
+                                        if content:
+                                            st.subheader("生成的内容:")
+                                            render_content_preview(content, "structured")
+
+                                        # 添加到对话历史
+                                        st.session_state.conversation_history.append({
+                                            "type": "assistant",
+                                            "content": f"内容生成完成！已为您创建了{task_data.get('page_type', '页面')}页面。",
+                                            "generated_content": content
+                                        })
+
+                                        st.rerun()
 
 def render_content_generation_page(api_url: str):
     """渲染内容生成页面"""
@@ -870,6 +899,5 @@ st.markdown(
         <p>GeoCMS v0.3.0 | AI Native 多Agent智能建站系统</p>
         <p>支持状态驱动的多轮对话和知识感知的智能内容生成</p>
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )

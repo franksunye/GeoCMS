@@ -4,7 +4,7 @@ from .models import Base
 from typing import Generator
 
 # 数据库连接配置
-engine = create_engine("sqlite:///./geo_poc.db", connect_args={"check_same_thread": False})
+engine = create_engine("sqlite:///./test_ai_native.db", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def create_tables():
