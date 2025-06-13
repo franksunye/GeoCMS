@@ -4,6 +4,8 @@
 
 GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构设计，专注于将用户的自然语言提示词转换为结构化的内容输出。现已集成知识库感知功能，实现智能化的知识驱动内容生成。
 
+**🚀 AI Native 升级中**：正在升级为多Agent协同的状态驱动系统，支持动态流程控制和智能会话管理。
+
 ## 技术栈
 
 | 组件 | 技术选型 | 版本 | 说明 |
@@ -18,6 +20,7 @@ GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构�
 
 ## 系统架构图
 
+### 当前架构（知识库感知版本）
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Streamlit     │    │   FastAPI       │    │   SQLite        │
@@ -64,6 +67,61 @@ GeoCMS 是一个基于 LLM 的智能内容生成系统，采用微服务架构�
                        │ - LLM 调用      │
                        │ - 提示工程      │
                        │ - 结果处理      │
+                       └─────────────────┘
+```
+
+### 目标架构（AI Native多Agent系统）
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Streamlit     │    │   FastAPI       │    │   SQLite        │
+│   Frontend      │◄──►│   Backend       │◄──►│   Database      │
+│                 │    │                 │    │                 │
+│ - 状态驱动界面  │    │ - /next_action  │    │ - PlannerRuns   │
+│ - 动态槽位询问  │    │ - 会话管理      │    │ - PlannerTasks  │
+│ - 多轮对话      │    │ - 状态追踪      │    │ - KnowledgeBase │
+│ - 任务进度      │    │                 │    │ - VerifierLogs  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        │
+                       ┌─────────────────┐               │
+                       │ Agent Coordinator│               │
+                       │                 │               │
+                       │ ┌─────────────┐ │               │
+                       │ │  Planner    │ │◄──────────────┤
+                       │ │  Agent      │ │  状态驱动      │
+                       │ │(状态驱动)   │ │               │
+                       │ └─────────────┘ │               │
+                       │ ┌─────────────┐ │               │
+                       │ │  Writer     │ │               │
+                       │ │  Agent      │ │               │
+                       │ │(知识增强)   │ │               │
+                       │ └─────────────┘ │               │
+                       │ ┌─────────────┐ │               │
+                       │ │ Verifier    │ │               │
+                       │ │  Agent      │ │               │
+                       │ │(质量校验)   │ │               │
+                       │ └─────────────┘ │               │
+                       └─────────────────┘               │
+                                │                        │
+                                ▼                        │
+                       ┌─────────────────┐               │
+                       │ System Prompts  │               │
+                       │   Management    │               │
+                       │                 │               │
+                       │ - prompts/      │               │
+                       │ - 版本控制      │               │
+                       │ - 模板管理      │               │
+                       └─────────────────┘               │
+                                │                        │
+                                ▼                        │
+                       ┌─────────────────┐               │
+                       │ Knowledge Base  │◄──────────────┘
+                       │   Service       │
+                       │                 │
+                       │ - 知识存储      │
+                       │ - 需求推理      │
+                       │ - 上下文匹配    │
+                       │ - 模板管理      │
                        └─────────────────┘
 ```
 
@@ -177,8 +235,19 @@ Streamlit   FastAPI    AgentPrompt   Planner    ContentBlock
    └── 结构化内容输出 + 知识来源标记
 ```
 
-### 4. 数据持久化流程（扩展版）
+### 4. 数据持久化流程（AI Native扩展版）
 ```
+PlannerRuns (1) ──────── (N) PlannerTasks
+     │                        │
+     ├── id (自增主键)         ├── id (自增主键)
+     ├── user_intent          ├── run_id (外键)
+     ├── state (JSON)         ├── task_type
+     ├── status               ├── task_data (JSON)
+     ├── created_at           ├── result (JSON)
+     └── updated_at           ├── status
+                              ├── created_at
+                              └── updated_at
+
 AgentPrompt (1) ──────── (N) ContentBlock
      │                        │
      ├── id (自增主键)         ├── id (自增主键)
@@ -186,6 +255,15 @@ AgentPrompt (1) ──────── (N) ContentBlock
      ├── created_at           ├── content (JSON)
      └── content_blocks[]     ├── block_type
                               └── created_at
+
+ContentBlock (1) ──────── (N) VerifierLogs (可选)
+     │                        │
+     │                        ├── id (自增主键)
+     │                        ├── content_block_id (外键)
+     │                        ├── verification_result (JSON)
+     │                        ├── issues_found (JSON)
+     │                        ├── suggestions (JSON)
+     │                        └── created_at
 
 KnowledgeBase (独立表)
      │
@@ -221,7 +299,7 @@ class ContentBlock(Base):
     prompt = relationship("AgentPrompt", back_populates="content_blocks")
 ```
 
-### KnowledgeBase（新增）
+### KnowledgeBase（已实现）
 ```python
 class KnowledgeBase(Base):
     __tablename__ = "knowledge_base"
@@ -231,6 +309,47 @@ class KnowledgeBase(Base):
     description = Column(Text)
     created_at = Column(DateTime, default=timezone.utc)
     updated_at = Column(DateTime, default=timezone.utc)
+```
+
+### PlannerRuns（AI Native新增）
+```python
+class PlannerRuns(Base):
+    __tablename__ = "planner_runs"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_intent = Column(Text, nullable=False)
+    state = Column(Text, nullable=False)  # JSON 格式存储状态槽位
+    status = Column(String(50), default="active")  # active/completed/failed
+    created_at = Column(DateTime, default=timezone.utc)
+    updated_at = Column(DateTime, default=timezone.utc)
+    tasks = relationship("PlannerTasks", back_populates="run")
+```
+
+### PlannerTasks（AI Native新增）
+```python
+class PlannerTasks(Base):
+    __tablename__ = "planner_tasks"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(Integer, ForeignKey("planner_runs.id"))
+    task_type = Column(String(50), nullable=False)  # ask_slot/generate_content/verify
+    task_data = Column(Text, nullable=False)  # JSON 格式存储任务数据
+    result = Column(Text)  # JSON 格式存储任务结果
+    status = Column(String(50), default="pending")  # pending/completed/failed
+    created_at = Column(DateTime, default=timezone.utc)
+    updated_at = Column(DateTime, default=timezone.utc)
+    run = relationship("PlannerRuns", back_populates="tasks")
+```
+
+### VerifierLogs（AI Native可选）
+```python
+class VerifierLogs(Base):
+    __tablename__ = "verifier_logs"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    content_block_id = Column(Integer, ForeignKey("content_blocks.id"))
+    verification_result = Column(Text, nullable=False)  # JSON 格式存储校验结果
+    issues_found = Column(Text)  # JSON 格式存储发现的问题
+    suggestions = Column(Text)  # JSON 格式存储改进建议
+    created_at = Column(DateTime, default=timezone.utc)
+    content_block = relationship("ContentBlock")
 ```
 
 ## 配置管理

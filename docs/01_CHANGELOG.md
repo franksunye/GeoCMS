@@ -5,6 +5,33 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.0.0] - 规划中 🚀 AI Native 多Agent系统升级
+
+### 🎯 重大升级 - AI Native架构
+- 🔄 **状态驱动流程控制**：Planner Agent决定下一步行动
+- 🤝 **多Agent协同机制**：Planner → Writer → Verifier完整闭环
+- 💾 **会话状态管理**：基于PlannerRuns的状态追踪
+- 📝 **System Prompt管理**：代码库中的提示词版本控制
+- 🔍 **动态槽位询问**：智能识别并询问缺失信息
+
+### 🏗 新增数据模型
+- ✅ **PlannerRuns**：会话状态和用户意图管理
+- ✅ **PlannerTasks**：任务分解和执行追踪
+- ✅ **VerifierLogs**：内容质量校验记录（可选）
+
+### 🔧 架构增强
+- 🆕 新增 `/api/next_action` 状态驱动API
+- 🆕 Agent协调器和工作流引擎
+- 🆕 `prompts/` 目录的System Prompt管理
+- 🆕 多轮对话和会话历史功能
+- 🆕 动态前端界面和槽位询问
+
+### 📊 开发计划
+- **Phase 1-3** (Week 1): 数据模型 + Prompt管理 + Planner升级
+- **Phase 4-5** (Week 2): 多Agent协同 + API升级
+- **Phase 6-7** (Week 3): 前端升级 + 测试文档
+- **总预计时间**: 8-12天
+
 ## [1.0.0] - 2024-12-12 🎉 知识库功能里程碑
 
 ### 🧠 重大新增 - 知识库感知功能
