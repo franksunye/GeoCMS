@@ -1,0 +1,143 @@
+{
+  "system_prompt": "你是一个专业的内容创作助手，专门根据用户需求和知识上下文生成高质量的网站内容。你需要：\n\n1. 根据提供的知识上下文个性化内容\n2. 确保内容结构清晰、逻辑合理\n3. 保持品牌一致性和专业性\n4. 生成符合目标受众的内容风格\n\n请始终以结构化JSON格式输出内容。",
+  
+  "content_types": {
+    "homepage": {
+      "description": "首页内容",
+      "structure": {
+        "title": "吸引人的主标题",
+        "subtitle": "副标题或简短描述",
+        "hero_section": "英雄区域内容",
+        "features": "核心特性或优势",
+        "cta": "行动号召"
+      },
+      "knowledge_dependencies": ["company_info", "brand_info"]
+    },
+    "about": {
+      "description": "关于我们页面",
+      "structure": {
+        "title": "页面标题",
+        "company_story": "公司故事",
+        "mission_vision": "使命愿景",
+        "team_intro": "团队介绍",
+        "values": "核心价值观"
+      },
+      "knowledge_dependencies": ["company_info", "brand_info"]
+    },
+    "products": {
+      "description": "产品页面",
+      "structure": {
+        "title": "产品标题",
+        "overview": "产品概述",
+        "features": "产品特性",
+        "benefits": "产品优势",
+        "pricing": "价格信息"
+      },
+      "knowledge_dependencies": ["product_info", "brand_info"]
+    },
+    "services": {
+      "description": "服务页面",
+      "structure": {
+        "title": "服务标题",
+        "overview": "服务概述",
+        "process": "服务流程",
+        "benefits": "服务优势",
+        "contact": "联系方式"
+      },
+      "knowledge_dependencies": ["service_info", "company_info"]
+    }
+  },
+  
+  "writing_guidelines": {
+    "tone": {
+      "professional": "专业、权威、可信",
+      "friendly": "友好、亲切、易懂",
+      "innovative": "创新、前沿、技术感",
+      "traditional": "稳重、传统、可靠"
+    },
+    "style": {
+      "concise": "简洁明了，重点突出",
+      "detailed": "详细全面，信息丰富",
+      "storytelling": "故事化叙述，情感共鸣",
+      "technical": "技术性强，专业术语"
+    },
+    "structure": {
+      "clear_hierarchy": "清晰的信息层次",
+      "logical_flow": "逻辑性强的内容流",
+      "scannable": "易于扫读的格式",
+      "actionable": "包含明确的行动指引"
+    }
+  },
+  
+  "knowledge_integration": {
+    "company_info": {
+      "usage": "在内容中自然融入公司名称、使命、愿景等信息",
+      "placement": ["标题", "介绍段落", "关于部分"]
+    },
+    "product_info": {
+      "usage": "突出产品特性、优势和价值主张",
+      "placement": ["特性列表", "优势说明", "价格信息"]
+    },
+    "brand_info": {
+      "usage": "保持品牌语调和价值观的一致性",
+      "placement": ["整体语调", "价值表达", "品牌故事"]
+    },
+    "service_info": {
+      "usage": "详细说明服务流程、优势和价值",
+      "placement": ["服务描述", "流程说明", "优势列表"]
+    }
+  },
+  
+  "output_format": {
+    "structure": {
+      "title": "页面主标题",
+      "headings": ["章节标题列表"],
+      "paragraphs": ["段落内容列表"],
+      "faqs": [
+        {
+          "question": "常见问题",
+          "answer": "问题答案"
+        }
+      ],
+      "cta": {
+        "text": "行动号召文本",
+        "action": "具体行动"
+      },
+      "knowledge_sources": ["使用的知识来源列表"]
+    }
+  },
+  
+  "quality_standards": {
+    "readability": "内容易读易懂，符合目标受众水平",
+    "accuracy": "信息准确，与知识库内容一致",
+    "completeness": "内容完整，涵盖所需要素",
+    "engagement": "内容吸引人，能够引起用户兴趣",
+    "actionability": "包含明确的下一步行动指引"
+  },
+  
+  "examples": {
+    "homepage_example": {
+      "input": {
+        "page_type": "homepage",
+        "knowledge_context": {
+          "company_info": {
+            "name": "GeoCMS科技",
+            "description": "专注于AI驱动的智能建站系统"
+          },
+          "brand_info": {
+            "slogan": "让每个人都能轻松创建专业网站"
+          }
+        }
+      },
+      "output": {
+        "title": "GeoCMS科技 - 让每个人都能轻松创建专业网站",
+        "headings": ["智能建站新时代", "核心优势", "开始使用"],
+        "paragraphs": [
+          "GeoCMS科技专注于AI驱动的智能建站系统，让网站创建变得简单高效。",
+          "我们的使命是让每个人都能轻松创建专业网站，无需技术背景。"
+        ],
+        "knowledge_sources": ["company_info", "brand_info"]
+      }
+    }
+  }
+}

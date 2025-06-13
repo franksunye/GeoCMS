@@ -2,9 +2,189 @@
 
 ## 概述
 
-GeoCMS 提供完整的 RESTful API，支持智能内容生成和知识库管理。
+GeoCMS 提供完整的 RESTful API，支持智能内容生成和知识库管理。现已升级为AI Native架构，支持状态驱动的多轮对话和Agent协同。
 
-## 内容生成 API
+## API 版本
+
+- **传统API**: `/api/*` - 向后兼容的单轮请求API
+- **AI Native API**: `/api/ai-native/*` - 新的多轮对话和状态驱动API
+
+## AI Native API (推荐)
+
+### POST /api/ai-native/conversations
+
+开始新的AI Native对话。
+
+**请求体**
+```json
+{
+    "user_intent": "我想创建一个企业官网"
+}
+```
+
+**成功响应**
+```json
+{
+    "status": "conversation_started",
+    "run_id": 123,
+    "next_action": {
+        "action": "ask_slot",
+        "slot_name": "site_type",
+        "prompt": "请告诉我您想创建什么类型的网站？",
+        "options": ["企业官网", "产品介绍", "个人博客"],
+        "current_state": {...},
+        "progress": 0.1
+    }
+}
+```
+
+### POST /api/ai-native/conversations/{run_id}/input
+
+处理用户输入，推进对话。
+
+**请求体**
+```json
+{
+    "user_input": "企业官网",
+    "context": {
+        "slot_name": "site_type"
+    }
+}
+```
+
+**响应（继续询问）**
+```json
+{
+    "action": "ask_slot",
+    "data": {
+        "action": "ask_slot",
+        "slot_name": "brand_name",
+        "prompt": "请告诉我您的品牌或公司名称",
+        "progress": 0.4
+    }
+}
+```
+
+**响应（开始规划）**
+```json
+{
+    "action": "plan",
+    "data": {
+        "action": "plan",
+        "tasks": [
+            {
+                "type": "generate_content",
+                "page_type": "homepage",
+                "knowledge_required": ["company_info"]
+            }
+        ],
+        "knowledge_context": {...}
+    }
+}
+```
+
+### GET /api/ai-native/conversations/{run_id}/status
+
+获取对话状态和进度。
+
+**响应**
+```json
+{
+    "run_id": 123,
+    "user_intent": "创建企业官网",
+    "status": "active",
+    "current_state": {
+        "site_type": "企业官网",
+        "brand_name": "GeoCMS科技",
+        "target_audience": null
+    },
+    "progress": 0.6,
+    "tasks": [
+        {
+            "id": 1,
+            "type": "ask_slot",
+            "status": "completed",
+            "data": {...},
+            "result": {...}
+        }
+    ]
+}
+```
+
+### POST /api/ai-native/conversations/{run_id}/generate
+
+生成内容。
+
+**请求体**
+```json
+{
+    "task_data": {
+        "page_type": "homepage"
+    }
+}
+```
+
+**响应**
+```json
+{
+    "action": "content_generated",
+    "data": {
+        "status": "content_generated",
+        "content_block_id": 456,
+        "content": {
+            "title": "GeoCMS科技 - 智能建站专家",
+            "headings": ["核心优势", "服务介绍"],
+            "paragraphs": ["..."],
+            "knowledge_sources": ["company_info"]
+        },
+        "knowledge_used": ["company_info"]
+    }
+}
+```
+
+### POST /api/ai-native/conversations/{run_id}/workflow
+
+执行工作流。
+
+**请求体**
+```json
+{
+    "workflow_type": "standard"
+}
+```
+
+**响应**
+```json
+{
+    "action": "workflow_executed",
+    "data": {
+        "workflow": "standard",
+        "results": [
+            {
+                "status": "content_generated",
+                "content_block_id": 456
+            }
+        ]
+    }
+}
+```
+
+### GET /api/ai-native/health
+
+健康检查。
+
+**响应**
+```json
+{
+    "status": "healthy",
+    "service": "ai_native_api",
+    "version": "1.0.0"
+}
+```
+
+## 传统API (向后兼容)
+
+### 内容生成 API
 
 ### POST /api/run-prompt
 

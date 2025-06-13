@@ -1,10 +1,273 @@
 """
 Planner Agent - 负责分析用户提示词并制定内容生成计划
+支持状态驱动的AI Native架构
 """
 import re
+import json
 from typing import Dict, List, Any, Optional
 from app.services.knowledge import infer_knowledge_needs, get_knowledge_service
+from app.services.prompt_manager import get_prompt_manager, build_planner_prompt
+from app.services.state_manager import get_state_manager, get_task_manager
 
+# AI Native Planner Functions
+
+def analyze_next_action(run_id: int, user_input: str, db_session) -> Dict[str, Any]:
+    """
+    AI Native: 分析下一步行动
+
+    Args:
+        run_id: 运行ID
+        user_input: 用户输入
+        db_session: 数据库会话
+
+    Returns:
+        下一步行动决策
+    """
+    try:
+        state_manager = get_state_manager(db_session)
+
+        # 获取当前状态
+        current_state = state_manager.get_state(run_id)
+        run = state_manager.get_run(run_id)
+
+        if not run:
+            return {"error": "Run not found"}
+
+        # 检查是否有缺失的必要槽位
+        missing_slots = state_manager.get_missing_slots(run_id)
+
+        if missing_slots:
+            # 需要询问槽位
+            return _create_ask_slot_action(missing_slots[0], current_state, state_manager)
+        else:
+            # 可以开始规划任务
+            return _create_plan_action(run.user_intent, current_state, db_session)
+
+    except Exception as e:
+        return {"error": f"Analysis failed: {str(e)}"}
+
+def process_slot_input(run_id: int, slot_name: str, user_input: str, db_session) -> Dict[str, Any]:
+    """
+    处理槽位输入
+
+    Args:
+        run_id: 运行ID
+        slot_name: 槽位名称
+        user_input: 用户输入
+        db_session: 数据库会话
+
+    Returns:
+        处理结果
+    """
+    try:
+        state_manager = get_state_manager(db_session)
+        task_manager = get_task_manager(db_session)
+
+        # 更新槽位
+        updated_state = state_manager.update_slot(run_id, slot_name, user_input)
+
+        # 创建任务记录
+        task_data = {
+            "slot_name": slot_name,
+            "user_input": user_input
+        }
+        task = task_manager.create_task(run_id, "ask_slot", task_data)
+        task_manager.complete_task(task.id, {"slot_value": user_input})
+
+        # 分析下一步行动
+        return analyze_next_action(run_id, "", db_session)
+
+    except Exception as e:
+        return {"error": f"Slot processing failed: {str(e)}"}
+
+def create_planner_run(user_intent: str, db_session) -> Dict[str, Any]:
+    """
+    创建新的规划运行
+
+    Args:
+        user_intent: 用户意图
+        db_session: 数据库会话
+
+    Returns:
+        创建结果
+    """
+    try:
+        state_manager = get_state_manager(db_session)
+
+        # 创建运行
+        run = state_manager.create_run(user_intent)
+
+        # 分析下一步行动
+        next_action = analyze_next_action(run.id, user_intent, db_session)
+
+        return {
+            "run_id": run.id,
+            "status": "created",
+            "next_action": next_action
+        }
+
+    except Exception as e:
+        return {"error": f"Run creation failed: {str(e)}"}
+
+def _create_ask_slot_action(slot_name: str, current_state: Dict[str, Any], state_manager) -> Dict[str, Any]:
+    """
+    创建询问槽位的行动
+
+    Args:
+        slot_name: 槽位名称
+        current_state: 当前状态
+        state_manager: 状态管理器
+
+    Returns:
+        询问槽位行动
+    """
+    prompt_manager = get_prompt_manager()
+    slot_definitions = prompt_manager.get_slot_definitions("planner")
+
+    slot_config = slot_definitions.get(slot_name, {})
+
+    # 生成提示词
+    prompt_text = _generate_slot_prompt(slot_name, slot_config)
+
+    # 计算进度
+    progress = _calculate_progress(current_state, slot_definitions)
+
+    return {
+        "action": "ask_slot",
+        "slot_name": slot_name,
+        "prompt": prompt_text,
+        "options": slot_config.get("options", []),
+        "current_state": current_state,
+        "progress": progress
+    }
+
+def _create_plan_action(user_intent: str, current_state: Dict[str, Any], db_session) -> Dict[str, Any]:
+    """
+    创建规划行动
+
+    Args:
+        user_intent: 用户意图
+        current_state: 当前状态
+        db_session: 数据库会话
+
+    Returns:
+        规划行动
+    """
+    # 分析知识需求
+    knowledge_analysis = analyze_knowledge_needs(user_intent, db_session)
+
+    if knowledge_analysis.get("missing_knowledge"):
+        return {
+            "action": "missing_knowledge",
+            "missing_knowledge": knowledge_analysis["missing_knowledge"],
+            "available_knowledge": knowledge_analysis.get("available_knowledge", [])
+        }
+
+    # 生成任务计划
+    tasks = _generate_content_tasks(current_state, knowledge_analysis.get("knowledge_context", {}))
+
+    return {
+        "action": "plan",
+        "tasks": tasks,
+        "knowledge_context": knowledge_analysis.get("knowledge_context", {}),
+        "next_steps": [f"生成{task['page_type']}内容" for task in tasks]
+    }
+
+def _generate_slot_prompt(slot_name: str, slot_config: Dict[str, Any]) -> str:
+    """
+    生成槽位询问提示词
+
+    Args:
+        slot_name: 槽位名称
+        slot_config: 槽位配置
+
+    Returns:
+        提示词文本
+    """
+    description = slot_config.get("description", slot_name)
+    options = slot_config.get("options", [])
+
+    if slot_name == "site_type":
+        return "请告诉我您想创建什么类型的网站？"
+    elif slot_name == "brand_name":
+        return "请告诉我您的品牌或公司名称"
+    elif slot_name == "target_audience":
+        return "请描述您的目标用户群体"
+    elif slot_name == "content_goals":
+        return "请告诉我您希望通过网站实现什么目标？"
+    else:
+        prompt = f"请提供{description}"
+        if options:
+            prompt += f"，可选项包括：{', '.join(options)}"
+        return prompt
+
+def _calculate_progress(current_state: Dict[str, Any], slot_definitions: Dict[str, Any]) -> float:
+    """
+    计算进度百分比
+
+    Args:
+        current_state: 当前状态
+        slot_definitions: 槽位定义
+
+    Returns:
+        进度百分比
+    """
+    required_slots = [name for name, config in slot_definitions.items()
+                     if config.get("required", False)]
+
+    if not required_slots:
+        return 1.0
+
+    filled_slots = sum(1 for slot in required_slots
+                      if slot in current_state and current_state[slot] is not None)
+
+    return filled_slots / len(required_slots)
+
+def _generate_content_tasks(current_state: Dict[str, Any], knowledge_context: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    生成内容任务列表
+
+    Args:
+        current_state: 当前状态
+        knowledge_context: 知识上下文
+
+    Returns:
+        任务列表
+    """
+    site_type = current_state.get("site_type", "")
+
+    # 根据网站类型生成默认页面
+    if "企业官网" in site_type:
+        return [
+            {
+                "type": "generate_content",
+                "page_type": "homepage",
+                "knowledge_required": ["company_info", "brand_info"]
+            },
+            {
+                "type": "generate_content",
+                "page_type": "about",
+                "knowledge_required": ["company_info"]
+            }
+        ]
+    elif "产品介绍" in site_type:
+        return [
+            {
+                "type": "generate_content",
+                "page_type": "products",
+                "knowledge_required": ["product_info", "brand_info"]
+            }
+        ]
+    else:
+        return [
+            {
+                "type": "generate_content",
+                "page_type": "homepage",
+                "knowledge_required": []
+            }
+        ]
+
+# Legacy function for backward compatibility
 def plan_task(prompt_text: str, db_session=None) -> Dict[str, Any]:
     """
     分析用户提示词并制定内容生成计划

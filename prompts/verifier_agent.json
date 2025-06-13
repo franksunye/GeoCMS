@@ -1,0 +1,198 @@
+{
+  "system_prompt": "你是一个专业的内容质量校验助手，负责评估生成内容的质量、一致性和准确性。你需要：\n\n1. 检查内容与知识库的一致性\n2. 评估内容质量和可读性\n3. 识别潜在问题和改进机会\n4. 提供具体的优化建议\n\n请以结构化JSON格式提供校验结果。",
+  
+  "verification_criteria": {
+    "knowledge_consistency": {
+      "description": "内容与知识库信息的一致性",
+      "weight": 0.3,
+      "checks": [
+        "公司名称使用正确",
+        "产品信息准确无误",
+        "品牌语调保持一致",
+        "服务描述符合实际"
+      ]
+    },
+    "content_quality": {
+      "description": "内容质量和专业性",
+      "weight": 0.25,
+      "checks": [
+        "语言表达清晰流畅",
+        "逻辑结构合理",
+        "信息完整性",
+        "专业术语使用恰当"
+      ]
+    },
+    "readability": {
+      "description": "内容可读性和用户体验",
+      "weight": 0.2,
+      "checks": [
+        "段落长度适中",
+        "标题层次清晰",
+        "关键信息突出",
+        "易于扫读"
+      ]
+    },
+    "brand_alignment": {
+      "description": "品牌一致性和价值观匹配",
+      "weight": 0.15,
+      "checks": [
+        "品牌语调一致",
+        "价值观体现",
+        "目标受众匹配",
+        "品牌形象统一"
+      ]
+    },
+    "completeness": {
+      "description": "内容完整性和覆盖度",
+      "weight": 0.1,
+      "checks": [
+        "必要信息齐全",
+        "结构要素完整",
+        "行动号召明确",
+        "联系方式准确"
+      ]
+    }
+  },
+  
+  "issue_types": {
+    "critical": {
+      "description": "严重问题，需要立即修复",
+      "examples": [
+        "公司名称错误",
+        "产品信息不准确",
+        "联系方式错误",
+        "品牌价值观冲突"
+      ]
+    },
+    "major": {
+      "description": "重要问题，建议修复",
+      "examples": [
+        "语言表达不够专业",
+        "逻辑结构有问题",
+        "关键信息缺失",
+        "品牌语调不一致"
+      ]
+    },
+    "minor": {
+      "description": "轻微问题，可以优化",
+      "examples": [
+        "段落可以更简洁",
+        "标题可以更吸引人",
+        "可以添加更多细节",
+        "格式可以优化"
+      ]
+    },
+    "suggestion": {
+      "description": "优化建议，提升效果",
+      "examples": [
+        "添加客户案例",
+        "增加数据支撑",
+        "优化SEO关键词",
+        "改进行动号召"
+      ]
+    }
+  },
+  
+  "scoring_system": {
+    "excellent": {
+      "range": [0.9, 1.0],
+      "description": "内容质量优秀，无需修改"
+    },
+    "good": {
+      "range": [0.8, 0.9],
+      "description": "内容质量良好，轻微优化"
+    },
+    "acceptable": {
+      "range": [0.7, 0.8],
+      "description": "内容可接受，建议改进"
+    },
+    "needs_improvement": {
+      "range": [0.6, 0.7],
+      "description": "需要改进，存在明显问题"
+    },
+    "poor": {
+      "range": [0.0, 0.6],
+      "description": "质量较差，需要重新生成"
+    }
+  },
+  
+  "output_format": {
+    "verification_result": {
+      "overall_score": "总体评分 (0-1)",
+      "passed": "是否通过校验 (boolean)",
+      "grade": "质量等级 (excellent/good/acceptable/needs_improvement/poor)"
+    },
+    "detailed_scores": {
+      "knowledge_consistency": "知识一致性评分",
+      "content_quality": "内容质量评分",
+      "readability": "可读性评分",
+      "brand_alignment": "品牌一致性评分",
+      "completeness": "完整性评分"
+    },
+    "issues_found": [
+      {
+        "type": "问题类型 (critical/major/minor/suggestion)",
+        "category": "问题分类",
+        "message": "问题描述",
+        "location": "问题位置",
+        "severity": "严重程度 (1-5)"
+      }
+    ],
+    "suggestions": [
+      {
+        "action": "建议行动",
+        "description": "详细说明",
+        "priority": "优先级 (high/medium/low)",
+        "expected_impact": "预期效果"
+      }
+    ]
+  },
+  
+  "examples": {
+    "verification_example": {
+      "input": {
+        "content": {
+          "title": "GeoCMS科技 - 智能建站专家",
+          "paragraphs": ["GeoCMS科技专注于AI驱动的建站系统..."]
+        },
+        "knowledge_context": {
+          "company_info": {
+            "name": "GeoCMS科技",
+            "description": "专注于AI驱动的智能建站系统"
+          }
+        }
+      },
+      "output": {
+        "verification_result": {
+          "overall_score": 0.85,
+          "passed": true,
+          "grade": "good"
+        },
+        "detailed_scores": {
+          "knowledge_consistency": 0.9,
+          "content_quality": 0.8,
+          "readability": 0.85,
+          "brand_alignment": 0.8,
+          "completeness": 0.9
+        },
+        "issues_found": [
+          {
+            "type": "minor",
+            "category": "content_quality",
+            "message": "标题可以更具吸引力",
+            "location": "title",
+            "severity": 2
+          }
+        ],
+        "suggestions": [
+          {
+            "action": "improve_title",
+            "description": "在标题中添加更多价值主张",
+            "priority": "medium",
+            "expected_impact": "提高用户关注度"
+          }
+        ]
+      }
+    }
+  }
+}
