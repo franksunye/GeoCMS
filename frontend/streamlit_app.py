@@ -95,9 +95,15 @@ st.markdown("""
 
 # 初始化session state
 if 'current_page' not in st.session_state:
-    st.session_state.current_page = "content_generation"
+    st.session_state.current_page = "ai_native_chat"
 if 'api_url' not in st.session_state:
     st.session_state.api_url = "http://localhost:8000"
+if 'conversation_history' not in st.session_state:
+    st.session_state.conversation_history = []
+if 'current_run_id' not in st.session_state:
+    st.session_state.current_run_id = None
+if 'conversation_state' not in st.session_state:
+    st.session_state.conversation_state = None
 
 # 知识库管理函数
 def get_knowledge_list(api_url: str) -> List[Dict[str, Any]]:
@@ -221,18 +227,19 @@ def render_content_preview(content: Any, content_type: str):
 with st.sidebar:
     st.header("页面导航")
     page_options = {
-        "content_generation": "网站生成",
-        "knowledge_management": "知识库管理"
+        "ai_native_chat": "🤖 AI Native 对话",
+        "content_generation": "📝 传统生成",
+        "knowledge_management": "📚 知识库管理"
     }
 
     # 确保session_state已初始化
-    current_page = st.session_state.get('current_page', 'content_generation')
+    current_page = st.session_state.get('current_page', 'ai_native_chat')
 
     selected_page = st.radio(
         "选择功能页面",
         options=list(page_options.keys()),
         format_func=lambda x: page_options[x],
-        index=0 if current_page == "content_generation" else 1
+        index=list(page_options.keys()).index(current_page) if current_page in page_options else 0
     )
 
     if selected_page != current_page:
@@ -257,6 +264,305 @@ with st.sidebar:
             st.error("❌ API服务异常")
     except:
         st.error("❌ 无法连接API服务")
+
+# AI Native 对话功能
+def start_ai_conversation(api_url: str, user_intent: str) -> Dict[str, Any]:
+    """开始AI Native对话"""
+    try:
+        response = requests.post(
+            f"{api_url}/api/ai-native/conversations",
+            json={"user_intent": user_intent},
+            timeout=30
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"启动对话失败: {response.status_code}"}
+    except Exception as e:
+        return {"error": f"连接失败: {str(e)}"}
+
+def process_user_input(api_url: str, run_id: int, user_input: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
+    """处理用户输入"""
+    try:
+        data = {"user_input": user_input}
+        if context:
+            data["context"] = context
+
+        response = requests.post(
+            f"{api_url}/api/ai-native/conversations/{run_id}/input",
+            json=data,
+            timeout=30
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"处理输入失败: {response.status_code}"}
+    except Exception as e:
+        return {"error": f"连接失败: {str(e)}"}
+
+def get_conversation_status(api_url: str, run_id: int) -> Dict[str, Any]:
+    """获取对话状态"""
+    try:
+        response = requests.get(
+            f"{api_url}/api/ai-native/conversations/{run_id}/status",
+            timeout=10
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"获取状态失败: {response.status_code}"}
+    except Exception as e:
+        return {"error": f"连接失败: {str(e)}"}
+
+def generate_content_ai_native(api_url: str, run_id: int, task_data: Dict[str, Any]) -> Dict[str, Any]:
+    """AI Native内容生成"""
+    try:
+        response = requests.post(
+            f"{api_url}/api/ai-native/conversations/{run_id}/generate",
+            json={"task_data": task_data},
+            timeout=30
+        )
+        if response.status_code == 200:
+            return response.json()
+        else:
+            return {"error": f"内容生成失败: {response.status_code}"}
+    except Exception as e:
+        return {"error": f"连接失败: {str(e)}"}
+
+def render_conversation_message(message: Dict[str, Any], is_user: bool = True):
+    """渲染对话消息"""
+    if is_user:
+        st.markdown(f"""
+        <div style="background-color: #e3f2fd; padding: 10px; border-radius: 10px; margin: 5px 0; margin-left: 20%;">
+            <strong>您:</strong> {message.get('content', '')}
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="background-color: #f5f5f5; padding: 10px; border-radius: 10px; margin: 5px 0; margin-right: 20%;">
+            <strong>AI助手:</strong> {message.get('content', '')}
+        </div>
+        """, unsafe_allow_html=True)
+
+def render_slot_input_form(next_action: Dict[str, Any], api_url: str, run_id: int):
+    """渲染槽位输入表单"""
+    slot_name = next_action.get('slot_name', '')
+    prompt = next_action.get('prompt', '')
+    options = next_action.get('options', [])
+
+    st.markdown(f"**{prompt}**")
+
+    if options:
+        # 有选项的情况，使用选择框
+        user_input = st.selectbox(
+            "请选择:",
+            options=options,
+            key=f"slot_input_{slot_name}"
+        )
+
+        if st.button("确认选择", key=f"confirm_{slot_name}"):
+            return user_input
+    else:
+        # 没有选项的情况，使用文本输入
+        user_input = st.text_input(
+            "请输入:",
+            key=f"slot_input_{slot_name}",
+            placeholder="请输入您的回答"
+        )
+
+        if st.button("提交", key=f"submit_{slot_name}") and user_input.strip():
+            return user_input
+
+    return None
+
+def render_ai_native_chat_page(api_url: str):
+    """渲染AI Native对话页面"""
+    st.header("🤖 AI Native 智能对话")
+    st.markdown("通过多轮对话，AI助手将引导您完成网站内容的创建过程。")
+
+    # 对话控制区域
+    col1, col2, col3 = st.columns([2, 1, 1])
+
+    with col1:
+        if st.button("🆕 开始新对话", type="primary"):
+            st.session_state.conversation_history = []
+            st.session_state.current_run_id = None
+            st.session_state.conversation_state = None
+            st.rerun()
+
+    with col2:
+        if st.session_state.current_run_id:
+            if st.button("📊 查看状态"):
+                status = get_conversation_status(api_url, st.session_state.current_run_id)
+                if "error" not in status:
+                    st.session_state.conversation_state = status
+
+    with col3:
+        if st.session_state.current_run_id:
+            if st.button("✅ 完成对话"):
+                try:
+                    response = requests.post(
+                        f"{api_url}/api/ai-native/conversations/{st.session_state.current_run_id}/complete"
+                    )
+                    if response.status_code == 200:
+                        st.success("对话已完成！")
+                        st.session_state.current_run_id = None
+                        st.session_state.conversation_state = None
+                except:
+                    st.error("完成对话失败")
+
+    # 显示对话状态
+    if st.session_state.conversation_state:
+        with st.expander("📊 对话状态详情"):
+            state = st.session_state.conversation_state
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("对话ID", state.get('run_id', 'N/A'))
+            with col2:
+                st.metric("状态", state.get('status', 'N/A'))
+            with col3:
+                progress = state.get('progress', 0)
+                st.metric("进度", f"{progress:.1%}")
+
+            # 显示当前状态
+            st.subheader("当前状态")
+            current_state = state.get('current_state', {})
+            for key, value in current_state.items():
+                if value is not None:
+                    st.write(f"**{key}**: {value}")
+
+            # 显示任务历史
+            tasks = state.get('tasks', [])
+            if tasks:
+                st.subheader("任务历史")
+                for task in tasks:
+                    status_icon = "✅" if task['status'] == 'completed' else "⏳" if task['status'] == 'pending' else "❌"
+                    st.write(f"{status_icon} {task['type']} - {task['status']}")
+
+    # 主对话区域
+    st.markdown("---")
+
+    # 如果没有活跃对话，显示开始界面
+    if not st.session_state.current_run_id:
+        st.subheader("开始新的对话")
+        user_intent = st.text_input(
+            "请描述您想要创建的网站:",
+            placeholder="例如：我想创建一个企业官网，展示我们公司的产品和服务",
+            key="initial_intent"
+        )
+
+        if st.button("开始对话", key="start_conversation") and user_intent.strip():
+            with st.spinner("正在启动AI助手..."):
+                result = start_ai_conversation(api_url, user_intent)
+
+                if "error" in result:
+                    st.error(result["error"])
+                else:
+                    st.session_state.current_run_id = result["run_id"]
+                    st.session_state.conversation_history.append({
+                        "type": "user",
+                        "content": user_intent
+                    })
+
+                    # 处理第一个响应
+                    next_action = result.get("next_action", {})
+                    if next_action.get("action") == "ask_slot":
+                        st.session_state.conversation_history.append({
+                            "type": "assistant",
+                            "content": next_action.get("prompt", ""),
+                            "next_action": next_action
+                        })
+
+                    st.rerun()
+
+    # 显示对话历史
+    if st.session_state.conversation_history:
+        st.subheader("对话历史")
+
+        for i, message in enumerate(st.session_state.conversation_history):
+            if message["type"] == "user":
+                render_conversation_message(message, is_user=True)
+            else:
+                render_conversation_message(message, is_user=False)
+
+                # 如果是最后一条消息且包含下一步行动
+                if i == len(st.session_state.conversation_history) - 1 and "next_action" in message:
+                    next_action = message["next_action"]
+
+                    if next_action.get("action") == "ask_slot":
+                        st.markdown("---")
+                        user_response = render_slot_input_form(next_action, api_url, st.session_state.current_run_id)
+
+                        if user_response:
+                            with st.spinner("正在处理您的回答..."):
+                                context = {"slot_name": next_action.get("slot_name")}
+                                result = process_user_input(api_url, st.session_state.current_run_id, user_response, context)
+
+                                if "error" in result:
+                                    st.error(result["error"])
+                                else:
+                                    # 添加用户回答到历史
+                                    st.session_state.conversation_history.append({
+                                        "type": "user",
+                                        "content": user_response
+                                    })
+
+                                    # 处理AI响应
+                                    action_data = result.get("data", {})
+                                    if action_data.get("action") == "ask_slot":
+                                        st.session_state.conversation_history.append({
+                                            "type": "assistant",
+                                            "content": action_data.get("prompt", ""),
+                                            "next_action": action_data
+                                        })
+                                    elif action_data.get("action") == "plan":
+                                        st.session_state.conversation_history.append({
+                                            "type": "assistant",
+                                            "content": "太好了！我已经收集到足够的信息，现在可以开始为您生成内容了。",
+                                            "next_action": action_data
+                                        })
+
+                                    st.rerun()
+
+                    elif next_action.get("action") == "plan":
+                        st.markdown("---")
+                        st.success("🎉 信息收集完成！现在可以生成内容了。")
+
+                        tasks = next_action.get("tasks", [])
+                        if tasks:
+                            st.subheader("将要生成的内容:")
+                            for task in tasks:
+                                st.write(f"- {task.get('page_type', '页面')}页面")
+
+                        if st.button("🚀 开始生成内容", key="start_generation"):
+                            with st.spinner("正在生成内容..."):
+                                # 生成第一个任务的内容
+                                if tasks:
+                                    task_data = tasks[0]
+                                    result = generate_content_ai_native(api_url, st.session_state.current_run_id, task_data)
+
+                                    if "error" in result:
+                                        st.error(result["error"])
+                                    else:
+                                        st.success("内容生成成功！")
+
+                                        # 显示生成的内容
+                                        content_data = result.get("data", {})
+                                        content = content_data.get("content", {})
+
+                                        if content:
+                                            st.subheader("生成的内容:")
+                                            render_content_preview(content, "structured")
+
+                                        # 添加到对话历史
+                                        st.session_state.conversation_history.append({
+                                            "type": "assistant",
+                                            "content": f"内容生成完成！已为您创建了{task_data.get('page_type', '页面')}页面。",
+                                            "generated_content": content
+                                        })
+
+                                        st.rerun()
 
 def render_content_generation_page(api_url: str):
     """渲染内容生成页面"""
@@ -512,8 +818,10 @@ def render_knowledge_management_page(api_url: str):
     st.markdown('</div>', unsafe_allow_html=True)
 
 # 页面路由
-current_page = st.session_state.get('current_page', 'content_generation')
-if current_page == "content_generation":
+current_page = st.session_state.get('current_page', 'ai_native_chat')
+if current_page == "ai_native_chat":
+    render_ai_native_chat_page(api_url)
+elif current_page == "content_generation":
     render_content_generation_page(api_url)
 elif current_page == "knowledge_management":
     render_knowledge_management_page(api_url)
@@ -523,8 +831,8 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666;'>
-        <p>GeoCMS v0.1.0 | 由 FastAPI + Streamlit + LangChain 驱动的智能建站系统</p>
-        <p>支持知识库感知的智能内容生成</p>
+        <p>GeoCMS v0.3.0 | AI Native 多Agent智能建站系统</p>
+        <p>支持状态驱动的多轮对话和知识感知的智能内容生成</p>
     </div>
     """,
     unsafe_allow_html=True

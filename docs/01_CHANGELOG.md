@@ -5,9 +5,9 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [2.0.0] - 2024-12-13 🚀 AI Native 多Agent系统升级 (后台完成)
+## [0.3.0] - 2024-12-13 🚀 AI Native 多Agent系统完整实现
 
-### 🎯 重大升级 - AI Native架构 (后台已完成)
+### 🎯 重大升级 - AI Native架构 (完整实现)
 - ✅ **状态驱动流程控制**：Planner Agent决定下一步行动
 - ✅ **多Agent协同机制**：Planner → Writer → Verifier完整闭环
 - ✅ **会话状态管理**：基于PlannerRuns的状态追踪
@@ -26,21 +26,35 @@
 - ✅ 多轮对话和会话历史功能
 - ✅ 状态管理和任务追踪服务
 
-### 📊 开发进度
+### 🎨 前端升级 (已完成)
+- ✅ **AI Native对话界面**：支持多轮对话和状态展示
+- ✅ **动态槽位询问**：智能表单和选项支持
+- ✅ **会话历史管理**：完整的对话记录和状态追踪
+- ✅ **进度展示**：实时显示对话进度和任务状态
+- ✅ **内容预览**：结构化和网页预览模式
+
+### 📊 开发进度 (全部完成)
 - ✅ **Phase 1**: 数据模型扩展 (PlannerRuns, PlannerTasks, VerifierLogs)
 - ✅ **Phase 2**: System Prompt管理 (prompts/目录和管理服务)
 - ✅ **Phase 3**: 状态驱动Planner升级 (状态管理和AI Native功能)
 - ✅ **Phase 4**: 多Agent协同机制 (Agent协调器和工作流引擎)
 - ✅ **Phase 5**: API层升级 (AI Native API端点)
-- 🔄 **Phase 6**: 前端界面升级 (进行中)
-- 🔄 **Phase 7**: 测试和文档 (进行中)
+- ✅ **Phase 6**: 前端界面升级 (AI Native对话界面)
+- ✅ **Phase 7**: 测试和文档 (完整测试覆盖和用户指南)
 
-### 📈 测试覆盖
+### 📈 测试覆盖 (已完成)
 - ✅ **193个测试全部通过** (新增74个AI Native相关测试)
 - ✅ 单元测试：数据模型、服务层、Agent协调器
 - ✅ 集成测试：完整AI Native对话流程
+- ✅ 端到端测试：完整用户工作流验证
 - ✅ 向后兼容性：传统API继续正常工作
 - ✅ Mock功能：无OpenAI Key时使用Mock数据
+
+### 📚 文档更新 (已完成)
+- ✅ **用户使用指南**：完整的AI Native功能使用说明
+- ✅ **API文档**：新增AI Native API完整文档
+- ✅ **架构文档**：更新为AI Native架构设计
+- ✅ **开发文档**：完整的开发和测试指南
 
 ## [1.0.0] - 2024-12-12 🎉 知识库功能里程碑
 
