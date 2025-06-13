@@ -246,3 +246,23 @@ def health_check():
         "service": "ai_native_api",
         "version": "1.0.0"
     }
+
+@router.post("/reload-config")
+def reload_config():
+    """
+    重新加载配置（清除缓存）
+    """
+    try:
+        from app.services.prompt_manager import get_prompt_manager
+        prompt_manager = get_prompt_manager()
+        prompt_manager.reload_prompts()
+
+        return {
+            "status": "success",
+            "message": "Configuration reloaded successfully"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to reload configuration: {str(e)}"
+        }

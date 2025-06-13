@@ -175,7 +175,7 @@ def _create_plan_action(user_intent: str, current_state: Dict[str, Any], db_sess
 
 def _generate_slot_prompt(slot_name: str, slot_config: Dict[str, Any]) -> str:
     """
-    生成槽位询问提示词
+    生成槽位询问提示词 - 配置驱动版本
 
     Args:
         slot_name: 槽位名称
@@ -184,22 +184,19 @@ def _generate_slot_prompt(slot_name: str, slot_config: Dict[str, Any]) -> str:
     Returns:
         提示词文本
     """
+    # 优先使用配置中的prompt
+    if "prompt" in slot_config:
+        return slot_config["prompt"]
+
+    # 回退到基于description和options的通用生成
     description = slot_config.get("description", slot_name)
     options = slot_config.get("options", [])
 
-    if slot_name == "site_type":
-        return "请告诉我您想创建什么类型的网站？"
-    elif slot_name == "brand_name":
-        return "请告诉我您的品牌或公司名称"
-    elif slot_name == "target_audience":
-        return "请描述您的目标用户群体"
-    elif slot_name == "content_goals":
-        return "请告诉我您希望通过网站实现什么目标？"
-    else:
-        prompt = f"请提供{description}"
-        if options:
-            prompt += f"，可选项包括：{', '.join(options)}"
-        return prompt
+    prompt = f"请提供{description}"
+    if options:
+        prompt += f"，可选项包括：{', '.join(options)}"
+
+    return prompt
 
 def _calculate_progress(current_state: Dict[str, Any], slot_definitions: Dict[str, Any]) -> float:
     """
@@ -225,7 +222,7 @@ def _calculate_progress(current_state: Dict[str, Any], slot_definitions: Dict[st
 
 def _generate_content_tasks(current_state: Dict[str, Any], knowledge_context: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
-    生成内容任务列表
+    生成内容任务列表 - 配置驱动版本
 
     Args:
         current_state: 当前状态
@@ -236,36 +233,24 @@ def _generate_content_tasks(current_state: Dict[str, Any], knowledge_context: Di
     """
     site_type = current_state.get("site_type", "")
 
-    # 根据网站类型生成默认页面
-    if "企业官网" in site_type:
-        return [
-            {
-                "type": "generate_content",
-                "page_type": "homepage",
-                "knowledge_required": ["company_info", "brand_info"]
-            },
-            {
-                "type": "generate_content",
-                "page_type": "about",
-                "knowledge_required": ["company_info"]
-            }
-        ]
-    elif "产品介绍" in site_type:
-        return [
-            {
-                "type": "generate_content",
-                "page_type": "products",
-                "knowledge_required": ["product_info", "brand_info"]
-            }
-        ]
-    else:
-        return [
-            {
-                "type": "generate_content",
-                "page_type": "homepage",
-                "knowledge_required": []
-            }
-        ]
+    # 从配置中获取任务生成规则
+    prompt_manager = get_prompt_manager()
+    config = prompt_manager.load_agent_prompt("planner")
+    task_rules = config.get("task_generation_rules", {})
+
+    # 查找匹配的规则
+    for rule_key, tasks in task_rules.items():
+        if rule_key in site_type:
+            return tasks
+
+    # 默认任务
+    return [
+        {
+            "type": "generate_content",
+            "page_type": "homepage",
+            "knowledge_required": []
+        }
+    ]
 
 # Legacy function for backward compatibility
 def plan_task(prompt_text: str, db_session=None) -> Dict[str, Any]:
@@ -453,7 +438,7 @@ def analyze_knowledge_needs(prompt_text: str, db_session=None) -> Dict[str, Any]
 
 def get_knowledge_description(knowledge_type: str) -> str:
     """
-    获取知识类型的描述
+    获取知识类型的描述 - 配置驱动版本
 
     Args:
         knowledge_type: 知识类型
@@ -461,13 +446,15 @@ def get_knowledge_description(knowledge_type: str) -> str:
     Returns:
         知识类型描述
     """
-    descriptions = {
-        "company_info": "公司基本信息，包括名称、简介、使命等",
-        "product_info": "产品信息，包括名称、特性、优势等",
-        "brand_info": "品牌信息，包括名称、口号、价值观等",
-        "service_info": "服务信息，包括名称、流程、优势等"
-    }
-    return descriptions.get(knowledge_type, f"{knowledge_type} 相关信息")
+    # 从配置中获取知识描述
+    prompt_manager = get_prompt_manager()
+    config = prompt_manager.load_agent_prompt("planner")
+    knowledge_requirements = config.get("knowledge_requirements", {})
+
+    if knowledge_type in knowledge_requirements:
+        return knowledge_requirements[knowledge_type].get("description", f"{knowledge_type} 相关信息")
+
+    return f"{knowledge_type} 相关信息"
 
 def get_knowledge_template_fields(knowledge_type: str) -> List[str]:
     """

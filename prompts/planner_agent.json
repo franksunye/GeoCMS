@@ -9,31 +9,36 @@
   "slot_definitions": {
     "site_type": {
       "description": "网站类型",
+      "prompt": "请告诉我您想创建什么类型的网站？",
       "options": ["企业官网", "产品介绍", "个人博客", "电商网站", "服务展示"],
       "required": true,
       "priority": 1
     },
     "brand_name": {
       "description": "品牌或公司名称",
+      "prompt": "请告诉我您的品牌或公司名称",
       "required": true,
       "priority": 2
     },
     "target_audience": {
       "description": "目标受众",
+      "prompt": "请描述您的目标用户群体",
       "options": ["企业客户", "个人用户", "开发者", "学生", "专业人士"],
       "required": true,
       "priority": 3
     },
     "content_goals": {
       "description": "内容目标",
+      "prompt": "请告诉我您希望通过网站实现什么目标？",
       "options": ["品牌展示", "产品介绍", "服务推广", "信息分享", "用户转化"],
-      "required": false,
+      "required": true,
       "priority": 4
     },
     "pages": {
       "description": "需要的页面类型",
+      "prompt": "请选择您需要的页面类型（可以选择多个）",
       "options": ["homepage", "about", "products", "services", "contact", "blog"],
-      "required": false,
+      "required": true,
       "priority": 5
     }
   },
@@ -59,6 +64,59 @@
       "description": "服务相关信息",
       "required_for": ["服务展示", "企业官网"]
     }
+  },
+
+  "task_generation_rules": {
+    "企业官网": [
+      {
+        "type": "generate_content",
+        "page_type": "homepage",
+        "knowledge_required": ["company_info", "brand_info"]
+      },
+      {
+        "type": "generate_content",
+        "page_type": "about",
+        "knowledge_required": ["company_info"]
+      }
+    ],
+    "产品介绍": [
+      {
+        "type": "generate_content",
+        "page_type": "products",
+        "knowledge_required": ["product_info", "brand_info"]
+      }
+    ],
+    "个人博客": [
+      {
+        "type": "generate_content",
+        "page_type": "homepage",
+        "knowledge_required": []
+      }
+    ],
+    "电商网站": [
+      {
+        "type": "generate_content",
+        "page_type": "homepage",
+        "knowledge_required": ["product_info", "company_info"]
+      },
+      {
+        "type": "generate_content",
+        "page_type": "products",
+        "knowledge_required": ["product_info"]
+      }
+    ],
+    "服务展示": [
+      {
+        "type": "generate_content",
+        "page_type": "homepage",
+        "knowledge_required": ["service_info", "company_info"]
+      },
+      {
+        "type": "generate_content",
+        "page_type": "services",
+        "knowledge_required": ["service_info"]
+      }
+    ]
   },
   
   "response_templates": {
