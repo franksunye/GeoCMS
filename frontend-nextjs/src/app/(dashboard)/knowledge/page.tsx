@@ -4,12 +4,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { Knowledge } from '@/types'
 import { useState } from 'react'
-import { Search, Plus, Trash2, Edit, BookOpen } from 'lucide-react'
+import { Search, Trash2, Edit, BookOpen } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
+import { AddKnowledgeDialog } from '@/components/knowledge/add-knowledge-dialog'
+import { EditKnowledgeDialog } from '@/components/knowledge/edit-knowledge-dialog'
+import { DeleteKnowledgeDialog } from '@/components/knowledge/delete-knowledge-dialog'
+import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export default function KnowledgePage() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [editingKnowledge, setEditingKnowledge] = useState<Knowledge | null>(null)
+  const [deletingKnowledge, setDeletingKnowledge] = useState<Knowledge | null>(null)
   const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   const { data: knowledge, isLoading } = useQuery<Knowledge[]>({
     queryKey: ['knowledge', searchTerm],
@@ -26,6 +35,18 @@ export default function KnowledgePage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge'] })
+      toast({
+        title: '删除成功',
+        description: '知识已从知识库中删除',
+      })
+      setDeletingKnowledge(null)
+    },
+    onError: () => {
+      toast({
+        title: '删除失败',
+        description: '删除知识时发生错误',
+        variant: 'destructive',
+      })
     },
   })
 
@@ -44,10 +65,7 @@ export default function KnowledgePage() {
           <h1 className="text-3xl font-bold text-gray-900">知识库管理</h1>
           <p className="mt-2 text-gray-600">管理品牌知识和资料</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" />
-          添加知识
-        </button>
+        <AddKnowledgeDialog />
       </div>
 
       {/* Search */}
@@ -56,9 +74,9 @@ export default function KnowledgePage() {
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-gray-400" />
           </div>
-          <input
+          <Input
             type="text"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm"
+            className="pl-10"
             placeholder="搜索知识..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -82,17 +100,23 @@ export default function KnowledgePage() {
                     </p>
                   </div>
                   <div className="ml-4 flex-shrink-0 flex space-x-2">
-                    <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingKnowledge(item)}
+                    >
                       <Edit className="h-4 w-4 mr-1" />
                       编辑
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(item.id)}
-                      className="inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50"
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDeletingKnowledge(item)}
+                      className="border-red-300 text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
                       删除
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="mt-3">
@@ -115,6 +139,28 @@ export default function KnowledgePage() {
           </p>
         </div>
       )}
+
+      {/* Edit Dialog */}
+      {editingKnowledge && (
+        <EditKnowledgeDialog
+          knowledge={editingKnowledge}
+          open={!!editingKnowledge}
+          onOpenChange={(open) => !open && setEditingKnowledge(null)}
+        />
+      )}
+
+      {/* Delete Dialog */}
+      <DeleteKnowledgeDialog
+        knowledge={deletingKnowledge}
+        open={!!deletingKnowledge}
+        onOpenChange={(open) => !open && setDeletingKnowledge(null)}
+        onConfirm={() => {
+          if (deletingKnowledge) {
+            deleteMutation.mutate(deletingKnowledge.id)
+          }
+        }}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   )
 }
