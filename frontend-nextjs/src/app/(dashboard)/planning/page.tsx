@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { Plan } from '@/types'
-import { FileText, Plus } from 'lucide-react'
+import { FileText } from 'lucide-react'
 import { formatRelativeTime, getStatusColor } from '@/lib/utils'
-import Link from 'next/link'
+import { CreatePlanDialog } from '@/components/planning/create-plan-dialog'
 
 export default function PlanningPage() {
   const { data: plans, isLoading } = useQuery<Plan[]>({
@@ -31,10 +31,7 @@ export default function PlanningPage() {
           <h1 className="text-3xl font-bold text-gray-900">内容策划</h1>
           <p className="mt-2 text-gray-600">管理内容计划和策略</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90">
-          <Plus className="h-4 w-4 mr-2" />
-          创建策划
-        </button>
+        <CreatePlanDialog />
       </div>
 
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
