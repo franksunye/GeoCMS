@@ -1,0 +1,63 @@
+[
+  {
+    "id": 1,
+    "plan_id": 2,
+    "format": "markdown",
+    "content": "# 2025 年 AI 内容创作的五大趋势\\n\\n在数字化转型加速的今天，AI 内容创作正在重塑整个内容产业。根据最新的市场研究，AI 内容创作市场预计在 2025 年将达到 50 亿美元的规模。\\n\\n## 趋势一：多模态内容生成\\n\\n传统的 AI 内容工具主要专注于文本生成，但 2025 年我们将看到多模态内容生成的爆发式增长。\\n\\n## 趋势二：个性化和定制化\\n\\nAI 内容创作将更加注重个性化。通过深度学习用户的品牌声音、写作风格和目标受众，AI 工具能够生成高度定制化的内容。",
+    "metadata": {
+      "title": "2025 年 AI 内容创作的五大趋势",
+      "keywords": ["AI 趋势", "内容创作", "技术发展", "行业洞察"],
+      "word_count": 856,
+      "estimated_reading_time": "4 分钟",
+      "seo_score": 85,
+      "readability_score": 78
+    },
+    "status": "待编辑",
+    "version": 1,
+    "reviewer_id": null,
+    "reviewer_feedback": null,
+    "created_at": "2025-01-17T16:00:00Z",
+    "updated_at": "2025-01-17T16:00:00Z"
+  },
+  {
+    "id": 2,
+    "plan_id": 3,
+    "format": "markdown",
+    "content": "# 如何用 AI 提升内容营销 ROI\\n\\n内容营销已成为现代企业获客和品牌建设的核心策略。然而，许多营销团队面临着内容生产效率低、质量不稳定、ROI 难以衡量等挑战。\\n\\n## 内容营销面临的三大挑战\\n\\n### 1. 生产效率瓶颈\\n高质量内容需要大量时间和人力投入。\\n\\n### 2. 质量一致性问题\\n不同创作者的风格差异影响品牌形象。\\n\\n### 3. ROI 难以量化\\n内容效果评估复杂，投入产出比不清晰。",
+    "metadata": {
+      "title": "如何用 AI 提升内容营销 ROI",
+      "keywords": ["内容营销", "ROI", "AI 工具", "营销策略"],
+      "word_count": 1245,
+      "estimated_reading_time": "6 分钟",
+      "seo_score": 88,
+      "readability_score": 82
+    },
+    "status": "已编辑",
+    "version": 2,
+    "reviewer_id": "demo_user",
+    "reviewer_feedback": "内容质量很好，数据支撑充分，建议增加更多视觉元素",
+    "created_at": "2025-01-19T14:00:00Z",
+    "updated_at": "2025-01-20T10:30:00Z"
+  },
+  {
+    "id": 3,
+    "plan_id": 5,
+    "format": "markdown",
+    "content": "# 某科技公司如何用 GeoCMS 提升内容产出 300%\\n\\n## 客户背景\\n\\n**公司名称：** TechFlow Solutions\\n**行业：** 企业级 SaaS\\n**规模：** 150 人，营销团队 8 人\\n\\n### 面临的挑战\\n\\n1. **产出不足**：每月只能发布 4-6 篇博客文章\\n2. **质量不稳定**：外包内容质量参差不齐\\n3. **成本高昂**：内容制作成本占营销预算的 35%\\n\\n## 取得的成果\\n\\n- 月度博客产出提升 **300%**\\n- 内容制作时间减少 **70%**\\n- 内容成本降低 **62%**\\n- 自然流量增长 **147%**",
+    "metadata": {
+      "title": "某科技公司如何用 GeoCMS 提升内容产出 300%",
+      "keywords": ["案例研究", "成功故事", "效率提升", "客户见证"],
+      "word_count": 1580,
+      "estimated_reading_time": "7 分钟",
+      "seo_score": 90,
+      "readability_score": 85
+    },
+    "status": "已批准",
+    "version": 3,
+    "reviewer_id": "demo_user",
+    "reviewer_feedback": "优秀的案例研究，数据详实，故事性强，批准发布",
+    "created_at": "2025-01-23T11:00:00Z",
+    "updated_at": "2025-01-24T09:45:00Z"
+  }
+]
+
