@@ -43,13 +43,21 @@ export default function AgentAvatar({
     waiting: 'bg-gray-500'
   }
 
+  // Enhanced gradient backgrounds for each agent
+  const gradientClasses = {
+    knowledge: 'bg-gradient-to-br from-blue-400 to-blue-600',
+    planner: 'bg-gradient-to-br from-purple-400 to-purple-600',
+    writer: 'bg-gradient-to-br from-orange-400 to-orange-600',
+    verifier: 'bg-gradient-to-br from-green-400 to-green-600'
+  }
+
   return (
     <div className="relative inline-block">
-      <div className={`${sizeClasses[size]} ${agent.bgColor} rounded-full flex items-center justify-center`}>
-        <Icon className={`${iconSizeClasses[size]} text-white`} />
+      <div className={`${sizeClasses[size]} ${gradientClasses[agentId]} rounded-full flex items-center justify-center shadow-lg ring-2 ring-white`}>
+        <Icon className={`${iconSizeClasses[size]} text-white drop-shadow-md`} strokeWidth={2.5} />
       </div>
       {showStatus && (
-        <div className={`absolute -bottom-0.5 -right-0.5 ${statusDotSizes[size]} ${statusColors[status]} rounded-full border-2 border-white ${status === 'active' ? 'animate-pulse' : ''}`} />
+        <div className={`absolute -bottom-0.5 -right-0.5 ${statusDotSizes[size]} ${statusColors[status]} rounded-full border-2 border-white shadow-sm ${status === 'active' ? 'animate-pulse' : ''}`} />
       )}
     </div>
   )

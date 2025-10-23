@@ -29,15 +29,24 @@ export default function AgentCard({
   const agent = AGENTS[agentId]
   const statusConfig = AGENT_STATUS_CONFIG[status]
 
+  // Agent role badges
+  const roleBadges = {
+    knowledge: '🧠 AI Librarian',
+    planner: '💡 Strategy Expert',
+    writer: '✍️ Content Creator',
+    verifier: '🛡️ Quality Guardian'
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all hover:border-gray-300">
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <AgentAvatar agentId={agentId} size="lg" showStatus status={status} />
           <div>
             <h3 className="text-lg font-semibold text-gray-900">{agent.name}</h3>
-            <p className="text-sm text-gray-500">{agent.description}</p>
+            <p className="text-xs text-gray-500 mb-1">{roleBadges[agentId]}</p>
+            <p className="text-sm text-gray-600">{agent.description}</p>
           </div>
         </div>
         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${statusConfig.bgColor} ${statusConfig.color}`}>

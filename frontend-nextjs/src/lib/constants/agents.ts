@@ -1,4 +1,4 @@
-import { BookOpen, FileText, PenTool, CheckCircle } from 'lucide-react'
+import { Brain, Lightbulb, Pencil, ShieldCheck } from 'lucide-react'
 
 export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier'
 
@@ -7,7 +7,7 @@ export type AgentStatus = 'active' | 'idle' | 'scheduled' | 'waiting'
 export interface AgentConfig {
   id: AgentId
   name: string
-  icon: typeof BookOpen
+  icon: typeof Brain
   color: string
   bgColor: string
   borderColor: string
@@ -21,7 +21,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
   knowledge: {
     id: 'knowledge',
     name: 'Knowledge Manager',
-    icon: BookOpen,
+    icon: Brain,
     color: 'blue',
     bgColor: 'bg-blue-500',
     borderColor: 'border-blue-300',
@@ -33,7 +33,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
   planner: {
     id: 'planner',
     name: 'Content Planner',
-    icon: FileText,
+    icon: Lightbulb,
     color: 'purple',
     bgColor: 'bg-purple-500',
     borderColor: 'border-purple-300',
@@ -45,7 +45,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
   writer: {
     id: 'writer',
     name: 'Content Writer',
-    icon: PenTool,
+    icon: Pencil,
     color: 'orange',
     bgColor: 'bg-orange-500',
     borderColor: 'border-orange-300',
@@ -57,7 +57,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
   verifier: {
     id: 'verifier',
     name: 'Quality Verifier',
-    icon: CheckCircle,
+    icon: ShieldCheck,
     color: 'green',
     bgColor: 'bg-green-500',
     borderColor: 'border-green-300',
