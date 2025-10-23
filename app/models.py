@@ -27,8 +27,23 @@ class KnowledgeBase(Base):
     topic = Column(String(100), nullable=False, index=True)
     content = Column(Text, nullable=False)  # JSON 格式存储
     description = Column(Text)
+    tags = Column(Text)  # JSON 格式存储标签列表
+    reference_count = Column(Integer, default=0)  # 引用次数
+    last_used_at = Column(DateTime, nullable=True)  # 最后使用时间
+    quality_score = Column(Integer, default=0)  # 质量评分 0-100
+    is_archived = Column(Integer, default=0)  # 是否归档 0=否 1=是
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    usage_logs = relationship("KnowledgeUsageLog", back_populates="knowledge")
+
+class KnowledgeUsageLog(Base):
+    """知识使用日志"""
+    __tablename__ = "knowledge_usage_logs"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    knowledge_id = Column(Integer, ForeignKey("knowledge_base.id"))
+    used_in_context = Column(String(200))  # 使用场景（如：run_id, task_id等）
+    used_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    knowledge = relationship("KnowledgeBase", back_populates="usage_logs")
 
 class PlannerRuns(Base):
     __tablename__ = "planner_runs"
@@ -63,4 +78,4 @@ class VerifierLogs(Base):
     content_block = relationship("ContentBlock")
 
 # 确保导出 Base
-__all__ = ['Base', 'AgentPrompt', 'ContentBlock', 'KnowledgeBase', 'PlannerRuns', 'PlannerTasks', 'VerifierLogs']
+__all__ = ['Base', 'AgentPrompt', 'ContentBlock', 'KnowledgeBase', 'KnowledgeUsageLog', 'PlannerRuns', 'PlannerTasks', 'VerifierLogs']

@@ -3,18 +3,47 @@ export interface Knowledge {
   id: number
   topic: string
   content: Record<string, any>
+  description?: string
+  tags?: string[]
+  reference_count?: number
+  last_used_at?: string
+  quality_score?: number
+  is_archived?: boolean
   created_at: string
   updated_at: string
+  days_since_update?: number
 }
 
 export interface CreateKnowledgeInput {
   topic: string
   content: Record<string, any>
+  description?: string
+  tags?: string[]
 }
 
 export interface UpdateKnowledgeInput {
   topic?: string
   content?: Record<string, any>
+  description?: string
+  tags?: string[]
+}
+
+export interface KnowledgeUsageStats {
+  total_references: number
+  last_used_at: string | null
+  recent_usage_30d: number
+  usage_trend: Array<{
+    date: string
+    count: number
+  }>
+}
+
+export interface KnowledgeQualityScore {
+  knowledge_id: number
+  quality_score: number
+  completeness: string
+  usage_level: string
+  timeliness: string
 }
 
 // Plan types
