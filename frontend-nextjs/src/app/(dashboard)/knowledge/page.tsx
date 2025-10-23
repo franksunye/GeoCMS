@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { Knowledge } from '@/types'
 import { useState } from 'react'
-import { Search, Trash2, Edit, BookOpen } from 'lucide-react'
+import { Search, Trash2, Edit, BookOpen, Sparkles } from 'lucide-react'
 import { formatRelativeTime } from '@/lib/utils'
 import { AddKnowledgeDialog } from '@/components/knowledge/add-knowledge-dialog'
 import { EditKnowledgeDialog } from '@/components/knowledge/edit-knowledge-dialog'
@@ -12,8 +12,10 @@ import { DeleteKnowledgeDialog } from '@/components/knowledge/delete-knowledge-d
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { KnowledgeEnhancedList } from '@/components/knowledge/KnowledgeEnhancedList'
 
 export default function KnowledgePage() {
+  const [viewMode, setViewMode] = useState<'basic' | 'enhanced'>('enhanced')
   const [searchTerm, setSearchTerm] = useState('')
   const [editingKnowledge, setEditingKnowledge] = useState<Knowledge | null>(null)
   const [deletingKnowledge, setDeletingKnowledge] = useState<Knowledge | null>(null)
@@ -65,8 +67,38 @@ export default function KnowledgePage() {
           <h1 className="text-3xl font-bold text-gray-900">知识库管理</h1>
           <p className="mt-2 text-gray-600">管理品牌知识和资料</p>
         </div>
-        <AddKnowledgeDialog />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('basic')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                viewMode === 'basic'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              基础视图
+            </button>
+            <button
+              onClick={() => setViewMode('enhanced')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
+                viewMode === 'enhanced'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              增强视图
+            </button>
+          </div>
+          <AddKnowledgeDialog />
+        </div>
       </div>
+
+      {viewMode === 'enhanced' ? (
+        <KnowledgeEnhancedList />
+      ) : (
+        <div>
 
       {/* Search */}
       <div className="mb-6">
@@ -130,13 +162,15 @@ export default function KnowledgePage() {
         </ul>
       </div>
 
-      {knowledge?.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">暂无知识</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            开始添加您的第一个知识条目
-          </p>
+        {knowledge?.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">暂无知识</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              开始添加您的第一个知识条目
+            </p>
+          </div>
+        )}
         </div>
       )}
 
