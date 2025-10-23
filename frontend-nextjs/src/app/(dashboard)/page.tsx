@@ -5,6 +5,7 @@ import axios from 'axios'
 import { Stats } from '@/types'
 import { BookOpen, FileText, PenTool, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
+import ActiveTasksSummary from '@/components/agent/ActiveTasksSummary'
 
 export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery<Stats>({
@@ -59,6 +60,11 @@ export default function DashboardPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">概览</h1>
         <p className="mt-2 text-gray-600">欢迎使用 GeoCMS 内容管理系统</p>
+      </div>
+
+      {/* Agent工作台摘要 */}
+      <div className="mb-8">
+        <ActiveTasksSummary />
       </div>
 
       {/* Stats Grid */}

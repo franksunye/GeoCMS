@@ -142,3 +142,49 @@ export interface Stats {
   draftsByStatus: Record<string, number>
 }
 
+// Agent types
+export interface AgentTask {
+  id: number
+  run_id: number
+  task_type: string
+  task_data: Record<string, any>
+  result: Record<string, any> | null
+  status: 'pending' | 'completed' | 'failed'
+  created_at: string
+  updated_at: string
+}
+
+export interface AgentRun {
+  id: number
+  user_intent: string
+  state: Record<string, any>
+  status: 'active' | 'completed' | 'failed'
+  progress: number
+  created_at: string
+  updated_at: string
+  tasks?: AgentTask[]
+}
+
+export interface AgentRunList {
+  total: number
+  active_count: number
+  completed_count: number
+  failed_count: number
+  runs: AgentRun[]
+}
+
+export interface AgentStats {
+  runs: {
+    total: number
+    active: number
+    completed: number
+    failed: number
+  }
+  tasks: {
+    total: number
+    pending: number
+    completed: number
+    failed: number
+  }
+}
+

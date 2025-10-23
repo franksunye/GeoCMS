@@ -3,17 +3,22 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  FileText, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  FileText,
   PenTool,
+  Activity,
   Menu
 } from 'lucide-react'
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import axios from 'axios'
+import { AgentRunList } from '@/types'
 
 const navigation = [
   { name: '概览', href: '/dashboard', icon: LayoutDashboard },
+  { name: '任务监控', href: '/dashboard/tasks', icon: Activity, badge: true },
   { name: '知识库', href: '/dashboard/knowledge', icon: BookOpen },
   { name: '内容策划', href: '/dashboard/planning', icon: FileText },
   { name: '草稿管理', href: '/dashboard/drafts', icon: PenTool },
@@ -27,6 +32,16 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // 获取活跃任务数量
+  const { data: agentData } = useQuery<AgentRunList>({
+    queryKey: ['agent-runs', 'active'],
+    queryFn: async () => {
+      const response = await axios.get('/api/agent/runs?status=active&limit=5')
+      return response.data
+    },
+    refetchInterval: 5000, // 每5秒刷新
+  })
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar for desktop */}
@@ -38,7 +53,8 @@ export default function DashboardLayout({
           <div className="mt-8 flex-grow flex flex-col">
             <nav className="flex-1 px-2 space-y-1">
               {navigation.map((item) => {
-                const isActive = pathname === item.href
+                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+                const showBadge = item.badge && agentData && agentData.active_count > 0
                 return (
                   <Link
                     key={item.name}
@@ -57,6 +73,11 @@ export default function DashboardLayout({
                       )}
                     />
                     {item.name}
+                    {showBadge && (
+                      <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        {agentData.active_count}
+                      </span>
+                    )}
                   </Link>
                 )
               })}
