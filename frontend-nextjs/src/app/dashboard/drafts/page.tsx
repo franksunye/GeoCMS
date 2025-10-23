@@ -6,6 +6,8 @@ import { Draft } from '@/types'
 import { PenTool, Eye } from 'lucide-react'
 import { formatRelativeTime, getStatusColor } from '@/lib/utils'
 import { useState } from 'react'
+import AgentAvatar from '@/components/team/AgentAvatar'
+import AgentBadge from '@/components/team/AgentBadge'
 
 export default function DraftsPage() {
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null)
@@ -46,11 +48,17 @@ export default function DraftsPage() {
                   }`}
                   onClick={() => setSelectedDraft(draft)}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(draft.status)}`}>
-                      {draft.status}
-                    </span>
-                    <span className="text-xs text-gray-500">v{draft.version}</span>
+                  <div className="flex items-start gap-2 mb-2">
+                    <AgentAvatar agentId="writer" size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(draft.status)}`}>
+                          {draft.status}
+                        </span>
+                        <span className="text-xs text-gray-500">v{draft.version}</span>
+                      </div>
+                      <AgentBadge agentId="writer" size="sm" />
+                    </div>
                   </div>
                   <h3 className="text-sm font-medium text-gray-900 mb-1">
                     {draft.metadata.title}
@@ -71,14 +79,22 @@ export default function DraftsPage() {
         <div className="lg:col-span-2">
           {selectedDraft ? (
             <div className="bg-white shadow rounded-lg p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {selectedDraft.metadata.title}
-                </h2>
-                <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                  <Eye className="h-4 w-4 mr-1" />
-                  Preview
-                </button>
+              <div className="mb-4 flex items-start gap-3">
+                <AgentAvatar agentId="writer" size="lg" />
+                <div className="flex-1">
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-1">
+                        {selectedDraft.metadata.title}
+                      </h2>
+                      <AgentBadge agentId="writer" size="sm" />
+                    </div>
+                    <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                      <Eye className="h-4 w-4 mr-1" />
+                      Preview
+                    </button>
+                  </div>
+                </div>
               </div>
               <div className="mb-4 flex flex-wrap gap-2">
                 {selectedDraft.metadata.keywords.map((keyword, index) => (

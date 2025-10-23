@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Plan } from '@/types'
 import { GripVertical, Calendar, Tag, Target } from 'lucide-react'
+import AgentAvatar from '@/components/team/AgentAvatar'
+import AgentBadge from '@/components/team/AgentBadge'
 
 interface KanbanBoardProps {
   plans: Plan[]
@@ -74,6 +76,12 @@ export function KanbanBoard({ plans, onStatusChange }: KanbanBoardProps) {
                   onDragStart={() => handleDragStart(plan)}
                   className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 cursor-move hover:shadow-md transition-shadow"
                 >
+                  {/* Agent Info */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <AgentAvatar agentId="planner" size="sm" />
+                    <AgentBadge agentId="planner" size="sm" />
+                  </div>
+
                   {/* Drag Handle */}
                   <div className="flex items-start gap-2 mb-3">
                     <GripVertical className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />

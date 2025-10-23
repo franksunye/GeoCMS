@@ -11,6 +11,8 @@ import { KanbanBoard } from '@/components/planning/KanbanBoard'
 import { useToast } from '@/hooks/use-toast'
 import { KanbanSkeleton, CardSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-boundary'
+import AgentAvatar from '@/components/team/AgentAvatar'
+import AgentBadge from '@/components/team/AgentBadge'
 
 export default function PlanningPage() {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban')
@@ -125,11 +127,17 @@ export default function PlanningPage() {
             className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
           >
             <div className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(plan.status)}`}>
-                  {plan.status}
-                </span>
-                <span className="text-xs text-gray-500">{plan.category}</span>
+              <div className="flex items-start gap-3 mb-3">
+                <AgentAvatar agentId="planner" size="md" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(plan.status)}`}>
+                      {plan.status}
+                    </span>
+                    <span className="text-xs text-gray-500">{plan.category}</span>
+                  </div>
+                  <AgentBadge agentId="planner" size="sm" />
+                </div>
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 {plan.title}
