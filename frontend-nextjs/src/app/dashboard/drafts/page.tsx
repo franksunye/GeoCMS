@@ -21,7 +21,7 @@ export default function DraftsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500">Loading...</div>
       </div>
     )
   }
@@ -29,8 +29,8 @@ export default function DraftsPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">草稿管理</h1>
-        <p className="mt-2 text-gray-600">查看和编辑内容草稿</p>
+        <h1 className="text-3xl font-bold text-gray-900">Draft Management</h1>
+        <p className="mt-2 text-gray-600">View and edit content drafts</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -56,7 +56,7 @@ export default function DraftsPage() {
                     {draft.metadata.title}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    {draft.metadata.word_count} 字 · {draft.metadata.estimated_reading_time}
+                    {draft.metadata.word_count} words · {draft.metadata.estimated_reading_time}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     {formatRelativeTime(draft.updated_at)}
@@ -77,7 +77,7 @@ export default function DraftsPage() {
                 </h2>
                 <button className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                   <Eye className="h-4 w-4 mr-1" />
-                  预览
+                  Preview
                 </button>
               </div>
               <div className="mb-4 flex flex-wrap gap-2">
@@ -100,7 +100,7 @@ export default function DraftsPage() {
               {selectedDraft.reviewer_feedback && (
                 <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h4 className="text-sm font-medium text-yellow-900 mb-1">
-                    审核反馈
+                    Review Feedback
                   </h4>
                   <p className="text-sm text-yellow-700">
                     {selectedDraft.reviewer_feedback}
@@ -112,10 +112,10 @@ export default function DraftsPage() {
             <div className="bg-white shadow rounded-lg p-12 text-center">
               <PenTool className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">
-                选择一个草稿
+                Select a Draft
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                从左侧列表中选择一个草稿查看详情
+                Choose a draft from the left list to view details
               </p>
             </div>
           )}
@@ -125,9 +125,9 @@ export default function DraftsPage() {
       {drafts?.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <PenTool className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">暂无草稿</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No Drafts</h3>
           <p className="mt-1 text-sm text-gray-500">
-            从内容策划开始生成您的第一个草稿
+            Start from content planning to generate your first draft
           </p>
         </div>
       )}

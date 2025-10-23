@@ -71,7 +71,7 @@ export interface Plan {
   asset_requirements: string[]
   assets_provided: string[]
   material_pack_id: string
-  status: '待素材' | '已确认' | '进行中' | '已完成'
+  status: 'pending_materials' | 'confirmed' | 'in_progress' | 'completed'
   created_at: string
   updated_at: string
 }
@@ -122,7 +122,7 @@ export interface Draft {
     seo_score?: number
     readability_score?: number
   }
-  status: '待编辑' | '已编辑' | '待审核' | '已批准' | '已发布'
+  status: 'pending_edit' | 'edited' | 'pending_review' | 'approved' | 'published'
   version: number
   reviewer_id: string | null
   reviewer_feedback: string | null

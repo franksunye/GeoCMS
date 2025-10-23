@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "GeoCMS - AI 驱动的内容管理系统",
-  description: "让内容创作更智能、更高效",
+  title: "GeoCMS - AI-Powered Content Management System",
+  description: "Make content creation smarter and more efficient",
 }
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body className={inter.className}>
         <Providers>
           {children}

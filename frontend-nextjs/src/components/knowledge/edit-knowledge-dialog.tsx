@@ -31,8 +31,8 @@ import { Loader2 } from 'lucide-react'
 import { Knowledge } from '@/types'
 
 const formSchema = z.object({
-  topic: z.string().min(1, '主题不能为空').max(100, '主题不能超过100个字符'),
-  content: z.string().min(1, '内容不能为空'),
+  topic: z.string().min(1, 'Topic cannot be empty').max(100, 'Topic cannot exceed 100 characters'),
+  content: z.string().min(1, 'Content cannot be empty'),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -73,7 +73,7 @@ export function EditKnowledgeDialog({
       try {
         parsedContent = JSON.parse(data.content)
       } catch (e) {
-        throw new Error('内容必须是有效的 JSON 格式')
+        throw new Error('Content must be valid JSON format')
       }
 
       const response = await axios.put(`/api/knowledge/${knowledge.id}`, {
@@ -85,15 +85,15 @@ export function EditKnowledgeDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge'] })
       toast({
-        title: '更新成功',
-        description: '知识已成功更新',
+        title: 'Updated Successfully',
+        description: 'Knowledge has been successfully updated',
       })
       onOpenChange(false)
     },
     onError: (error: any) => {
       toast({
-        title: '更新失败',
-        description: error.message || '更新知识时发生错误',
+        title: 'Update Failed',
+        description: error.message || 'An error occurred while updating knowledge',
         variant: 'destructive',
       })
     },
@@ -107,9 +107,9 @@ export function EditKnowledgeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>编辑知识</DialogTitle>
+          <DialogTitle>Edit Knowledge</DialogTitle>
           <DialogDescription>
-            修改知识内容。内容需要是有效的 JSON 格式。
+            Modify knowledge content. Content must be in valid JSON format.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -119,12 +119,12 @@ export function EditKnowledgeDialog({
               name="topic"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>主题</FormLabel>
+                  <FormLabel>Topic</FormLabel>
                   <FormControl>
-                    <Input placeholder="例如：company_info" {...field} />
+                    <Input placeholder="e.g., company_info" {...field} />
                   </FormControl>
                   <FormDescription>
-                    知识的主题或分类标识
+                    Topic or category identifier for the knowledge
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -135,16 +135,16 @@ export function EditKnowledgeDialog({
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>内容（JSON 格式）</FormLabel>
+                  <FormLabel>Content (JSON Format)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder='{"name": "公司名称", "description": "公司描述"}'
+                      placeholder='{"name": "Company Name", "description": "Company Description"}'
                       className="font-mono text-sm min-h-[200px]"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    知识的具体内容，必须是有效的 JSON 格式
+                    Specific content of the knowledge, must be in valid JSON format
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -157,13 +157,13 @@ export function EditKnowledgeDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={updateMutation.isPending}
               >
-                取消
+                Cancel
               </Button>
               <Button type="submit" disabled={updateMutation.isPending}>
                 {updateMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                保存
+                Save
               </Button>
             </DialogFooter>
           </form>

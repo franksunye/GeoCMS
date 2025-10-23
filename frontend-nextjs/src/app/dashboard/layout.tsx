@@ -17,11 +17,11 @@ import axios from 'axios'
 import { AgentRunList } from '@/types'
 
 const navigation = [
-  { name: '概览', href: '/dashboard', icon: LayoutDashboard },
-  { name: '任务监控', href: '/dashboard/tasks', icon: Activity, badge: true },
-  { name: '知识库', href: '/dashboard/knowledge', icon: BookOpen },
-  { name: '内容策划', href: '/dashboard/planning', icon: FileText },
-  { name: '草稿管理', href: '/dashboard/drafts', icon: PenTool },
+  { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Task Monitor', href: '/dashboard/tasks', icon: Activity, badge: true },
+  { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: BookOpen },
+  { name: 'Content Planning', href: '/dashboard/planning', icon: FileText },
+  { name: 'Draft Management', href: '/dashboard/drafts', icon: PenTool },
 ]
 
 export default function DashboardLayout({

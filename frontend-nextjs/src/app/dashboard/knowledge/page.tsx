@@ -38,15 +38,15 @@ export default function KnowledgePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge'] })
       toast({
-        title: '删除成功',
-        description: '知识已从知识库中删除',
+        title: 'Deleted Successfully',
+        description: 'Knowledge has been removed from the knowledge base',
       })
       setDeletingKnowledge(null)
     },
     onError: () => {
       toast({
-        title: '删除失败',
-        description: '删除知识时发生错误',
+        title: 'Delete Failed',
+        description: 'An error occurred while deleting knowledge',
         variant: 'destructive',
       })
     },
@@ -55,7 +55,7 @@ export default function KnowledgePage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500">Loading...</div>
       </div>
     )
   }
@@ -64,8 +64,8 @@ export default function KnowledgePage() {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">知识库管理</h1>
-          <p className="mt-2 text-gray-600">管理品牌知识和资料</p>
+          <h1 className="text-3xl font-bold text-gray-900">Knowledge Base Management</h1>
+          <p className="mt-2 text-gray-600">Manage brand knowledge and materials</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
@@ -77,7 +77,7 @@ export default function KnowledgePage() {
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              基础视图
+              Basic View
             </button>
             <button
               onClick={() => setViewMode('enhanced')}
@@ -88,7 +88,7 @@ export default function KnowledgePage() {
               }`}
             >
               <Sparkles className="h-4 w-4" />
-              增强视图
+              Enhanced View
             </button>
           </div>
           <AddKnowledgeDialog />
@@ -109,7 +109,7 @@ export default function KnowledgePage() {
           <Input
             type="text"
             className="pl-10"
-            placeholder="搜索知识..."
+            placeholder="Search knowledge..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -128,7 +128,7 @@ export default function KnowledgePage() {
                       {item.topic}
                     </h3>
                     <p className="mt-1 text-sm text-gray-500">
-                      更新于 {formatRelativeTime(item.updated_at)}
+                      Updated {formatRelativeTime(item.updated_at)}
                     </p>
                   </div>
                   <div className="ml-4 flex-shrink-0 flex space-x-2">
@@ -138,7 +138,7 @@ export default function KnowledgePage() {
                       onClick={() => setEditingKnowledge(item)}
                     >
                       <Edit className="h-4 w-4 mr-1" />
-                      编辑
+                      Edit
                     </Button>
                     <Button
                       variant="outline"
@@ -147,7 +147,7 @@ export default function KnowledgePage() {
                       className="border-red-300 text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4 mr-1" />
-                      删除
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -165,9 +165,9 @@ export default function KnowledgePage() {
         {knowledge?.length === 0 && (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">暂无知识</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No Knowledge</h3>
             <p className="mt-1 text-sm text-gray-500">
-              开始添加您的第一个知识条目
+              Start adding your first knowledge entry
             </p>
           </div>
         )}

@@ -22,7 +22,7 @@ export async function GET() {
     totalKnowledge: knowledgeData.length,
     totalPlans: plansData.length,
     totalDrafts: draftsData.length,
-    publishedContent: draftsData.filter(d => d.status === '已发布').length,
+    publishedContent: draftsData.filter(d => d.status === 'published').length,
     plansByStatus,
     draftsByStatus,
   }

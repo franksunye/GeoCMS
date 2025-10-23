@@ -10,10 +10,10 @@ interface KanbanBoardProps {
 }
 
 const statusColumns: { status: Plan['status']; label: string; color: string }[] = [
-  { status: '待素材', label: '待素材', color: 'bg-yellow-100 border-yellow-300' },
-  { status: '已确认', label: '已确认', color: 'bg-blue-100 border-blue-300' },
-  { status: '进行中', label: '进行中', color: 'bg-purple-100 border-purple-300' },
-  { status: '已完成', label: '已完成', color: 'bg-green-100 border-green-300' },
+  { status: 'pending_materials', label: 'Pending Materials', color: 'bg-yellow-100 border-yellow-300' },
+  { status: 'confirmed', label: 'Confirmed', color: 'bg-blue-100 border-blue-300' },
+  { status: 'in_progress', label: 'In Progress', color: 'bg-purple-100 border-purple-300' },
+  { status: 'completed', label: 'Completed', color: 'bg-green-100 border-green-300' },
 ]
 
 export function KanbanBoard({ plans, onStatusChange }: KanbanBoardProps) {
@@ -86,7 +86,7 @@ export function KanbanBoard({ plans, onStatusChange }: KanbanBoardProps) {
                   {/* Progress Bar */}
                   <div className="mb-3">
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                      <span>进度</span>
+                      <span>Progress</span>
                       <span>{Math.round(getProgressPercentage(plan))}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">

@@ -59,10 +59,10 @@ export default function TasksPage() {
       pending: 'bg-yellow-100 text-yellow-800',
     }
     const labels = {
-      active: '运行中',
-      completed: '已完成',
-      failed: '失败',
-      pending: '待处理',
+      active: 'Running',
+      completed: 'Completed',
+      failed: 'Failed',
+      pending: 'Pending',
     }
     return (
       <span
@@ -80,9 +80,9 @@ export default function TasksPage() {
 
   const getTaskTypeLabel = (taskType: string) => {
     const labels: Record<string, string> = {
-      ask_slot: '询问信息',
-      generate_content: '生成内容',
-      verify: '校验内容',
+      ask_slot: 'Ask Information',
+      generate_content: 'Generate Content',
+      verify: 'Verify Content',
     }
     return labels[taskType] || taskType
   }
@@ -90,7 +90,7 @@ export default function TasksPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500">Loading...</div>
       </div>
     )
   }
@@ -106,9 +106,9 @@ export default function TasksPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center">
           <Activity className="h-8 w-8 mr-3 text-primary" />
-          任务监控
+          Task Monitor
         </h1>
-        <p className="mt-2 text-gray-600">实时查看Agent的工作进展</p>
+        <p className="mt-2 text-gray-600">Real-time view of Agent work progress</p>
       </div>
 
       {/* Stats */}
@@ -123,7 +123,7 @@ export default function TasksPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
-                      总任务
+                      Total Tasks
                     </dt>
                     <dd className="text-3xl font-semibold text-gray-900">
                       {data.total}
@@ -143,7 +143,7 @@ export default function TasksPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
-                      活跃
+                      Active
                     </dt>
                     <dd className="text-3xl font-semibold text-green-600">
                       {data.active_count}
@@ -163,7 +163,7 @@ export default function TasksPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
-                      已完成
+                      Completed
                     </dt>
                     <dd className="text-3xl font-semibold text-blue-600">
                       {data.completed_count}
@@ -183,7 +183,7 @@ export default function TasksPage() {
                 <div className="ml-5 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">
-                      失败
+                      Failed
                     </dt>
                     <dd className="text-3xl font-semibold text-red-600">
                       {data.failed_count}
@@ -208,7 +208,7 @@ export default function TasksPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
-              全部 ({data?.total || 0})
+              All ({data?.total || 0})
             </button>
             <button
               onClick={() => setStatusFilter('active')}
@@ -218,7 +218,7 @@ export default function TasksPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
-              活跃 ({data?.active_count || 0})
+              Active ({data?.active_count || 0})
             </button>
             <button
               onClick={() => setStatusFilter('completed')}
@@ -228,7 +228,7 @@ export default function TasksPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
-              已完成 ({data?.completed_count || 0})
+              Completed ({data?.completed_count || 0})
             </button>
             <button
               onClick={() => setStatusFilter('failed')}
@@ -238,7 +238,7 @@ export default function TasksPage() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             >
-              失败 ({data?.failed_count || 0})
+              Failed ({data?.failed_count || 0})
             </button>
           </nav>
         </div>
@@ -249,12 +249,12 @@ export default function TasksPage() {
         <div className="bg-white shadow rounded-lg p-12 text-center">
           <Activity className="h-16 w-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            没有找到任务
+            No Tasks Found
           </h3>
           <p className="text-gray-500">
             {statusFilter === 'all'
-              ? '还没有任何任务'
-              : `没有${statusFilter === 'active' ? '活跃' : statusFilter === 'completed' ? '已完成' : '失败'}的任务`}
+              ? 'No tasks yet'
+              : `No ${statusFilter === 'active' ? 'active' : statusFilter === 'completed' ? 'completed' : 'failed'} tasks`}
           </p>
         </div>
       ) : (
@@ -309,7 +309,7 @@ function RunCard({
             <div className="flex items-center text-sm text-gray-500 space-x-4">
               <span className="flex items-center">
                 <Clock className="h-4 w-4 mr-1" />
-                {new Date(run.created_at).toLocaleString('zh-CN')}
+                {new Date(run.created_at).toLocaleString('en-US')}
               </span>
               <span>ID: {run.id}</span>
             </div>
@@ -327,7 +327,7 @@ function RunCard({
         {/* Progress Bar */}
         <div className="mt-4">
           <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
-            <span>进度</span>
+            <span>Progress</span>
             <span>{Math.round(run.progress * 100)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2.5">
@@ -348,7 +348,7 @@ function RunCard({
       {/* Expanded Content - Tasks Timeline */}
       {isExpanded && run.tasks && run.tasks.length > 0 && (
         <div className="border-t border-gray-200 bg-gray-50 p-6">
-          <h4 className="text-sm font-medium text-gray-900 mb-4">任务时间线</h4>
+          <h4 className="text-sm font-medium text-gray-900 mb-4">Task Timeline</h4>
           <div className="space-y-3">
             {run.tasks.map((task, index) => (
               <div key={task.id} className="flex items-start">
@@ -363,7 +363,7 @@ function RunCard({
                     {getStatusBadge(task.status)}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {new Date(task.created_at).toLocaleString('zh-CN')}
+                    {new Date(task.created_at).toLocaleString('en-US')}
                   </p>
                   {task.result && (
                     <div className="mt-2 text-xs text-gray-600 bg-white p-2 rounded border border-gray-200">

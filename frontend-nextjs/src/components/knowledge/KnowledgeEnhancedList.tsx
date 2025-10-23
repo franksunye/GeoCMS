@@ -50,10 +50,10 @@ export function KnowledgeEnhancedList() {
   })
 
   const getQualityBadge = (score: number) => {
-    if (score >= 80) return { label: '优秀', color: 'bg-green-100 text-green-800' }
-    if (score >= 60) return { label: '良好', color: 'bg-blue-100 text-blue-800' }
-    if (score >= 40) return { label: '一般', color: 'bg-yellow-100 text-yellow-800' }
-    return { label: '需改进', color: 'bg-red-100 text-red-800' }
+    if (score >= 80) return { label: 'Excellent', color: 'bg-green-100 text-green-800' }
+    if (score >= 60) return { label: 'Good', color: 'bg-blue-100 text-blue-800' }
+    if (score >= 40) return { label: 'Fair', color: 'bg-yellow-100 text-yellow-800' }
+    return { label: 'Needs Improvement', color: 'bg-red-100 text-red-800' }
   }
 
   if (isLoading) {
@@ -78,12 +78,12 @@ export function KnowledgeEnhancedList() {
 
   return (
     <div className="space-y-6">
-      {/* 统计卡片 */}
+      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">总知识数</p>
+              <p className="text-sm text-gray-500">Total Knowledge</p>
               <p className="text-3xl font-bold text-gray-900">{knowledge?.length || 0}</p>
             </div>
             <TagIcon className="h-10 w-10 text-blue-500" />
@@ -93,7 +93,7 @@ export function KnowledgeEnhancedList() {
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">热门知识</p>
+              <p className="text-sm text-gray-500">Popular Knowledge</p>
               <p className="text-3xl font-bold text-gray-900">{topKnowledge?.length || 0}</p>
             </div>
             <TrendingUp className="h-10 w-10 text-green-500" />
@@ -103,7 +103,7 @@ export function KnowledgeEnhancedList() {
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500">需更新</p>
+              <p className="text-sm text-gray-500">Needs Update</p>
               <p className="text-3xl font-bold text-gray-900">{outdatedKnowledge?.length || 0}</p>
             </div>
             <Clock className="h-10 w-10 text-yellow-500" />

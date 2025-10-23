@@ -19,50 +19,50 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">加载中...</div>
+        <div className="text-gray-500">Loading...</div>
       </div>
     )
   }
 
   const statCards = [
     {
-      name: '知识库',
+      name: 'Knowledge Base',
       value: stats?.totalKnowledge || 0,
       icon: BookOpen,
       color: 'bg-blue-500',
       href: '/dashboard/knowledge',
     },
     {
-      name: '策划中',
+      name: 'In Planning',
       value: stats?.totalPlans || 0,
       icon: FileText,
       color: 'bg-purple-500',
       href: '/dashboard/planning',
     },
     {
-      name: '草稿',
+      name: 'Drafts',
       value: stats?.totalDrafts || 0,
       icon: PenTool,
       color: 'bg-orange-500',
       href: '/dashboard/drafts',
     },
     {
-      name: '已发布',
+      name: 'Published',
       value: stats?.publishedContent || 0,
       icon: CheckCircle,
       color: 'bg-green-500',
-      href: '/dashboard/drafts?status=已发布',
+      href: '/dashboard/drafts?status=published',
     },
   ]
 
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">概览</h1>
-        <p className="mt-2 text-gray-600">欢迎使用 GeoCMS 内容管理系统</p>
+        <h1 className="text-3xl font-bold text-gray-900">Overview</h1>
+        <p className="mt-2 text-gray-600">Welcome to GeoCMS Content Management System</p>
       </div>
 
-      {/* Agent工作台摘要 */}
+      {/* Agent Workspace Summary */}
       <div className="mb-8">
         <ActiveTasksSummary />
       </div>
@@ -98,7 +98,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="bg-white shadow rounded-lg p-6 mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">快速开始</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Start</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Link
             href="/dashboard/knowledge"
@@ -106,8 +106,8 @@ export default function DashboardPage() {
           >
             <BookOpen className="h-8 w-8 text-primary mr-3" />
             <div>
-              <h3 className="font-medium text-gray-900">管理知识库</h3>
-              <p className="text-sm text-gray-500">添加和管理品牌知识</p>
+              <h3 className="font-medium text-gray-900">Manage Knowledge Base</h3>
+              <p className="text-sm text-gray-500">Add and manage brand knowledge</p>
             </div>
           </Link>
           <Link
@@ -116,8 +116,8 @@ export default function DashboardPage() {
           >
             <FileText className="h-8 w-8 text-primary mr-3" />
             <div>
-              <h3 className="font-medium text-gray-900">创建内容计划</h3>
-              <p className="text-sm text-gray-500">规划新的内容策略</p>
+              <h3 className="font-medium text-gray-900">Create Content Plan</h3>
+              <p className="text-sm text-gray-500">Plan new content strategy</p>
             </div>
           </Link>
         </div>
@@ -128,14 +128,14 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              策划状态分布
+              Planning Status Distribution
             </h2>
             <div className="space-y-3">
               {Object.entries(stats.plansByStatus).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">{status}</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {count} 个
+                    {count}
                   </span>
                 </div>
               ))}
@@ -144,14 +144,14 @@ export default function DashboardPage() {
 
           <div className="bg-white shadow rounded-lg p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              草稿状态分布
+              Draft Status Distribution
             </h2>
             <div className="space-y-3">
               {Object.entries(stats.draftsByStatus).map(([status, count]) => (
                 <div key={status} className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">{status}</span>
                   <span className="text-sm font-medium text-gray-900">
-                    {count} 个
+                    {count}
                   </span>
                 </div>
               ))}

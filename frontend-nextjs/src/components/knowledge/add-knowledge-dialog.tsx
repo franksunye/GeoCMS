@@ -31,8 +31,8 @@ import { useToast } from '@/hooks/use-toast'
 import { Plus, Loader2 } from 'lucide-react'
 
 const formSchema = z.object({
-  topic: z.string().min(1, '主题不能为空').max(100, '主题不能超过100个字符'),
-  content: z.string().min(1, '内容不能为空'),
+  topic: z.string().min(1, 'Topic cannot be empty').max(100, 'Topic cannot exceed 100 characters'),
+  content: z.string().min(1, 'Content cannot be empty'),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -56,7 +56,7 @@ export function AddKnowledgeDialog() {
       try {
         parsedContent = JSON.parse(data.content)
       } catch (e) {
-        throw new Error('内容必须是有效的 JSON 格式')
+        throw new Error('Content must be valid JSON format')
       }
 
       const response = await axios.post('/api/knowledge', {
@@ -68,16 +68,16 @@ export function AddKnowledgeDialog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge'] })
       toast({
-        title: '添加成功',
-        description: '知识已成功添加到知识库',
+        title: 'Added Successfully',
+        description: 'Knowledge has been successfully added to the knowledge base',
       })
       setOpen(false)
       form.reset()
     },
     onError: (error: any) => {
       toast({
-        title: '添加失败',
-        description: error.message || '添加知识时发生错误',
+        title: 'Add Failed',
+        description: error.message || 'An error occurred while adding knowledge',
         variant: 'destructive',
       })
     },
@@ -92,14 +92,14 @@ export function AddKnowledgeDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          添加知识
+          Add Knowledge
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>添加知识</DialogTitle>
+          <DialogTitle>Add Knowledge</DialogTitle>
           <DialogDescription>
-            添加新的知识到知识库。内容需要是有效的 JSON 格式。
+            Add new knowledge to the knowledge base. Content must be in valid JSON format.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -109,12 +109,12 @@ export function AddKnowledgeDialog() {
               name="topic"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>主题</FormLabel>
+                  <FormLabel>Topic</FormLabel>
                   <FormControl>
-                    <Input placeholder="例如：company_info" {...field} />
+                    <Input placeholder="e.g., company_info" {...field} />
                   </FormControl>
                   <FormDescription>
-                    知识的主题或分类标识
+                    Topic or category identifier for the knowledge
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -125,16 +125,16 @@ export function AddKnowledgeDialog() {
               name="content"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>内容（JSON 格式）</FormLabel>
+                  <FormLabel>Content (JSON Format)</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder='{"name": "公司名称", "description": "公司描述"}'
+                      placeholder='{"name": "Company Name", "description": "Company Description"}'
                       className="font-mono text-sm min-h-[200px]"
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
-                    知识的具体内容，必须是有效的 JSON 格式
+                    Specific content of the knowledge, must be in valid JSON format
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -147,13 +147,13 @@ export function AddKnowledgeDialog() {
                 onClick={() => setOpen(false)}
                 disabled={createMutation.isPending}
               >
-                取消
+                Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                添加
+                Add
               </Button>
             </DialogFooter>
           </form>

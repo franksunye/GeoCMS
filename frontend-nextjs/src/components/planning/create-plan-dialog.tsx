@@ -31,15 +31,15 @@ import { useToast } from '@/hooks/use-toast'
 import { Plus, Loader2, X } from 'lucide-react'
 
 const formSchema = z.object({
-  topic: z.string().min(1, '主题不能为空'),
-  title: z.string().min(1, '标题不能为空'),
-  category: z.string().min(1, '分类不能为空'),
-  keywords: z.array(z.string()).min(1, '至少需要一个关键词'),
-  tags: z.array(z.string()).min(1, '至少需要一个标签'),
+  topic: z.string().min(1, 'Topic cannot be empty'),
+  title: z.string().min(1, 'Title cannot be empty'),
+  category: z.string().min(1, 'Category cannot be empty'),
+  keywords: z.array(z.string()).min(1, 'At least one keyword is required'),
+  tags: z.array(z.string()).min(1, 'At least one tag is required'),
   outline: z.object({
-    introduction: z.string().min(1, '引言不能为空'),
-    main_points: z.array(z.string()).min(1, '至少需要一个要点'),
-    conclusion: z.string().min(1, '结论不能为空'),
+    introduction: z.string().min(1, 'Introduction cannot be empty'),
+    main_points: z.array(z.string()).min(1, 'At least one main point is required'),
+    conclusion: z.string().min(1, 'Conclusion cannot be empty'),
   }),
 })
 
@@ -77,16 +77,16 @@ export function CreatePlanDialog() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plans'] })
       toast({
-        title: '创建成功',
-        description: '内容策划已成功创建',
+        title: 'Created Successfully',
+        description: 'Content plan has been successfully created',
       })
       setOpen(false)
       form.reset()
     },
     onError: (error: any) => {
       toast({
-        title: '创建失败',
-        description: error.message || '创建策划时发生错误',
+        title: 'Creation Failed',
+        description: error.message || 'An error occurred while creating the plan',
         variant: 'destructive',
       })
     },
@@ -140,14 +140,14 @@ export function CreatePlanDialog() {
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
-          创建策划
+          Create Plan
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>创建内容策划</DialogTitle>
+          <DialogTitle>Create Content Plan</DialogTitle>
           <DialogDescription>
-            创建新的内容策划方案
+            Create a new content planning scheme
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -157,9 +157,9 @@ export function CreatePlanDialog() {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>标题</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="例如：GeoCMS 产品发布博客" {...field} />
+                    <Input placeholder="e.g., GeoCMS Product Launch Blog" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -171,9 +171,9 @@ export function CreatePlanDialog() {
               name="topic"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>主题</FormLabel>
+                  <FormLabel>Topic</FormLabel>
                   <FormControl>
-                    <Input placeholder="例如：产品发布" {...field} />
+                    <Input placeholder="e.g., Product Launch" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -185,9 +185,9 @@ export function CreatePlanDialog() {
               name="category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>分类</FormLabel>
+                  <FormLabel>Category</FormLabel>
                   <FormControl>
-                    <Input placeholder="例如：产品发布" {...field} />
+                    <Input placeholder="e.g., Product Launch" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -200,16 +200,16 @@ export function CreatePlanDialog() {
               name="keywords"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>关键词</FormLabel>
+                  <FormLabel>Keywords</FormLabel>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="输入关键词"
+                      placeholder="Enter keyword"
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addKeyword())}
                     />
                     <Button type="button" onClick={addKeyword} size="sm">
-                      添加
+                      Add
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -240,16 +240,16 @@ export function CreatePlanDialog() {
               name="tags"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>标签</FormLabel>
+                  <FormLabel>Tags</FormLabel>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="输入标签"
+                      placeholder="Enter tag"
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                     />
                     <Button type="button" onClick={addTag} size="sm">
-                      添加
+                      Add
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
@@ -276,16 +276,16 @@ export function CreatePlanDialog() {
 
             {/* Outline */}
             <div className="space-y-3 border-t pt-4">
-              <h3 className="font-medium">内容大纲</h3>
-              
+              <h3 className="font-medium">Content Outline</h3>
+
               <FormField
                 control={form.control}
                 name="outline.introduction"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>引言</FormLabel>
+                    <FormLabel>Introduction</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="介绍内容背景和目的" {...field} />
+                      <Textarea placeholder="Introduce content background and purpose" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -297,16 +297,16 @@ export function CreatePlanDialog() {
                 name="outline.main_points"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>主要要点</FormLabel>
+                    <FormLabel>Main Points</FormLabel>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="输入要点"
+                        placeholder="Enter main point"
                         value={mainPointInput}
                         onChange={(e) => setMainPointInput(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addMainPoint())}
                       />
                       <Button type="button" onClick={addMainPoint} size="sm">
-                        添加
+                        Add
                       </Button>
                     </div>
                     <ul className="space-y-2 mt-2">
@@ -334,9 +334,9 @@ export function CreatePlanDialog() {
                 name="outline.conclusion"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>结论</FormLabel>
+                    <FormLabel>Conclusion</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="总结和行动号召" {...field} />
+                      <Textarea placeholder="Summary and call to action" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -351,13 +351,13 @@ export function CreatePlanDialog() {
                 onClick={() => setOpen(false)}
                 disabled={createMutation.isPending}
               >
-                取消
+                Cancel
               </Button>
               <Button type="submit" disabled={createMutation.isPending}>
                 {createMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                创建
+                Create
               </Button>
             </DialogFooter>
           </form>

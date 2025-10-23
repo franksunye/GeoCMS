@@ -1,6 +1,6 @@
 /**
- * 乐观更新Hook
- * 在API请求完成前立即更新UI，提供更流畅的用户体验
+ * Optimistic Update Hook
+ * Update UI immediately before API request completes, providing a smoother user experience
  */
 
 import { useQueryClient, useMutation, UseMutationOptions } from '@tanstack/react-query'
@@ -19,7 +19,7 @@ interface OptimisticUpdateOptions<TData, TVariables, TContext = unknown> {
 }
 
 /**
- * 使用乐观更新的Mutation Hook
+ * Mutation Hook with Optimistic Update
  */
 export function useOptimisticUpdate<TData = unknown, TVariables = unknown, TContext = unknown>({
   queryKey,
@@ -67,30 +67,30 @@ export function useOptimisticUpdate<TData = unknown, TVariables = unknown, TCont
         queryClient.setQueryData(queryKey, context.previousData)
       }
 
-      // 显示错误提示
+      // Show error message
       toast({
-        title: '操作失败',
+        title: 'Operation Failed',
         description: errorMessage || error.message,
         variant: 'destructive',
       })
 
-      // 调用用户提供的onError
+      // Call user-provided onError
       if (userOnError && context?.userContext) {
         userOnError(error, variables, context.userContext)
       }
     },
 
-    // mutation成功后
+    // After mutation succeeds
     onSuccess: (data, variables, context) => {
-      // 显示成功提示
+      // Show success message
       if (successMessage) {
         toast({
-          title: '操作成功',
+          title: 'Operation Successful',
           description: successMessage,
         })
       }
 
-      // 调用用户提供的onSuccess
+      // Call user-provided onSuccess
       if (userOnSuccess && context?.userContext) {
         userOnSuccess(data, variables, context.userContext)
       }

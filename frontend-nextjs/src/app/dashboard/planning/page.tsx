@@ -33,14 +33,14 @@ export default function PlanningPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plans'] })
       toast({
-        title: '状态已更新',
-        description: '计划状态已成功更新',
+        title: 'Status Updated',
+        description: 'Plan status has been successfully updated',
       })
     },
     onError: () => {
       toast({
-        title: '更新失败',
-        description: '更新计划状态时发生错误',
+        title: 'Update Failed',
+        description: 'An error occurred while updating plan status',
         variant: 'destructive',
       })
     },
@@ -54,8 +54,8 @@ export default function PlanningPage() {
     return (
       <div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">内容策划</h1>
-          <p className="mt-2 text-gray-600">管理内容计划和策略</p>
+          <h1 className="text-3xl font-bold text-gray-900">Content Planning</h1>
+          <p className="mt-2 text-gray-600">Manage content plans and strategies</p>
         </div>
         {viewMode === 'kanban' ? <KanbanSkeleton /> : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -70,8 +70,8 @@ export default function PlanningPage() {
     return (
       <div>
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">内容策划</h1>
-          <p className="mt-2 text-gray-600">管理内容计划和策略</p>
+          <h1 className="text-3xl font-bold text-gray-900">Content Planning</h1>
+          <p className="mt-2 text-gray-600">Manage content plans and strategies</p>
         </div>
         <ErrorDisplay error={error as Error} onRetry={() => refetch()} />
       </div>
@@ -82,8 +82,8 @@ export default function PlanningPage() {
     <div>
       <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">内容策划</h1>
-          <p className="mt-2 text-gray-600">管理内容计划和策略</p>
+          <h1 className="text-3xl font-bold text-gray-900">Content Planning</h1>
+          <p className="mt-2 text-gray-600">Manage content plans and strategies</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
@@ -96,7 +96,7 @@ export default function PlanningPage() {
               }`}
             >
               <List className="h-4 w-4" />
-              列表视图
+              List View
             </button>
             <button
               onClick={() => setViewMode('kanban')}
@@ -107,7 +107,7 @@ export default function PlanningPage() {
               }`}
             >
               <LayoutGrid className="h-4 w-4" />
-              看板视图
+              Kanban View
             </button>
           </div>
           <CreatePlanDialog />
@@ -148,7 +148,7 @@ export default function PlanningPage() {
                 ))}
               </div>
               <div className="text-xs text-gray-500">
-                更新于 {formatRelativeTime(plan.updated_at)}
+                Updated {formatRelativeTime(plan.updated_at)}
               </div>
             </div>
           </div>
@@ -158,9 +158,9 @@ export default function PlanningPage() {
           {plans?.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg shadow">
               <FileText className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">暂无策划</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No Plans</h3>
               <p className="mt-1 text-sm text-gray-500">
-                开始创建您的第一个内容计划
+                Start creating your first content plan
               </p>
             </div>
           )}
