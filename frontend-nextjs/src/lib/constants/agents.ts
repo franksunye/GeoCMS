@@ -8,6 +8,7 @@ export interface AgentConfig {
   id: AgentId
   name: string
   icon: typeof Brain
+  avatar: string  // Avatar image URL
   color: string
   bgColor: string
   borderColor: string
@@ -22,6 +23,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
     id: 'knowledge',
     name: 'Knowledge Manager',
     icon: Brain,
+    avatar: 'https://api.dicebear.com/9.x/notionists/svg?seed=Alex&backgroundColor=3b82f6&backgroundType=gradientLinear',
     color: 'blue',
     bgColor: 'bg-blue-500',
     borderColor: 'border-blue-300',
@@ -34,6 +36,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
     id: 'planner',
     name: 'Content Planner',
     icon: Lightbulb,
+    avatar: 'https://api.dicebear.com/9.x/notionists/svg?seed=Sarah&backgroundColor=8b5cf6&backgroundType=gradientLinear',
     color: 'purple',
     bgColor: 'bg-purple-500',
     borderColor: 'border-purple-300',
@@ -46,6 +49,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
     id: 'writer',
     name: 'Content Writer',
     icon: Pencil,
+    avatar: 'https://api.dicebear.com/9.x/notionists/svg?seed=Emma&backgroundColor=f59e0b&backgroundType=gradientLinear',
     color: 'orange',
     bgColor: 'bg-orange-500',
     borderColor: 'border-orange-300',
@@ -58,6 +62,7 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
     id: 'verifier',
     name: 'Quality Verifier',
     icon: ShieldCheck,
+    avatar: 'https://api.dicebear.com/9.x/notionists/svg?seed=Michael&backgroundColor=10b981&backgroundType=gradientLinear',
     color: 'green',
     bgColor: 'bg-green-500',
     borderColor: 'border-green-300',

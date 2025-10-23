@@ -1,10 +1,10 @@
 import { AgentId } from '@/types'
 import { AGENTS } from '@/lib/constants/agents'
-import { LucideIcon } from 'lucide-react'
+import Image from 'next/image'
 
 interface AgentAvatarProps {
   agentId: AgentId
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   showStatus?: boolean
   status?: 'active' | 'idle' | 'scheduled' | 'waiting'
 }
@@ -12,19 +12,22 @@ interface AgentAvatarProps {
 const sizeClasses = {
   sm: 'h-8 w-8',
   md: 'h-12 w-12',
-  lg: 'h-16 w-16'
-}
-
-const iconSizeClasses = {
-  sm: 'h-4 w-4',
-  md: 'h-6 w-6',
-  lg: 'h-8 w-8'
+  lg: 'h-16 w-16',
+  xl: 'h-24 w-24'
 }
 
 const statusDotSizes = {
   sm: 'h-2 w-2',
   md: 'h-3 w-3',
-  lg: 'h-4 w-4'
+  lg: 'h-4 w-4',
+  xl: 'h-5 w-5'
+}
+
+const sizePixels = {
+  sm: 32,
+  md: 48,
+  lg: 64,
+  xl: 96
 }
 
 export default function AgentAvatar({
@@ -34,7 +37,6 @@ export default function AgentAvatar({
   status = 'idle'
 }: AgentAvatarProps) {
   const agent = AGENTS[agentId]
-  const Icon = agent.icon as LucideIcon
 
   const statusColors = {
     active: 'bg-green-500',
@@ -43,18 +45,17 @@ export default function AgentAvatar({
     waiting: 'bg-gray-500'
   }
 
-  // Enhanced gradient backgrounds for each agent
-  const gradientClasses = {
-    knowledge: 'bg-gradient-to-br from-blue-400 to-blue-600',
-    planner: 'bg-gradient-to-br from-purple-400 to-purple-600',
-    writer: 'bg-gradient-to-br from-orange-400 to-orange-600',
-    verifier: 'bg-gradient-to-br from-green-400 to-green-600'
-  }
-
   return (
     <div className="relative inline-block">
-      <div className={`${sizeClasses[size]} ${gradientClasses[agentId]} rounded-full flex items-center justify-center shadow-lg ring-2 ring-white`}>
-        <Icon className={`${iconSizeClasses[size]} text-white drop-shadow-md`} strokeWidth={2.5} />
+      <div className={`${sizeClasses[size]} rounded-full overflow-hidden shadow-lg ring-2 ring-white bg-gray-100`}>
+        <Image
+          src={agent.avatar}
+          alt={agent.name}
+          width={sizePixels[size]}
+          height={sizePixels[size]}
+          className="object-cover"
+          unoptimized // For external SVG URLs
+        />
       </div>
       {showStatus && (
         <div className={`absolute -bottom-0.5 -right-0.5 ${statusDotSizes[size]} ${statusColors[status]} rounded-full border-2 border-white shadow-sm ${status === 'active' ? 'animate-pulse' : ''}`} />
