@@ -5,6 +5,9 @@ import { Knowledge, CreateKnowledgeInput } from '@/types'
 // In-memory storage (resets on server restart)
 let knowledge: Knowledge[] = [...(knowledgeData as Knowledge[])]
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // GET /api/knowledge - Get all knowledge
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams

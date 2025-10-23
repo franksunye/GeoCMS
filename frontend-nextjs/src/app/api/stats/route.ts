@@ -4,6 +4,9 @@ import plansData from '@/lib/data/plans.json'
 import draftsData from '@/lib/data/drafts.json'
 import { Stats } from '@/types'
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const plansByStatus = plansData.reduce((acc, plan) => {
     acc[plan.status] = (acc[plan.status] || 0) + 1

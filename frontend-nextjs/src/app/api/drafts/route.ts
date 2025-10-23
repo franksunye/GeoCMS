@@ -4,6 +4,9 @@ import { Draft, CreateDraftInput } from '@/types'
 
 let drafts: Draft[] = [...(draftsData as Draft[])]
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const status = searchParams.get('status')

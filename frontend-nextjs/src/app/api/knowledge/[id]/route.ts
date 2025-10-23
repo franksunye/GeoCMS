@@ -5,6 +5,9 @@ import { Knowledge, UpdateKnowledgeInput } from '@/types'
 // In-memory storage (shared with parent route)
 let knowledge: Knowledge[] = [...(knowledgeData as Knowledge[])]
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 // GET /api/knowledge/:id - Get single knowledge
 export async function GET(
   request: NextRequest,

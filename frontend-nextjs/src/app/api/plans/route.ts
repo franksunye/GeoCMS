@@ -4,6 +4,9 @@ import { Plan, CreatePlanInput } from '@/types'
 
 let plans: Plan[] = [...(plansData as Plan[])]
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const status = searchParams.get('status')
