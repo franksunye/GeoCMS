@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { StatCardSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-boundary'
 import AgentBadge from '@/components/team/AgentBadge'
+import AgentAvatar from '@/components/team/AgentAvatar'
 import { getAgentByTaskType } from '@/lib/constants/agents'
 import type { AgentId } from '@/types'
 
@@ -78,52 +79,65 @@ export default function ActiveTasksSummary() {
         </div>
       ) : (
         <div className="space-y-3">
-          {activeRuns.map((run) => (
-            <Link
-              key={run.id}
-              href={`/dashboard/tasks/${run.id}`}
-              className="block border border-gray-200 rounded-lg p-4 hover:border-primary hover:bg-blue-50 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1">
-                  <h3 className="font-medium text-gray-900 mb-1">
-                    {run.user_intent}
-                  </h3>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Clock className="h-4 w-4 mr-1" />
-                    {new Date(run.created_at).toLocaleString('en-US')}
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
-                    Running
-                  </span>
-                </div>
-              </div>
+          {activeRuns.map((run) => {
+            const lastTask = run.tasks?.[run.tasks.length - 1]
+            const agent = lastTask ? getAgentByTaskType(lastTask.task_type) : null
 
-              {/* Progress Bar */}
-              <div className="mb-2">
-                <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                  <span>Progress</span>
-                  <span>{Math.round(run.progress * 100)}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${run.progress * 100}%` }}
-                  ></div>
-                </div>
-              </div>
+            return (
+              <Link
+                key={run.id}
+                href={`/dashboard/tasks/${run.id}`}
+                className="block border border-gray-200 rounded-lg p-4 hover:border-primary hover:bg-blue-50 transition-colors"
+              >
+                <div className="flex items-start gap-3 mb-2">
+                  {/* Agent Avatar */}
+                  {agent && (
+                    <div className="flex-shrink-0 mt-1">
+                      <AgentAvatar
+                        agentId={agent.id as AgentId}
+                        size="md"
+                        showStatus
+                        status="active"
+                      />
+                    </div>
+                  )}
 
-              {/* Current Status with Agent Badge */}
-              {run.tasks && run.tasks.length > 0 && (
-                <div className="flex items-center gap-2 text-sm">
-                  {(() => {
-                    const lastTask = run.tasks[run.tasks.length - 1]
-                    const agent = getAgentByTaskType(lastTask.task_type)
-                    return (
-                      <>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-900 mb-1">
+                          {run.user_intent}
+                        </h3>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Clock className="h-4 w-4 mr-1" />
+                          {new Date(run.created_at).toLocaleString('en-US')}
+                        </div>
+                      </div>
+                      <div className="flex items-center ml-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
+                          Running
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-2">
+                      <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                        <span>Progress</span>
+                        <span>{Math.round(run.progress * 100)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${run.progress * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Current Status with Agent Badge */}
+                    {agent && lastTask && (
+                      <div className="flex items-center gap-2 text-sm">
                         <AgentBadge agentId={agent.id as AgentId} size="sm" />
                         <span className="text-gray-600">
                           {lastTask.task_type === 'ask_slot' && 'asking for information'}
@@ -131,13 +145,13 @@ export default function ActiveTasksSummary() {
                           {lastTask.task_type === 'verify' && 'checking quality'}
                           {!['ask_slot', 'generate_content', 'verify'].includes(lastTask.task_type) && 'working'}
                         </span>
-                      </>
-                    )
-                  })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </Link>
-          ))}
+              </Link>
+            )
+          })}
         </div>
       )}
 
