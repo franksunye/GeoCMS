@@ -117,8 +117,9 @@ export default function PlanningPage() {
       {viewMode === 'kanban' ? (
         <KanbanBoard plans={plans || []} onStatusChange={handleStatusChange} />
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {plans?.map((plan) => (
+        <>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {plans?.map((plan) => (
           <div
             key={plan.id}
             className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
@@ -151,19 +152,19 @@ export default function PlanningPage() {
               </div>
             </div>
           </div>
-        ))}
-      </div>
+            ))}
+          </div>
 
-      {plans?.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <FileText className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">暂无策划</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            开始创建您的第一个内容计划
-          </p>
-        </div>
-      )}
-        </div>
+          {plans?.length === 0 && (
+            <div className="text-center py-12 bg-white rounded-lg shadow">
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">暂无策划</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                开始创建您的第一个内容计划
+              </p>
+            </div>
+          )}
+        </>
       )}
     </div>
   )
