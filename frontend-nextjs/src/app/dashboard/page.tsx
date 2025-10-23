@@ -6,6 +6,8 @@ import { Stats } from '@/types'
 import { BookOpen, FileText, PenTool, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import ActiveTasksSummary from '@/components/agent/ActiveTasksSummary'
+import TeamStatusBar from '@/components/team/TeamStatusBar'
+import ActivityTimeline from '@/components/team/ActivityTimeline'
 
 export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery<Stats>({
@@ -61,6 +63,9 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-gray-900">Overview</h1>
         <p className="mt-2 text-gray-600">Welcome to GeoCMS Content Management System</p>
       </div>
+
+      {/* Team Status Bar */}
+      <TeamStatusBar />
 
       {/* Agent Workspace Summary */}
       <div className="mb-8">
@@ -123,42 +128,58 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Status Overview */}
-      {stats && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Planning Status Distribution
-            </h2>
-            <div className="space-y-3">
-              {Object.entries(stats.plansByStatus).map(([status, count]) => (
-                <div key={status} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{status}</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {count}
-                  </span>
-                </div>
-              ))}
+      {/* Status Overview and Recent Activity */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 mb-8">
+        {stats && (
+          <>
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Planning Status Distribution
+              </h2>
+              <div className="space-y-3">
+                {Object.entries(stats.plansByStatus).map(([status, count]) => (
+                  <div key={status} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{status}</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {count}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Draft Status Distribution
-            </h2>
-            <div className="space-y-3">
-              {Object.entries(stats.draftsByStatus).map(([status, count]) => (
-                <div key={status} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">{status}</span>
-                  <span className="text-sm font-medium text-gray-900">
-                    {count}
-                  </span>
-                </div>
-              ))}
+            <div className="bg-white shadow rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Draft Status Distribution
+              </h2>
+              <div className="space-y-3">
+                {Object.entries(stats.draftsByStatus).map(([status, count]) => (
+                  <div key={status} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600">{status}</span>
+                    <span className="text-sm font-medium text-gray-900">
+                      {count}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          </>
+        )}
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <Link
+            href="/dashboard/activity"
+            className="text-sm text-primary hover:text-primary/80"
+          >
+            View All
+          </Link>
         </div>
-      )}
+        <ActivityTimeline limit={5} />
+      </div>
     </div>
   )
 }

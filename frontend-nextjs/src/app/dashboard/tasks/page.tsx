@@ -13,6 +13,9 @@ import {
   ChevronUp,
   Loader2,
 } from 'lucide-react'
+import AgentBadge from '@/components/team/AgentBadge'
+import { getAgentByTaskType } from '@/lib/constants/agents'
+import type { AgentId } from '@/types'
 
 export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -350,31 +353,37 @@ function RunCard({
         <div className="border-t border-gray-200 bg-gray-50 p-6">
           <h4 className="text-sm font-medium text-gray-900 mb-4">Task Timeline</h4>
           <div className="space-y-3">
-            {run.tasks.map((task, index) => (
-              <div key={task.id} className="flex items-start">
-                <div className="flex-shrink-0">
-                  {getStatusIcon(task.status)}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900">
-                      {getTaskTypeLabel(task.task_type)}
-                    </p>
-                    {getStatusBadge(task.status)}
+            {run.tasks.map((task, index) => {
+              const agent = getAgentByTaskType(task.task_type)
+              return (
+                <div key={task.id} className="flex items-start">
+                  <div className="flex-shrink-0">
+                    {getStatusIcon(task.status)}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(task.created_at).toLocaleString('en-US')}
-                  </p>
-                  {task.result && (
-                    <div className="mt-2 text-xs text-gray-600 bg-white p-2 rounded border border-gray-200">
-                      <pre className="whitespace-pre-wrap">
-                        {JSON.stringify(task.result, null, 2)}
-                      </pre>
+                  <div className="ml-3 flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <AgentBadge agentId={agent.id as AgentId} size="sm" />
+                        <p className="text-sm font-medium text-gray-900">
+                          {getTaskTypeLabel(task.task_type)}
+                        </p>
+                      </div>
+                      {getStatusBadge(task.status)}
                     </div>
-                  )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(task.created_at).toLocaleString('en-US')}
+                    </p>
+                    {task.result && (
+                      <div className="mt-2 text-xs text-gray-600 bg-white p-2 rounded border border-gray-200">
+                        <pre className="whitespace-pre-wrap">
+                          {JSON.stringify(task.result, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}

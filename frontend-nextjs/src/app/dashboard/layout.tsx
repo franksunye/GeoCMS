@@ -9,7 +9,9 @@ import {
   FileText,
   PenTool,
   Activity,
-  Menu
+  Menu,
+  Users,
+  Clock
 } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -18,6 +20,8 @@ import { AgentRunList } from '@/types'
 
 const navigation = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'AI Team', href: '/dashboard/team', icon: Users },
+  { name: 'Activity', href: '/dashboard/activity', icon: Clock },
   { name: 'Task Monitor', href: '/dashboard/tasks', icon: Activity, badge: true },
   { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: BookOpen },
   { name: 'Content Planning', href: '/dashboard/planning', icon: FileText },

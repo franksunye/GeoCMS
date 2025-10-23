@@ -217,3 +217,38 @@ export interface AgentStats {
   }
 }
 
+// Agent Team types
+export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier'
+export type AgentStatus = 'active' | 'idle' | 'scheduled' | 'waiting'
+
+export interface AgentStatusData {
+  agentId: AgentId
+  status: AgentStatus
+  currentTask?: {
+    id: number
+    type: string
+    startedAt: string
+  }
+  queuedTasks: number
+  nextScheduledTime?: string
+  todayCompleted: number
+}
+
+export interface ActivityItem {
+  id: number
+  type: 'agent' | 'user' | 'system'
+  actor: {
+    id: string
+    name: string
+    avatar?: string
+  }
+  action: string
+  target: {
+    type: 'knowledge' | 'plan' | 'draft' | 'task'
+    id: number
+    title: string
+  }
+  timestamp: string
+  metadata?: Record<string, any>
+}
+

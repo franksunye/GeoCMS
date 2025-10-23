@@ -7,6 +7,9 @@ import { Activity, Clock, CheckCircle2, XCircle, ArrowRight } from 'lucide-react
 import Link from 'next/link'
 import { StatCardSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-boundary'
+import AgentBadge from '@/components/team/AgentBadge'
+import { getAgentByTaskType } from '@/lib/constants/agents'
+import type { AgentId } from '@/types'
 
 export default function ActiveTasksSummary() {
   const { data, isLoading, error, refetch } = useQuery<AgentRunList>({
@@ -113,13 +116,24 @@ export default function ActiveTasksSummary() {
                 </div>
               </div>
 
-              {/* Current Status */}
+              {/* Current Status with Agent Badge */}
               {run.tasks && run.tasks.length > 0 && (
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">Current:</span>{' '}
-                  {run.tasks[run.tasks.length - 1].task_type === 'ask_slot' && 'Asking for information'}
-                  {run.tasks[run.tasks.length - 1].task_type === 'generate_content' && 'Writer is generating content'}
-                  {run.tasks[run.tasks.length - 1].task_type === 'verify' && 'Verifier is checking'}
+                <div className="flex items-center gap-2 text-sm">
+                  {(() => {
+                    const lastTask = run.tasks[run.tasks.length - 1]
+                    const agent = getAgentByTaskType(lastTask.task_type)
+                    return (
+                      <>
+                        <AgentBadge agentId={agent.id as AgentId} size="sm" />
+                        <span className="text-gray-600">
+                          {lastTask.task_type === 'ask_slot' && 'asking for information'}
+                          {lastTask.task_type === 'generate_content' && 'generating content'}
+                          {lastTask.task_type === 'verify' && 'checking quality'}
+                          {!['ask_slot', 'generate_content', 'verify'].includes(lastTask.task_type) && 'working'}
+                        </span>
+                      </>
+                    )
+                  })()}
                 </div>
               )}
             </Link>
