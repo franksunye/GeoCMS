@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import knowledgeData from '@/lib/data/knowledge.json'
+import { Knowledge } from '@/types'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+// In-memory storage (shared with parent route)
+let knowledge: Knowledge[] = [...(knowledgeData as Knowledge[])]
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -8,25 +11,16 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const limit = searchParams.get('limit') || '10'
+    const limit = parseInt(searchParams.get('limit') || '10')
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/knowledge/top?limit=${limit}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    )
+    // Sort by updated_at descending (most recently updated first)
+    const topKnowledge = [...knowledge]
+      .sort((a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      )
+      .slice(0, limit)
 
-    if (!response.ok) {
-      const error = await response.json()
-      return NextResponse.json(error, { status: response.status })
-    }
-
-    const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json(topKnowledge)
   } catch (error) {
     console.error('Error fetching top knowledge:', error)
     return NextResponse.json(

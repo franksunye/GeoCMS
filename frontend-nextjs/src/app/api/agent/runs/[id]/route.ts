@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import agentRunsData from '@/lib/data/agent-runs.json'
+import { AgentRun } from '@/types'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+// In-memory storage (shared with parent route)
+let agentRuns: AgentRun[] = [...(agentRunsData as AgentRun[])]
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -13,26 +16,20 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams
     const includeTasks = searchParams.get('include_tasks') !== 'false'
 
-    const queryParams = new URLSearchParams()
-    queryParams.append('include_tasks', includeTasks.toString())
+    const id = parseInt(params.id)
+    const run = agentRuns.find(r => r.id === id)
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/agent/runs/${params.id}?${queryParams.toString()}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      const error = await response.json()
-      return NextResponse.json(error, { status: response.status })
+    if (!run) {
+      return NextResponse.json(
+        { error: 'Agent run not found' },
+        { status: 404 }
+      )
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Optionally exclude tasks
+    const result = includeTasks ? run : { ...run, tasks: undefined }
+
+    return NextResponse.json(result)
   } catch (error) {
     console.error('Error fetching agent run:', error)
     return NextResponse.json(
@@ -57,26 +54,24 @@ export async function PATCH(
       )
     }
 
-    const queryParams = new URLSearchParams()
-    queryParams.append('status', status)
+    const id = parseInt(params.id)
+    const runIndex = agentRuns.findIndex(r => r.id === id)
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/agent/runs/${params.id}?${queryParams.toString()}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      const error = await response.json()
-      return NextResponse.json(error, { status: response.status })
+    if (runIndex === -1) {
+      return NextResponse.json(
+        { error: 'Agent run not found' },
+        { status: 404 }
+      )
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Update the run status
+    agentRuns[runIndex] = {
+      ...agentRuns[runIndex],
+      status,
+      updated_at: new Date().toISOString()
+    }
+
+    return NextResponse.json(agentRuns[runIndex])
   } catch (error) {
     console.error('Error updating agent run:', error)
     return NextResponse.json(

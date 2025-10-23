@@ -56,6 +56,39 @@ export async function PUT(
   }
 }
 
+// PATCH method for partial updates (used by Kanban board)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = parseInt(params.id)
+    const body = await request.json()
+
+    const index = plans.findIndex(p => p.id === id)
+
+    if (index === -1) {
+      return NextResponse.json(
+        { error: 'Plan not found' },
+        { status: 404 }
+      )
+    }
+
+    plans[index] = {
+      ...plans[index],
+      ...body,
+      updated_at: new Date().toISOString(),
+    }
+
+    return NextResponse.json(plans[index])
+  } catch (error) {
+    return NextResponse.json(
+      { error: 'Invalid request body' },
+      { status: 400 }
+    )
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }

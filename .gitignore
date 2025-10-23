@@ -21,6 +21,10 @@ wheels/
 .installed.cfg
 *.egg
 
+# Exception: Allow frontend lib/data for mock data
+!frontend-nextjs/src/lib/
+!frontend-nextjs/src/lib/**
+
 # Virtual Environment
 venv/
 ENV/

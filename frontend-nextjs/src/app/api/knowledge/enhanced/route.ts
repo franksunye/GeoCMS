@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import knowledgeData from '@/lib/data/knowledge.json'
+import { Knowledge } from '@/types'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+// In-memory storage (shared with parent route)
+let knowledge: Knowledge[] = [...(knowledgeData as Knowledge[])]
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -9,37 +12,28 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const query = searchParams.get('query')
-    const tags = searchParams.get('tags')
-    const minQuality = searchParams.get('min_quality')
-    const includeArchived = searchParams.get('include_archived')
     const sortBy = searchParams.get('sort_by') || 'updated_at'
     const order = searchParams.get('order') || 'desc'
 
-    const params = new URLSearchParams()
-    if (query) params.append('query', query)
-    if (tags) params.append('tags', tags)
-    if (minQuality) params.append('min_quality', minQuality)
-    if (includeArchived) params.append('include_archived', includeArchived)
-    params.append('sort_by', sortBy)
-    params.append('order', order)
+    let filtered = knowledge
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/knowledge/enhanced?${params.toString()}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    )
-
-    if (!response.ok) {
-      const error = await response.json()
-      return NextResponse.json(error, { status: response.status })
+    // Filter by query
+    if (query) {
+      const queryLower = query.toLowerCase()
+      filtered = filtered.filter(k =>
+        k.topic.toLowerCase().includes(queryLower) ||
+        JSON.stringify(k.content).toLowerCase().includes(queryLower)
+      )
     }
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    // Sort
+    filtered = filtered.sort((a, b) => {
+      const aValue = sortBy === 'updated_at' ? new Date(a.updated_at).getTime() : a.id
+      const bValue = sortBy === 'updated_at' ? new Date(b.updated_at).getTime() : b.id
+      return order === 'desc' ? bValue - aValue : aValue - bValue
+    })
+
+    return NextResponse.json(filtered)
   } catch (error) {
     console.error('Error fetching enhanced knowledge:', error)
     return NextResponse.json(

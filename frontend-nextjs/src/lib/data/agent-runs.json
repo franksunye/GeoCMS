@@ -1,0 +1,245 @@
+[
+  {
+    "id": 1,
+    "user_intent": "创建关于AI技术趋势的内容策划",
+    "state": {
+      "current_step": "planning",
+      "plan_id": 1,
+      "draft_id": null,
+      "knowledge_used": ["AI技术", "行业趋势"],
+      "conversation": [
+        {
+          "role": "user",
+          "content": "请帮我创建一个关于AI技术趋势的内容策划"
+        },
+        {
+          "role": "assistant",
+          "content": "好的，我将为您创建一个关于AI技术趋势的内容策划。让我先分析相关知识库..."
+        }
+      ]
+    },
+    "status": "active",
+    "progress": 45,
+    "created_at": "2025-01-20T10:30:00Z",
+    "updated_at": "2025-01-20T10:35:00Z",
+    "tasks": [
+      {
+        "id": 1,
+        "run_id": 1,
+        "task_type": "analyze_knowledge",
+        "task_data": {
+          "query": "AI技术趋势",
+          "context": "需要创建内容策划"
+        },
+        "result": {
+          "relevant_knowledge": ["AI技术", "行业趋势", "应用场景"]
+        },
+        "status": "completed",
+        "created_at": "2025-01-20T10:30:00Z",
+        "updated_at": "2025-01-20T10:32:00Z"
+      },
+      {
+        "id": 2,
+        "run_id": 1,
+        "task_type": "create_plan",
+        "task_data": {
+          "topic": "AI技术趋势",
+          "knowledge": ["AI技术", "行业趋势"]
+        },
+        "result": null,
+        "status": "pending",
+        "created_at": "2025-01-20T10:32:00Z",
+        "updated_at": "2025-01-20T10:35:00Z"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "user_intent": "生成关于产品特性的营销文案",
+    "state": {
+      "current_step": "writing",
+      "plan_id": 2,
+      "draft_id": 1,
+      "knowledge_used": ["产品特性", "营销策略"],
+      "conversation": [
+        {
+          "role": "user",
+          "content": "根据产品特性生成营销文案"
+        },
+        {
+          "role": "assistant",
+          "content": "我将基于产品特性知识库为您生成营销文案..."
+        }
+      ]
+    },
+    "status": "active",
+    "progress": 75,
+    "created_at": "2025-01-20T09:00:00Z",
+    "updated_at": "2025-01-20T09:45:00Z",
+    "tasks": [
+      {
+        "id": 3,
+        "run_id": 2,
+        "task_type": "create_plan",
+        "task_data": {
+          "topic": "产品营销文案"
+        },
+        "result": {
+          "plan_id": 2
+        },
+        "status": "completed",
+        "created_at": "2025-01-20T09:00:00Z",
+        "updated_at": "2025-01-20T09:15:00Z"
+      },
+      {
+        "id": 4,
+        "run_id": 2,
+        "task_type": "generate_draft",
+        "task_data": {
+          "plan_id": 2,
+          "style": "营销"
+        },
+        "result": null,
+        "status": "pending",
+        "created_at": "2025-01-20T09:15:00Z",
+        "updated_at": "2025-01-20T09:45:00Z"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "user_intent": "优化现有文章的SEO",
+    "state": {
+      "current_step": "completed",
+      "plan_id": 3,
+      "draft_id": 2,
+      "knowledge_used": ["SEO优化", "关键词策略"],
+      "conversation": [
+        {
+          "role": "user",
+          "content": "帮我优化这篇文章的SEO"
+        },
+        {
+          "role": "assistant",
+          "content": "已完成SEO优化，添加了相关关键词和元数据。"
+        }
+      ]
+    },
+    "status": "completed",
+    "progress": 100,
+    "created_at": "2025-01-19T14:00:00Z",
+    "updated_at": "2025-01-19T14:30:00Z",
+    "tasks": [
+      {
+        "id": 5,
+        "run_id": 3,
+        "task_type": "seo_check",
+        "task_data": {
+          "draft_id": 2
+        },
+        "result": {
+          "suggestions": ["添加关键词", "优化标题", "改进元描述"],
+          "score": 85
+        },
+        "status": "completed",
+        "created_at": "2025-01-19T14:00:00Z",
+        "updated_at": "2025-01-19T14:30:00Z"
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "user_intent": "创建技术博客文章大纲",
+    "state": {
+      "current_step": "failed",
+      "plan_id": null,
+      "draft_id": null,
+      "knowledge_used": [],
+      "conversation": [
+        {
+          "role": "user",
+          "content": "创建一个技术博客大纲"
+        },
+        {
+          "role": "assistant",
+          "content": "抱歉，在处理过程中遇到了错误。"
+        }
+      ],
+      "error": "知识库中缺少相关技术主题信息"
+    },
+    "status": "failed",
+    "progress": 20,
+    "created_at": "2025-01-19T11:00:00Z",
+    "updated_at": "2025-01-19T11:05:00Z",
+    "tasks": [
+      {
+        "id": 6,
+        "run_id": 4,
+        "task_type": "analyze_knowledge",
+        "task_data": {
+          "query": "技术博客"
+        },
+        "result": null,
+        "status": "failed",
+        "created_at": "2025-01-19T11:00:00Z",
+        "updated_at": "2025-01-19T11:05:00Z"
+      }
+    ]
+  },
+  {
+    "id": 5,
+    "user_intent": "生成社交媒体推广内容",
+    "state": {
+      "current_step": "completed",
+      "plan_id": 4,
+      "draft_id": 3,
+      "knowledge_used": ["社交媒体策略", "品牌声音"],
+      "conversation": [
+        {
+          "role": "user",
+          "content": "为新产品发布生成社交媒体内容"
+        },
+        {
+          "role": "assistant",
+          "content": "已生成多平台社交媒体推广内容，包括微博、微信和抖音版本。"
+        }
+      ]
+    },
+    "status": "completed",
+    "progress": 100,
+    "created_at": "2025-01-18T16:00:00Z",
+    "updated_at": "2025-01-18T16:45:00Z",
+    "tasks": [
+      {
+        "id": 7,
+        "run_id": 5,
+        "task_type": "create_plan",
+        "task_data": {
+          "topic": "社交媒体推广"
+        },
+        "result": {
+          "plan_id": 4
+        },
+        "status": "completed",
+        "created_at": "2025-01-18T16:00:00Z",
+        "updated_at": "2025-01-18T16:15:00Z"
+      },
+      {
+        "id": 8,
+        "run_id": 5,
+        "task_type": "generate_draft",
+        "task_data": {
+          "plan_id": 4,
+          "platforms": ["微博", "微信", "抖音"]
+        },
+        "result": {
+          "draft_id": 3
+        },
+        "status": "completed",
+        "created_at": "2025-01-18T16:15:00Z",
+        "updated_at": "2025-01-18T16:45:00Z"
+      }
+    ]
+  }
+]
+
