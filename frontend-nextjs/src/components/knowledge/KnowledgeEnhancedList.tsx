@@ -111,7 +111,7 @@ export function KnowledgeEnhancedList() {
         </div>
       </div>
 
-      {/* 搜索和过滤 */}
+      {/* Search and Filter */}
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1">
@@ -119,7 +119,7 @@ export function KnowledgeEnhancedList() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="搜索知识..."
+                placeholder="Search knowledge..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -133,7 +133,7 @@ export function KnowledgeEnhancedList() {
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
             >
               <Filter className="h-5 w-5" />
-              过滤
+              Filter
             </button>
 
             <select
@@ -141,20 +141,20 @@ export function KnowledgeEnhancedList() {
               onChange={(e) => setSortBy(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
-              <option value="updated_at">最近更新</option>
-              <option value="reference_count">引用次数</option>
-              <option value="quality_score">质量评分</option>
+              <option value="updated_at">Recently Updated</option>
+              <option value="reference_count">Reference Count</option>
+              <option value="quality_score">Quality Score</option>
             </select>
           </div>
         </div>
 
-        {/* 高级过滤 */}
+        {/* Advanced Filters */}
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  最低质量评分
+                  Minimum Quality Score
                 </label>
                 <input
                   type="range"
@@ -166,7 +166,7 @@ export function KnowledgeEnhancedList() {
                   className="w-full"
                 />
                 <div className="text-sm text-gray-500 mt-1">
-                  {minQuality || 0} 分以上
+                  {minQuality || 0} and above
                 </div>
               </div>
             </div>
@@ -202,7 +202,7 @@ export function KnowledgeEnhancedList() {
                       </div>
                     </div>
                     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${qualityBadge.color}`}>
-                      {qualityBadge.label} {item.quality_score}分
+                      {qualityBadge.label} {item.quality_score}
                     </span>
                   </div>
 
@@ -210,10 +210,10 @@ export function KnowledgeEnhancedList() {
 
                   <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
                     <div>
-                      创建于 {new Date(item.created_at).toLocaleDateString('zh-CN')}
+                      Created {new Date(item.created_at).toLocaleDateString('en-US')}
                     </div>
                     <div>
-                      更新于 {new Date(item.updated_at).toLocaleDateString('zh-CN')}
+                      Updated {new Date(item.updated_at).toLocaleDateString('en-US')}
                     </div>
                   </div>
                 </div>
@@ -224,21 +224,21 @@ export function KnowledgeEnhancedList() {
           <div className="bg-white rounded-lg shadow p-12 text-center">
             <TagIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              没有找到知识
+              No Knowledge Found
             </h3>
             <p className="text-gray-500">
-              尝试调整搜索条件或添加新的知识
+              Try adjusting your search criteria or add new knowledge
             </p>
           </div>
         )}
       </div>
 
-      {/* 热门知识侧边栏（可选） */}
+      {/* Popular Knowledge Sidebar */}
       {topKnowledge && topKnowledge.length > 0 && (
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
             <TrendingUp className="h-5 w-5 mr-2 text-green-500" />
-            热门知识 Top 5
+            Top 5 Popular Knowledge
           </h3>
           <div className="space-y-3">
             {topKnowledge.map((item, index) => (
@@ -250,7 +250,7 @@ export function KnowledgeEnhancedList() {
                   <span className="text-sm font-medium text-gray-900">{item.topic}</span>
                 </div>
                 <span className="text-sm text-gray-500">
-                  {item.reference_count || 0} 次引用
+                  {item.reference_count || 0} refs
                 </span>
               </div>
             ))}
@@ -258,25 +258,25 @@ export function KnowledgeEnhancedList() {
         </div>
       )}
 
-      {/* 需更新知识提醒 */}
+      {/* Outdated Knowledge Alert */}
       {outdatedKnowledge && outdatedKnowledge.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold text-yellow-900 mb-2 flex items-center">
             <Clock className="h-5 w-5 mr-2" />
-            需要更新的知识 ({outdatedKnowledge.length})
+            Knowledge Needs Update ({outdatedKnowledge.length})
           </h3>
           <p className="text-sm text-yellow-700 mb-4">
-            以下知识已超过90天未更新，建议及时更新以保持内容的时效性
+            The following knowledge has not been updated for over 90 days. Please update to maintain content timeliness.
           </p>
           <div className="space-y-2">
             {outdatedKnowledge.slice(0, 3).map((item) => (
               <div key={item.id} className="text-sm text-yellow-800">
-                • {item.topic} - {item.days_since_update}天未更新
+                • {item.topic} - {item.days_since_update} days since update
               </div>
             ))}
             {outdatedKnowledge.length > 3 && (
               <div className="text-sm text-yellow-700">
-                还有 {outdatedKnowledge.length - 3} 个知识需要更新...
+                {outdatedKnowledge.length - 3} more knowledge items need updating...
               </div>
             )}
           </div>
