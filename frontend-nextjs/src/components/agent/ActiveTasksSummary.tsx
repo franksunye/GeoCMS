@@ -5,18 +5,26 @@ import axios from 'axios'
 import { AgentRunList } from '@/types'
 import { Activity, Clock, CheckCircle2, XCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { StatCardSkeleton } from '@/components/ui/skeleton'
+import { ErrorDisplay } from '@/components/ui/error-boundary'
 
 export default function ActiveTasksSummary() {
-  const { data, isLoading } = useQuery<AgentRunList>({
+  const { data, isLoading, error, refetch } = useQuery<AgentRunList>({
     queryKey: ['agent-runs', 'active'],
     queryFn: async () => {
       const response = await axios.get('/api/agent/runs?status=active&limit=5')
       return response.data
     },
     refetchInterval: 3000, // 每3秒自动刷新
+    retry: 3, // 失败后重试3次
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // 指数退避
   })
 
   if (isLoading) {
+    return <StatCardSkeleton />
+  }
+
+  if (error) {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
@@ -25,7 +33,10 @@ export default function ActiveTasksSummary() {
             Agent工作台
           </h2>
         </div>
-        <div className="text-center py-8 text-gray-500">加载中...</div>
+        <ErrorDisplay
+          error={error as Error}
+          onRetry={() => refetch()}
+        />
       </div>
     )
   }

@@ -6,6 +6,8 @@ import axios from 'axios'
 import { Knowledge } from '@/types'
 import { Search, Filter, Download, Upload, Archive, Tag as TagIcon, TrendingUp, Clock } from 'lucide-react'
 import { KnowledgeStatsCard } from './KnowledgeStatsCard'
+import { ListSkeleton } from '@/components/ui/skeleton'
+import { ErrorDisplay } from '@/components/ui/error-boundary'
 
 export function KnowledgeEnhancedList() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -14,7 +16,7 @@ export function KnowledgeEnhancedList() {
   const [sortBy, setSortBy] = useState('updated_at')
   const [showFilters, setShowFilters] = useState(false)
 
-  const { data: knowledge, isLoading } = useQuery<Knowledge[]>({
+  const { data: knowledge, isLoading, error, refetch } = useQuery<Knowledge[]>({
     queryKey: ['knowledge-enhanced', searchQuery, selectedTags, minQuality, sortBy],
     queryFn: async () => {
       const params = new URLSearchParams()
@@ -27,6 +29,8 @@ export function KnowledgeEnhancedList() {
       const response = await axios.get(`/api/knowledge/enhanced?${params.toString()}`)
       return response.data
     },
+    retry: 2,
+    staleTime: 30000, // 30秒内认为数据是新鲜的
   })
 
   const { data: topKnowledge } = useQuery<Knowledge[]>({
@@ -53,7 +57,23 @@ export function KnowledgeEnhancedList() {
   }
 
   if (isLoading) {
-    return <div className="text-center py-8">加载中...</div>
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white p-6 rounded-lg shadow animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+            </div>
+          ))}
+        </div>
+        <ListSkeleton count={3} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return <ErrorDisplay error={error as Error} onRetry={() => refetch()} />
   }
 
   return (

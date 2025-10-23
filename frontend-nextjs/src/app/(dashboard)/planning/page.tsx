@@ -9,18 +9,21 @@ import { formatRelativeTime, getStatusColor } from '@/lib/utils'
 import { CreatePlanDialog } from '@/components/planning/create-plan-dialog'
 import { KanbanBoard } from '@/components/planning/KanbanBoard'
 import { useToast } from '@/hooks/use-toast'
+import { KanbanSkeleton, CardSkeleton } from '@/components/ui/skeleton'
+import { ErrorDisplay } from '@/components/ui/error-boundary'
 
 export default function PlanningPage() {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban')
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const { data: plans, isLoading } = useQuery<Plan[]>({
+  const { data: plans, isLoading, error, refetch } = useQuery<Plan[]>({
     queryKey: ['plans'],
     queryFn: async () => {
       const response = await axios.get('/api/plans')
       return response.data
     },
+    retry: 2,
   })
 
   const updateStatusMutation = useMutation({
@@ -53,6 +56,34 @@ export default function PlanningPage() {
 
   const handleStatusChange = (planId: number, newStatus: Plan['status']) => {
     updateStatusMutation.mutate({ planId, status: newStatus })
+  }
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">内容策划</h1>
+          <p className="mt-2 text-gray-600">管理内容计划和策略</p>
+        </div>
+        {viewMode === 'kanban' ? <KanbanSkeleton /> : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3, 4, 5, 6].map((i) => <CardSkeleton key={i} />)}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">内容策划</h1>
+          <p className="mt-2 text-gray-600">管理内容计划和策略</p>
+        </div>
+        <ErrorDisplay error={error as Error} onRetry={() => refetch()} />
+      </div>
+    )
   }
 
   return (
