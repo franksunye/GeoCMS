@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       format: body.format || 'markdown',
       content: body.content,
       metadata: body.metadata,
-      status: '待编辑',
+      status: 'pending_edit',
       version: 1,
       reviewer_id: null,
       reviewer_feedback: null,

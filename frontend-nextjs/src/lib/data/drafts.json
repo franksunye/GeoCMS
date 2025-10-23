@@ -12,7 +12,7 @@
       "seo_score": 85,
       "readability_score": 78
     },
-    "status": "待编辑",
+    "status": "pending_edit",
     "version": 1,
     "reviewer_id": null,
     "reviewer_feedback": null,
@@ -32,7 +32,7 @@
       "seo_score": 88,
       "readability_score": 82
     },
-    "status": "已编辑",
+    "status": "edited",
     "version": 2,
     "reviewer_id": "demo_user",
     "reviewer_feedback": "内容质量很好，数据支撑充分，建议增加更多视觉元素",
@@ -52,7 +52,7 @@
       "seo_score": 90,
       "readability_score": 85
     },
-    "status": "已批准",
+    "status": "approved",
     "version": 3,
     "reviewer_id": "demo_user",
     "reviewer_feedback": "优秀的案例研究，数据详实，故事性强，批准发布",

@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       asset_requirements: body.asset_requirements || [],
       assets_provided: [],
       material_pack_id: `mp_${Date.now()}`,
-      status: '待素材',
+      status: 'pending_materials',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
