@@ -3,12 +3,12 @@
     "id": 1,
     "topic": "company_info",
     "content": {
-      "name": "GeoCMS 科技",
-      "description": "专注于 AI 驱动的内容管理系统，让内容创作更智能、更高效",
+      "name": "GeoCMS Technology",
+      "description": "Focused on AI-powered content management systems, making content creation smarter and more efficient",
       "founded": "2024",
-      "mission": "通过 AI 技术赋能内容创作者，提升内容生产效率和质量",
-      "vision": "成为全球领先的智能内容管理平台",
-      "values": ["创新", "高效", "用户至上", "持续学习"]
+      "mission": "Empower content creators through AI technology, improving content production efficiency and quality",
+      "vision": "Become the world's leading intelligent content management platform",
+      "values": ["Innovation", "Efficiency", "User-First", "Continuous Learning"]
     },
     "created_at": "2025-01-15T10:00:00Z",
     "updated_at": "2025-01-15T10:00:00Z"
@@ -18,20 +18,20 @@
     "topic": "product_features",
     "content": {
       "features": [
-        "AI 智能内容生成",
-        "知识库管理系统",
-        "多语言支持",
-        "版本控制",
-        "协同编辑",
-        "内容策划助手",
-        "SEO 优化建议",
-        "自动化发布"
+        "AI Intelligent Content Generation",
+        "Knowledge Base Management System",
+        "Multi-language Support",
+        "Version Control",
+        "Collaborative Editing",
+        "Content Planning Assistant",
+        "SEO Optimization Suggestions",
+        "Automated Publishing"
       ],
       "highlights": [
-        "基于 GPT-4 的智能生成",
-        "支持 Markdown 和 HTML",
-        "实时预览功能",
-        "品牌语调一致性"
+        "GPT-4 Based Intelligent Generation",
+        "Supports Markdown and HTML",
+        "Real-time Preview",
+        "Brand Voice Consistency"
       ]
     },
     "created_at": "2025-01-16T10:00:00Z",
@@ -41,22 +41,22 @@
     "id": 3,
     "topic": "target_audience",
     "content": {
-      "primary": "内容创作者和营销团队",
+      "primary": "Content Creators and Marketing Teams",
       "segments": [
         {
-          "name": "企业营销团队",
-          "description": "需要批量生成高质量营销内容",
-          "pain_points": ["内容生产效率低", "品牌一致性难以保证", "多渠道内容管理复杂"]
+          "name": "Enterprise Marketing Teams",
+          "description": "Need to generate high-quality marketing content at scale",
+          "pain_points": ["Low content production efficiency", "Difficult to ensure brand consistency", "Complex multi-channel content management"]
         },
         {
-          "name": "独立创作者",
-          "description": "个人博主、自媒体运营者",
-          "pain_points": ["灵感枯竭", "时间有限", "技术门槛高"]
+          "name": "Independent Creators",
+          "description": "Personal bloggers and social media operators",
+          "pain_points": ["Creative burnout", "Limited time", "High technical barriers"]
         },
         {
-          "name": "代理公司",
-          "description": "为多个客户提供内容服务",
-          "pain_points": ["客户需求多样", "质量控制困难", "成本压力大"]
+          "name": "Agency Companies",
+          "description": "Provide content services for multiple clients",
+          "pain_points": ["Diverse client needs", "Difficult quality control", "Cost pressure"]
         }
       ]
     },
@@ -69,25 +69,25 @@
     "content": {
       "plans": [
         {
-          "name": "免费版",
+          "name": "Free Plan",
           "price": 0,
-          "features": ["每月 10 篇内容", "基础知识库", "社区支持"],
-          "limitations": ["无高级 AI 功能", "无团队协作"]
+          "features": ["10 articles per month", "Basic knowledge base", "Community support"],
+          "limitations": ["No advanced AI features", "No team collaboration"]
         },
         {
-          "name": "专业版",
+          "name": "Professional Plan",
           "price": 99,
           "currency": "USD",
-          "billing": "月付",
-          "features": ["无限内容生成", "高级 AI 功能", "优先支持", "团队协作（5人）"],
+          "billing": "Monthly",
+          "features": ["Unlimited content generation", "Advanced AI features", "Priority support", "Team collaboration (5 members)"],
           "popular": true
         },
         {
-          "name": "企业版",
+          "name": "Enterprise Plan",
           "price": 499,
           "currency": "USD",
-          "billing": "月付",
-          "features": ["所有专业版功能", "无限团队成员", "定制化服务", "专属客户经理", "SLA 保障"],
+          "billing": "Monthly",
+          "features": ["All Professional features", "Unlimited team members", "Customization services", "Dedicated account manager", "SLA guarantee"],
           "contact": true
         }
       ]
@@ -101,24 +101,24 @@
     "content": {
       "questions": [
         {
-          "question": "GeoCMS 支持哪些语言？",
-          "answer": "目前支持中文和英文，未来将支持更多语言。"
+          "question": "What languages does GeoCMS support?",
+          "answer": "Currently supports English and Chinese, with more languages coming in the future."
         },
         {
-          "question": "生成的内容质量如何保证？",
-          "answer": "我们使用最先进的 GPT-4 模型，并结合您的品牌知识库，确保内容的准确性和一致性。同时提供人工审核流程。"
+          "question": "How is content quality ensured?",
+          "answer": "We use the most advanced GPT-4 model combined with your brand knowledge base to ensure content accuracy and consistency. Manual review process is also provided."
         },
         {
-          "question": "可以导出内容吗？",
-          "answer": "支持导出为 Markdown、HTML、PDF 等多种格式。"
+          "question": "Can I export content?",
+          "answer": "Supports export to Markdown, HTML, PDF and other formats."
         },
         {
-          "question": "数据安全如何保障？",
-          "answer": "我们采用企业级加密存储，符合 GDPR 和 SOC 2 标准，您的数据完全私有。"
+          "question": "How is data security guaranteed?",
+          "answer": "We use enterprise-grade encrypted storage, compliant with GDPR and SOC 2 standards. Your data is completely private."
         },
         {
-          "question": "是否支持 API 集成？",
-          "answer": "专业版和企业版提供完整的 RESTful API，可以与您现有的系统无缝集成。"
+          "question": "Does it support API integration?",
+          "answer": "Professional and Enterprise plans provide complete RESTful API for seamless integration with your existing systems."
         }
       ]
     },
@@ -137,7 +137,7 @@
         "linkedin": "company/geocms",
         "github": "geocms"
       },
-      "support_hours": "周一至周五 9:00-18:00 (PST)"
+      "support_hours": "Monday to Friday 9:00-18:00 (PST)"
     },
     "created_at": "2025-01-20T10:00:00Z",
     "updated_at": "2025-01-20T10:00:00Z"
@@ -148,24 +148,24 @@
     "content": {
       "cases": [
         {
-          "title": "博客文章生成",
-          "description": "快速生成高质量的博客文章，保持更新频率",
-          "example": "科技博客每周发布 3-5 篇深度文章"
+          "title": "Blog Article Generation",
+          "description": "Quickly generate high-quality blog articles and maintain update frequency",
+          "example": "Tech blog publishes 3-5 in-depth articles weekly"
         },
         {
-          "title": "产品文档",
-          "description": "自动生成产品说明、用户手册、API 文档",
-          "example": "SaaS 公司维护多语言产品文档"
+          "title": "Product Documentation",
+          "description": "Automatically generate product descriptions, user manuals, API documentation",
+          "example": "SaaS company maintains multi-language product documentation"
         },
         {
-          "title": "营销内容",
-          "description": "生成邮件营销、社交媒体、广告文案",
-          "example": "电商公司批量生成促销文案"
+          "title": "Marketing Content",
+          "description": "Generate email marketing, social media, and advertising copy",
+          "example": "E-commerce company batch generates promotional copy"
         },
         {
-          "title": "SEO 内容",
-          "description": "针对关键词优化的 SEO 友好内容",
-          "example": "提升网站搜索排名"
+          "title": "SEO Content",
+          "description": "SEO-friendly content optimized for keywords",
+          "example": "Improve website search rankings"
         }
       ]
     },
@@ -176,13 +176,13 @@
     "id": 8,
     "topic": "brand_voice",
     "content": {
-      "tone": "专业且友好",
-      "style": "清晰、简洁、有说服力",
-      "keywords": ["AI", "智能", "高效", "创新", "专业"],
-      "avoid": ["过于技术化的术语", "夸大宣传", "负面表达"],
+      "tone": "Professional and friendly",
+      "style": "Clear, concise, and persuasive",
+      "keywords": ["AI", "Intelligent", "Efficient", "Innovative", "Professional"],
+      "avoid": ["Overly technical jargon", "Exaggerated claims", "Negative expressions"],
       "examples": [
-        "我们的 AI 技术让内容创作变得简单高效",
-        "GeoCMS 帮助您专注于创意，而非繁琐的编辑工作"
+        "Our AI technology makes content creation simple and efficient",
+        "GeoCMS helps you focus on creativity, not tedious editing work"
       ]
     },
     "created_at": "2025-01-22T10:00:00Z",
@@ -195,25 +195,25 @@
       "main_competitors": [
         {
           "name": "Jasper AI",
-          "strengths": ["市场知名度高", "模板丰富"],
-          "weaknesses": ["价格较高", "定制化不足"]
+          "strengths": ["High market awareness", "Rich templates"],
+          "weaknesses": ["Higher pricing", "Insufficient customization"]
         },
         {
           "name": "Copy.ai",
-          "strengths": ["界面友好", "快速生成"],
-          "weaknesses": ["内容深度不够", "知识库功能弱"]
+          "strengths": ["User-friendly interface", "Fast generation"],
+          "weaknesses": ["Insufficient content depth", "Weak knowledge base features"]
         },
         {
           "name": "Writesonic",
-          "strengths": ["价格实惠", "功能全面"],
-          "weaknesses": ["质量不稳定", "客户支持一般"]
+          "strengths": ["Affordable pricing", "Comprehensive features"],
+          "weaknesses": ["Unstable quality", "Average customer support"]
         }
       ],
       "our_advantages": [
-        "更强的知识库集成",
-        "品牌一致性保障",
-        "完整的内容工作流",
-        "更好的中文支持"
+        "Stronger knowledge base integration",
+        "Brand consistency guarantee",
+        "Complete content workflow",
+        "Better multilingual support"
       ]
     },
     "created_at": "2025-01-23T10:00:00Z",
@@ -224,24 +224,24 @@
     "topic": "roadmap",
     "content": {
       "q1_2025": [
-        "发布 MVP 版本",
-        "支持基础内容生成",
-        "知识库管理功能"
+        "Launch MVP version",
+        "Support basic content generation",
+        "Knowledge base management features"
       ],
       "q2_2025": [
-        "多语言支持",
-        "团队协作功能",
-        "API 开放"
+        "Multi-language support",
+        "Team collaboration features",
+        "API release"
       ],
       "q3_2025": [
-        "图片生成集成",
-        "视频脚本生成",
-        "社交媒体自动发布"
+        "Image generation integration",
+        "Video script generation",
+        "Social media auto-publishing"
       ],
       "q4_2025": [
-        "AI 编辑助手",
-        "内容分析和优化建议",
-        "企业级功能"
+        "AI editing assistant",
+        "Content analysis and optimization suggestions",
+        "Enterprise-level features"
       ]
     },
     "created_at": "2025-01-24T10:00:00Z",

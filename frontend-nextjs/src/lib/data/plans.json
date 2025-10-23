@@ -2,30 +2,30 @@
   {
     "id": 1,
     "user_id": "demo_user",
-    "topic": "GeoCMS 产品发布博客",
-    "title": "GeoCMS：让 AI 内容创作触手可及",
-    "keywords": ["AI 内容生成", "GeoCMS", "智能创作", "效率提升"],
+    "topic": "GeoCMS Product Launch Blog",
+    "title": "GeoCMS: Making AI Content Creation Accessible",
+    "keywords": ["AI Content Generation", "GeoCMS", "Intelligent Creation", "Efficiency Boost"],
     "outline": {
-      "introduction": "介绍 GeoCMS 的诞生背景和核心价值",
+      "introduction": "Introducing GeoCMS's origin story and core value",
       "main_points": [
-        "为什么需要 AI 内容创作工具",
-        "GeoCMS 的核心功能和优势",
-        "如何开始使用 GeoCMS",
-        "成功案例分享"
+        "Why we need AI content creation tools",
+        "GeoCMS's core features and advantages",
+        "How to get started with GeoCMS",
+        "Success story sharing"
       ],
-      "conclusion": "邀请读者试用 GeoCMS"
+      "conclusion": "Invite readers to try GeoCMS"
     },
-    "category": "产品发布",
-    "tags": ["产品", "AI", "内容创作"],
+    "category": "Product Launch",
+    "tags": ["Product", "AI", "Content Creation"],
     "target_metric": {
       "views": 5000,
       "ctr": 0.08,
       "shares": 100
     },
     "asset_requirements": [
-      "产品截图 3-5 张",
-      "用户评价 2-3 条",
-      "功能演示视频（可选）"
+      "Product screenshots 3-5 images",
+      "User testimonials 2-3 quotes",
+      "Feature demo video (optional)"
     ],
     "assets_provided": [],
     "material_pack_id": "mp_001",
@@ -36,30 +36,30 @@
   {
     "id": 2,
     "user_id": "demo_user",
-    "topic": "AI 内容创作趋势分析",
-    "title": "2025 年 AI 内容创作的五大趋势",
-    "keywords": ["AI 趋势", "内容创作", "技术发展", "行业洞察"],
+    "topic": "AI Content Creation Trend Analysis",
+    "title": "Five Major Trends in AI Content Creation for 2025",
+    "keywords": ["AI Trends", "Content Creation", "Technology Development", "Industry Insights"],
     "outline": {
-      "introduction": "AI 内容创作市场的快速发展",
+      "introduction": "Rapid development of the AI content creation market",
       "main_points": [
-        "趋势一：多模态内容生成",
-        "趋势二：个性化和定制化",
-        "趋势三：实时协作和反馈",
-        "趋势四：质量控制和品牌一致性",
-        "趋势五：AI 与人类创作者的协同"
+        "Trend 1: Multimodal content generation",
+        "Trend 2: Personalization and customization",
+        "Trend 3: Real-time collaboration and feedback",
+        "Trend 4: Quality control and brand consistency",
+        "Trend 5: Synergy between AI and human creators"
       ],
-      "conclusion": "GeoCMS 如何应对这些趋势"
+      "conclusion": "How GeoCMS addresses these trends"
     },
-    "category": "行业洞察",
-    "tags": ["趋势", "AI", "分析"],
+    "category": "Industry Insights",
+    "tags": ["Trends", "AI", "Analysis"],
     "target_metric": {
       "views": 3000,
       "ctr": 0.06,
       "shares": 50
     },
     "asset_requirements": [
-      "行业数据图表 2-3 张",
-      "专家引用 1-2 条"
+      "Industry data charts 2-3 images",
+      "Expert quotes 1-2 citations"
     ],
     "assets_provided": [],
     "material_pack_id": "mp_002",
@@ -70,29 +70,29 @@
   {
     "id": 3,
     "user_id": "demo_user",
-    "topic": "内容营销最佳实践",
-    "title": "如何用 AI 提升内容营销 ROI",
-    "keywords": ["内容营销", "ROI", "AI 工具", "营销策略"],
+    "topic": "Content Marketing Best Practices",
+    "title": "How to Boost Content Marketing ROI with AI",
+    "keywords": ["Content Marketing", "ROI", "AI Tools", "Marketing Strategy"],
     "outline": {
-      "introduction": "内容营销面临的挑战",
+      "introduction": "Challenges facing content marketing",
       "main_points": [
-        "明确目标和受众",
-        "利用 AI 提升内容质量",
-        "优化内容分发策略",
-        "数据驱动的持续优化"
+        "Define goals and audience",
+        "Leverage AI to improve content quality",
+        "Optimize content distribution strategy",
+        "Data-driven continuous optimization"
       ],
-      "conclusion": "实践案例和行动建议"
+      "conclusion": "Practical cases and action recommendations"
     },
-    "category": "营销指南",
-    "tags": ["营销", "ROI", "最佳实践"],
+    "category": "Marketing Guide",
+    "tags": ["Marketing", "ROI", "Best Practices"],
     "target_metric": {
       "views": 2000,
       "ctr": 0.05,
       "leads": 20
     },
     "asset_requirements": [
-      "ROI 计算模板",
-      "案例研究 1 份"
+      "ROI calculation template",
+      "Case study 1 document"
     ],
     "assets_provided": [
       "https://example.com/roi-template.pdf"
@@ -105,30 +105,30 @@
   {
     "id": 4,
     "user_id": "demo_user",
-    "topic": "GeoCMS 使用教程",
-    "title": "GeoCMS 快速上手指南",
-    "keywords": ["教程", "使用指南", "快速开始", "GeoCMS"],
+    "topic": "GeoCMS Tutorial",
+    "title": "GeoCMS Quick Start Guide",
+    "keywords": ["Tutorial", "User Guide", "Quick Start", "GeoCMS"],
     "outline": {
-      "introduction": "欢迎使用 GeoCMS",
+      "introduction": "Welcome to GeoCMS",
       "main_points": [
-        "第一步：创建账户和设置",
-        "第二步：建立知识库",
-        "第三步：创建第一个内容计划",
-        "第四步：生成和编辑内容",
-        "第五步：发布和分享"
+        "Step 1: Create account and setup",
+        "Step 2: Build knowledge base",
+        "Step 3: Create your first content plan",
+        "Step 4: Generate and edit content",
+        "Step 5: Publish and share"
       ],
-      "conclusion": "进阶技巧和资源"
+      "conclusion": "Advanced tips and resources"
     },
-    "category": "教程",
-    "tags": ["教程", "新手指南", "使用技巧"],
+    "category": "Tutorial",
+    "tags": ["Tutorial", "Beginner Guide", "Usage Tips"],
     "target_metric": {
       "views": 1500,
       "completion_rate": 0.7,
       "activation": 50
     },
     "asset_requirements": [
-      "界面截图 8-10 张",
-      "操作演示 GIF 3-5 个"
+      "Interface screenshots 8-10 images",
+      "Operation demo GIFs 3-5 files"
     ],
     "assets_provided": [],
     "material_pack_id": "mp_004",
@@ -139,31 +139,31 @@
   {
     "id": 5,
     "user_id": "demo_user",
-    "topic": "客户成功案例",
-    "title": "某科技公司如何用 GeoCMS 提升内容产出 300%",
-    "keywords": ["案例研究", "成功故事", "效率提升", "客户见证"],
+    "topic": "Customer Success Story",
+    "title": "How a Tech Company Boosted Content Output by 300% with GeoCMS",
+    "keywords": ["Case Study", "Success Story", "Efficiency Boost", "Customer Testimonial"],
     "outline": {
-      "introduction": "客户背景和挑战",
+      "introduction": "Customer background and challenges",
       "main_points": [
-        "面临的内容生产瓶颈",
-        "选择 GeoCMS 的原因",
-        "实施过程和关键步骤",
-        "取得的成果和数据",
-        "客户反馈和未来计划"
+        "Content production bottlenecks faced",
+        "Reasons for choosing GeoCMS",
+        "Implementation process and key steps",
+        "Results achieved and data",
+        "Customer feedback and future plans"
       ],
-      "conclusion": "关键成功因素总结"
+      "conclusion": "Summary of key success factors"
     },
-    "category": "案例研究",
-    "tags": ["案例", "成功故事", "客户见证"],
+    "category": "Case Study",
+    "tags": ["Case Study", "Success Story", "Customer Testimonial"],
     "target_metric": {
       "views": 2500,
       "ctr": 0.07,
       "leads": 30
     },
     "asset_requirements": [
-      "客户 Logo",
-      "数据对比图表",
-      "客户访谈视频（可选）"
+      "Customer logo",
+      "Data comparison charts",
+      "Customer interview video (optional)"
     ],
     "assets_provided": [
       "https://example.com/customer-logo.png",

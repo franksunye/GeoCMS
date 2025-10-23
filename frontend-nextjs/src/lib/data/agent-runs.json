@@ -1,20 +1,20 @@
 [
   {
     "id": 1,
-    "user_intent": "创建关于AI技术趋势的内容策划",
+    "user_intent": "Create content plan about AI technology trends",
     "state": {
       "current_step": "planning",
       "plan_id": 1,
       "draft_id": null,
-      "knowledge_used": ["AI技术", "行业趋势"],
+      "knowledge_used": ["AI Technology", "Industry Trends"],
       "conversation": [
         {
           "role": "user",
-          "content": "请帮我创建一个关于AI技术趋势的内容策划"
+          "content": "Please help me create a content plan about AI technology trends"
         },
         {
           "role": "assistant",
-          "content": "好的，我将为您创建一个关于AI技术趋势的内容策划。让我先分析相关知识库..."
+          "content": "Sure, I will create a content plan about AI technology trends for you. Let me analyze the relevant knowledge base first..."
         }
       ]
     },
@@ -28,11 +28,11 @@
         "run_id": 1,
         "task_type": "analyze_knowledge",
         "task_data": {
-          "query": "AI技术趋势",
-          "context": "需要创建内容策划"
+          "query": "AI technology trends",
+          "context": "Need to create content plan"
         },
         "result": {
-          "relevant_knowledge": ["AI技术", "行业趋势", "应用场景"]
+          "relevant_knowledge": ["AI Technology", "Industry Trends", "Application Scenarios"]
         },
         "status": "completed",
         "created_at": "2025-01-20T10:30:00Z",
@@ -43,8 +43,8 @@
         "run_id": 1,
         "task_type": "create_plan",
         "task_data": {
-          "topic": "AI技术趋势",
-          "knowledge": ["AI技术", "行业趋势"]
+          "topic": "AI Technology Trends",
+          "knowledge": ["AI Technology", "Industry Trends"]
         },
         "result": null,
         "status": "pending",
@@ -55,20 +55,20 @@
   },
   {
     "id": 2,
-    "user_intent": "生成关于产品特性的营销文案",
+    "user_intent": "Generate marketing copy about product features",
     "state": {
       "current_step": "writing",
       "plan_id": 2,
       "draft_id": 1,
-      "knowledge_used": ["产品特性", "营销策略"],
+      "knowledge_used": ["Product Features", "Marketing Strategy"],
       "conversation": [
         {
           "role": "user",
-          "content": "根据产品特性生成营销文案"
+          "content": "Generate marketing copy based on product features"
         },
         {
           "role": "assistant",
-          "content": "我将基于产品特性知识库为您生成营销文案..."
+          "content": "I will generate marketing copy for you based on the product features knowledge base..."
         }
       ]
     },
@@ -82,7 +82,7 @@
         "run_id": 2,
         "task_type": "create_plan",
         "task_data": {
-          "topic": "产品营销文案"
+          "topic": "Product Marketing Copy"
         },
         "result": {
           "plan_id": 2
@@ -97,7 +97,7 @@
         "task_type": "generate_draft",
         "task_data": {
           "plan_id": 2,
-          "style": "营销"
+          "style": "Marketing"
         },
         "result": null,
         "status": "pending",
@@ -108,20 +108,20 @@
   },
   {
     "id": 3,
-    "user_intent": "优化现有文章的SEO",
+    "user_intent": "Optimize SEO for existing article",
     "state": {
       "current_step": "completed",
       "plan_id": 3,
       "draft_id": 2,
-      "knowledge_used": ["SEO优化", "关键词策略"],
+      "knowledge_used": ["SEO Optimization", "Keyword Strategy"],
       "conversation": [
         {
           "role": "user",
-          "content": "帮我优化这篇文章的SEO"
+          "content": "Help me optimize the SEO for this article"
         },
         {
           "role": "assistant",
-          "content": "已完成SEO优化，添加了相关关键词和元数据。"
+          "content": "SEO optimization completed. Added relevant keywords and metadata."
         }
       ]
     },
@@ -138,7 +138,7 @@
           "draft_id": 2
         },
         "result": {
-          "suggestions": ["添加关键词", "优化标题", "改进元描述"],
+          "suggestions": ["Add keywords", "Optimize title", "Improve meta description"],
           "score": 85
         },
         "status": "completed",
@@ -149,7 +149,7 @@
   },
   {
     "id": 4,
-    "user_intent": "创建技术博客文章大纲",
+    "user_intent": "Create technical blog article outline",
     "state": {
       "current_step": "failed",
       "plan_id": null,
@@ -158,14 +158,14 @@
       "conversation": [
         {
           "role": "user",
-          "content": "创建一个技术博客大纲"
+          "content": "Create a technical blog outline"
         },
         {
           "role": "assistant",
-          "content": "抱歉，在处理过程中遇到了错误。"
+          "content": "Sorry, an error occurred during processing."
         }
       ],
-      "error": "知识库中缺少相关技术主题信息"
+      "error": "Missing relevant technical topic information in knowledge base"
     },
     "status": "failed",
     "progress": 0.2,
@@ -177,7 +177,7 @@
         "run_id": 4,
         "task_type": "analyze_knowledge",
         "task_data": {
-          "query": "技术博客"
+          "query": "Technical blog"
         },
         "result": null,
         "status": "failed",
@@ -188,20 +188,20 @@
   },
   {
     "id": 5,
-    "user_intent": "生成社交媒体推广内容",
+    "user_intent": "Generate social media promotional content",
     "state": {
       "current_step": "completed",
       "plan_id": 4,
       "draft_id": 3,
-      "knowledge_used": ["社交媒体策略", "品牌声音"],
+      "knowledge_used": ["Social Media Strategy", "Brand Voice"],
       "conversation": [
         {
           "role": "user",
-          "content": "为新产品发布生成社交媒体内容"
+          "content": "Generate social media content for new product launch"
         },
         {
           "role": "assistant",
-          "content": "已生成多平台社交媒体推广内容，包括微博、微信和抖音版本。"
+          "content": "Multi-platform social media promotional content generated, including versions for Twitter, LinkedIn, and Instagram."
         }
       ]
     },
@@ -215,7 +215,7 @@
         "run_id": 5,
         "task_type": "create_plan",
         "task_data": {
-          "topic": "社交媒体推广"
+          "topic": "Social Media Promotion"
         },
         "result": {
           "plan_id": 4
@@ -230,7 +230,7 @@
         "task_type": "generate_draft",
         "task_data": {
           "plan_id": 4,
-          "platforms": ["微博", "微信", "抖音"]
+          "platforms": ["Twitter", "LinkedIn", "Instagram"]
         },
         "result": {
           "draft_id": 3
