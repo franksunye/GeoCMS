@@ -46,14 +46,6 @@ export default function PlanningPage() {
     },
   })
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    )
-  }
-
   const handleStatusChange = (planId: number, newStatus: Plan['status']) => {
     updateStatusMutation.mutate({ planId, status: newStatus })
   }
