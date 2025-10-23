@@ -6,29 +6,38 @@
 import { useQueryClient, useMutation, UseMutationOptions } from '@tanstack/react-query'
 import { useToast } from './use-toast'
 
-interface OptimisticUpdateOptions<TData, TVariables> extends UseMutationOptions<TData, Error, TVariables> {
+interface OptimisticUpdateOptions<TData, TVariables, TContext = unknown> {
   queryKey: any[]
+  mutationFn: (variables: TVariables) => Promise<TData>
   updateFn: (oldData: any, variables: TVariables) => any
   successMessage?: string
   errorMessage?: string
+  onMutate?: (variables: TVariables) => Promise<TContext> | TContext
+  onSuccess?: (data: TData, variables: TVariables, context: TContext) => void
+  onError?: (error: Error, variables: TVariables, context: TContext | undefined) => void
+  onSettled?: (data: TData | undefined, error: Error | null, variables: TVariables, context: TContext | undefined) => void
 }
 
 /**
  * 使用乐观更新的Mutation Hook
  */
-export function useOptimisticUpdate<TData = unknown, TVariables = unknown>({
+export function useOptimisticUpdate<TData = unknown, TVariables = unknown, TContext = unknown>({
   queryKey,
+  mutationFn,
   updateFn,
   successMessage,
   errorMessage,
-  ...mutationOptions
-}: OptimisticUpdateOptions<TData, TVariables>) {
+  onMutate: userOnMutate,
+  onSuccess: userOnSuccess,
+  onError: userOnError,
+  onSettled: userOnSettled,
+}: OptimisticUpdateOptions<TData, TVariables, TContext>) {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  return useMutation<TData, Error, TVariables>({
-    ...mutationOptions,
-    
+  return useMutation<TData, Error, TVariables, { previousData: any; userContext?: TContext }>({
+    mutationFn,
+
     // 在mutation开始前
     onMutate: async (variables) => {
       // 取消所有正在进行的查询，避免覆盖乐观更新
@@ -43,16 +52,17 @@ export function useOptimisticUpdate<TData = unknown, TVariables = unknown>({
       })
 
       // 调用用户提供的onMutate
-      if (mutationOptions.onMutate) {
-        await mutationOptions.onMutate(variables)
+      let userContext: TContext | undefined
+      if (userOnMutate) {
+        userContext = await userOnMutate(variables)
       }
 
       // 返回上下文对象，包含快照数据
-      return { previousData }
+      return { previousData, userContext }
     },
 
     // 如果mutation失败，回滚到之前的数据
-    onError: (error, variables, context: any) => {
+    onError: (error, variables, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(queryKey, context.previousData)
       }
@@ -65,8 +75,8 @@ export function useOptimisticUpdate<TData = unknown, TVariables = unknown>({
       })
 
       // 调用用户提供的onError
-      if (mutationOptions.onError) {
-        mutationOptions.onError(error, variables, context)
+      if (userOnError && context?.userContext) {
+        userOnError(error, variables, context.userContext)
       }
     },
 
@@ -81,8 +91,8 @@ export function useOptimisticUpdate<TData = unknown, TVariables = unknown>({
       }
 
       // 调用用户提供的onSuccess
-      if (mutationOptions.onSuccess) {
-        mutationOptions.onSuccess(data, variables, context)
+      if (userOnSuccess && context?.userContext) {
+        userOnSuccess(data, variables, context.userContext)
       }
     },
 
@@ -91,8 +101,8 @@ export function useOptimisticUpdate<TData = unknown, TVariables = unknown>({
       queryClient.invalidateQueries({ queryKey })
 
       // 调用用户提供的onSettled
-      if (mutationOptions.onSettled) {
-        mutationOptions.onSettled(data, error, variables, context)
+      if (userOnSettled && context?.userContext) {
+        userOnSettled(data, error || null, variables, context.userContext)
       }
     },
   })
