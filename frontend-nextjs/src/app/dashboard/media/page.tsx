@@ -56,11 +56,11 @@ export default function MediaPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">媒体库</h1>
-          <p className="text-gray-600 mt-1">管理和组织您的媒体文件</p>
+          <h1 className="text-3xl font-bold text-gray-900">Media Library</h1>
+          <p className="text-gray-600 mt-1">Manage and organize your media files</p>
         </div>
         <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          + 上传媒体
+          + Upload Media
         </button>
       </div>
 
@@ -70,7 +70,7 @@ export default function MediaPage() {
           <Search className="absolute left-3 top-3 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="搜索媒体文件..."
+            placeholder="Search media files..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -82,10 +82,10 @@ export default function MediaPage() {
           onChange={(e) => setFilterType(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">所有类型</option>
-          <option value="image">图片</option>
-          <option value="video">视频</option>
-          <option value="document">文档</option>
+          <option value="">All Types</option>
+          <option value="image">Images</option>
+          <option value="video">Videos</option>
+          <option value="document">Documents</option>
         </select>
 
         <div className="flex gap-2 border border-gray-300 rounded-lg p-1">
@@ -107,11 +107,11 @@ export default function MediaPage() {
       {/* Media Grid/List */}
       {isLoading ? (
         <div className="text-center py-12">
-          <p className="text-gray-500">加载中...</p>
+          <p className="text-gray-500">Loading...</p>
         </div>
       ) : mediaList.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-500">暂无媒体文件</p>
+          <p className="text-gray-500">No media files</p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -156,14 +156,14 @@ export default function MediaPage() {
                 <div className="flex gap-2 pt-2">
                   <button className="flex-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded flex items-center justify-center gap-1">
                     <Download size={14} />
-                    下载
+                    Download
                   </button>
                   <button
                     onClick={() => handleDelete(item.id)}
                     className="flex-1 px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded flex items-center justify-center gap-1"
                   >
                     <Trash2 size={14} />
-                    删除
+                    Delete
                   </button>
                 </div>
               </div>
@@ -175,11 +175,11 @@ export default function MediaPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">文件名</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">类型</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">大小</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">标签</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">操作</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Filename</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Size</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Tags</th>
+                <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -206,7 +206,7 @@ export default function MediaPage() {
                       onClick={() => handleDelete(item.id)}
                       className="text-red-600 hover:text-red-900"
                     >
-                      删除
+                      Delete
                     </button>
                   </td>
                 </tr>
@@ -219,23 +219,23 @@ export default function MediaPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-sm">总文件数</p>
+          <p className="text-gray-600 text-sm">Total Files</p>
           <p className="text-2xl font-bold text-gray-900">{mediaList.length}</p>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-sm">图片</p>
+          <p className="text-gray-600 text-sm">Images</p>
           <p className="text-2xl font-bold text-gray-900">
             {mediaList.filter((m: Media) => m.type === 'image').length}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-sm">视频</p>
+          <p className="text-gray-600 text-sm">Videos</p>
           <p className="text-2xl font-bold text-gray-900">
             {mediaList.filter((m: Media) => m.type === 'video').length}
           </p>
         </div>
         <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <p className="text-gray-600 text-sm">文档</p>
+          <p className="text-gray-600 text-sm">Documents</p>
           <p className="text-2xl font-bold text-gray-900">
             {mediaList.filter((m: Media) => m.type === 'document').length}
           </p>

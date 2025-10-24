@@ -1,150 +1,150 @@
 [
   {
     "id": 1,
-    "name": "技术博客文章",
+    "name": "Technical Blog Article",
     "category": "blog",
-    "description": "适用于技术类文章的标准模板",
+    "description": "Standard template for technical articles",
     "structure": {
-      "sections": ["引言", "问题背景", "解决方案", "案例分析", "总结"],
+      "sections": ["Introduction", "Problem Background", "Solution", "Case Analysis", "Conclusion"],
       "variables": ["{{title}}", "{{keywords}}", "{{author}}", "{{date}}"]
     },
-    "content_template": "# {{title}}\n\n## 引言\n\n## 问题背景\n\n## 解决方案\n\n## 案例分析\n\n## 总结",
-    "tags": ["技术", "教程", "深度"],
+    "content_template": "# {{title}}\n\n## Introduction\n\n## Problem Background\n\n## Solution\n\n## Case Analysis\n\n## Conclusion",
+    "tags": ["technical", "tutorial", "deep-dive"],
     "usage_count": 5,
     "created_at": "2025-01-15T10:00:00Z",
     "updated_at": "2025-01-15T10:00:00Z"
   },
   {
     "id": 2,
-    "name": "产品发布公告",
+    "name": "Product Launch Announcement",
     "category": "blog",
-    "description": "用于发布新产品或功能的模板",
+    "description": "Template for announcing new products or features",
     "structure": {
-      "sections": ["产品介绍", "核心功能", "优势亮点", "定价信息", "行动号召"],
+      "sections": ["Product Introduction", "Core Features", "Key Highlights", "Pricing Information", "Call to Action"],
       "variables": ["{{product_name}}", "{{launch_date}}", "{{features}}", "{{pricing}}"]
     },
-    "content_template": "# {{product_name}} 正式发布\n\n## 产品介绍\n\n## 核心功能\n\n## 优势亮点\n\n## 定价信息\n\n## 立即体验",
-    "tags": ["产品", "发布", "营销"],
+    "content_template": "# {{product_name}} Official Launch\n\n## Product Introduction\n\n## Core Features\n\n## Key Highlights\n\n## Pricing Information\n\n## Get Started Now",
+    "tags": ["product", "launch", "marketing"],
     "usage_count": 3,
     "created_at": "2025-01-14T14:30:00Z",
     "updated_at": "2025-01-14T14:30:00Z"
   },
   {
     "id": 3,
-    "name": "客户案例研究",
+    "name": "Customer Case Study",
     "category": "blog",
-    "description": "展示客户成功故事的模板",
+    "description": "Template for showcasing customer success stories",
     "structure": {
-      "sections": ["客户背景", "挑战", "解决方案", "成果", "推荐"],
+      "sections": ["Customer Background", "Challenges", "Solution", "Results", "Testimonial"],
       "variables": ["{{customer_name}}", "{{industry}}", "{{challenge}}", "{{result}}"]
     },
-    "content_template": "# {{customer_name}} 成功案例\n\n## 客户背景\n\n## 面临的挑战\n\n## 我们的解决方案\n\n## 取得的成果\n\n## 客户推荐",
-    "tags": ["案例", "客户", "成功"],
+    "content_template": "# {{customer_name}} Success Story\n\n## Customer Background\n\n## Challenges Faced\n\n## Our Solution\n\n## Results Achieved\n\n## Customer Testimonial",
+    "tags": ["case", "customer", "success"],
     "usage_count": 2,
     "created_at": "2025-01-13T09:00:00Z",
     "updated_at": "2025-01-13T09:00:00Z"
   },
   {
     "id": 4,
-    "name": "常见问题解答",
+    "name": "Frequently Asked Questions",
     "category": "faq",
-    "description": "FAQ 页面的标准模板",
+    "description": "Standard template for FAQ pages",
     "structure": {
-      "sections": ["常见问题", "答案"],
+      "sections": ["Common Questions", "Answers"],
       "variables": ["{{question}}", "{{answer}}", "{{category}}"]
     },
-    "content_template": "# 常见问题\n\n## 问题 1\n\n## 问题 2\n\n## 问题 3",
-    "tags": ["FAQ", "帮助", "文档"],
+    "content_template": "# Frequently Asked Questions\n\n## Question 1\n\n## Question 2\n\n## Question 3",
+    "tags": ["faq", "help", "documentation"],
     "usage_count": 4,
     "created_at": "2025-01-12T11:20:00Z",
     "updated_at": "2025-01-12T11:20:00Z"
   },
   {
     "id": 5,
-    "name": "产品功能介绍",
+    "name": "Product Feature Overview",
     "category": "product",
-    "description": "详细介绍产品功能的模板",
+    "description": "Template for detailed product feature descriptions",
     "structure": {
-      "sections": ["功能概述", "主要特性", "使用场景", "技术规格", "对比优势"],
+      "sections": ["Feature Overview", "Main Features", "Use Cases", "Technical Specifications", "Competitive Advantages"],
       "variables": ["{{feature_name}}", "{{description}}", "{{benefits}}"]
     },
-    "content_template": "# {{feature_name}}\n\n## 功能概述\n\n## 主要特性\n\n## 使用场景\n\n## 技术规格\n\n## 对比优势",
-    "tags": ["产品", "功能", "介绍"],
+    "content_template": "# {{feature_name}}\n\n## Feature Overview\n\n## Main Features\n\n## Use Cases\n\n## Technical Specifications\n\n## Competitive Advantages",
+    "tags": ["product", "feature", "overview"],
     "usage_count": 6,
     "created_at": "2025-01-11T15:45:00Z",
     "updated_at": "2025-01-11T15:45:00Z"
   },
   {
     "id": 6,
-    "name": "行业趋势分析",
+    "name": "Industry Trend Analysis",
     "category": "blog",
-    "description": "分析行业趋势和洞察的模板",
+    "description": "Template for analyzing industry trends and insights",
     "structure": {
-      "sections": ["趋势概述", "数据分析", "影响分析", "未来展望", "建议"],
+      "sections": ["Trend Overview", "Data Analysis", "Impact Analysis", "Future Outlook", "Recommendations"],
       "variables": ["{{trend_name}}", "{{data}}", "{{impact}}", "{{forecast}}"]
     },
-    "content_template": "# {{trend_name}} 趋势分析\n\n## 趋势概述\n\n## 数据分析\n\n## 影响分析\n\n## 未来展望\n\n## 专家建议",
-    "tags": ["趋势", "分析", "洞察"],
+    "content_template": "# {{trend_name}} Trend Analysis\n\n## Trend Overview\n\n## Data Analysis\n\n## Impact Analysis\n\n## Future Outlook\n\n## Expert Recommendations",
+    "tags": ["trend", "analysis", "insight"],
     "usage_count": 1,
     "created_at": "2025-01-10T13:00:00Z",
     "updated_at": "2025-01-10T13:00:00Z"
   },
   {
     "id": 7,
-    "name": "使用教程",
+    "name": "How-To Tutorial",
     "category": "blog",
-    "description": "分步骤教用户如何使用产品的模板",
+    "description": "Step-by-step guide for teaching users how to use products",
     "structure": {
-      "sections": ["前置条件", "步骤 1", "步骤 2", "步骤 3", "常见问题", "总结"],
+      "sections": ["Prerequisites", "Step 1", "Step 2", "Step 3", "Common Questions", "Summary"],
       "variables": ["{{tutorial_title}}", "{{step_description}}", "{{screenshot}}"]
     },
-    "content_template": "# {{tutorial_title}} 教程\n\n## 前置条件\n\n## 步骤 1\n\n## 步骤 2\n\n## 步骤 3\n\n## 常见问题\n\n## 总结",
-    "tags": ["教程", "指南", "帮助"],
+    "content_template": "# {{tutorial_title}} Guide\n\n## Prerequisites\n\n## Step 1\n\n## Step 2\n\n## Step 3\n\n## Common Questions\n\n## Summary",
+    "tags": ["tutorial", "guide", "help"],
     "usage_count": 3,
     "created_at": "2025-01-09T10:30:00Z",
     "updated_at": "2025-01-09T10:30:00Z"
   },
   {
     "id": 8,
-    "name": "关于我们页面",
+    "name": "About Us Page",
     "category": "website",
-    "description": "公司介绍和品牌故事的模板",
+    "description": "Template for company introduction and brand story",
     "structure": {
-      "sections": ["品牌故事", "使命愿景", "团队介绍", "成就荣誉", "联系我们"],
+      "sections": ["Brand Story", "Mission & Vision", "Team Introduction", "Achievements & Awards", "Contact Us"],
       "variables": ["{{company_name}}", "{{mission}}", "{{vision}}", "{{team_info}}"]
     },
-    "content_template": "# 关于 {{company_name}}\n\n## 我们的故事\n\n## 使命与愿景\n\n## 团队介绍\n\n## 成就与荣誉\n\n## 联系我们",
-    "tags": ["公司", "品牌", "介绍"],
+    "content_template": "# About {{company_name}}\n\n## Our Story\n\n## Mission & Vision\n\n## Team Introduction\n\n## Achievements & Awards\n\n## Contact Us",
+    "tags": ["company", "brand", "about"],
     "usage_count": 1,
     "created_at": "2025-01-08T14:15:00Z",
     "updated_at": "2025-01-08T14:15:00Z"
   },
   {
     "id": 9,
-    "name": "营销活动推广",
+    "name": "Marketing Campaign Promotion",
     "category": "blog",
-    "description": "推广营销活动和促销的模板",
+    "description": "Template for promoting marketing campaigns and special offers",
     "structure": {
-      "sections": ["活动介绍", "优惠详情", "参与方式", "时间限制", "常见问题"],
+      "sections": ["Campaign Introduction", "Offer Details", "How to Participate", "Time Limit", "Common Questions"],
       "variables": ["{{campaign_name}}", "{{discount}}", "{{deadline}}", "{{cta}}"]
     },
-    "content_template": "# {{campaign_name}} 活动\n\n## 活动介绍\n\n## 优惠详情\n\n## 参与方式\n\n## 时间限制\n\n## 常见问题",
-    "tags": ["营销", "促销", "活动"],
+    "content_template": "# {{campaign_name}} Campaign\n\n## Campaign Introduction\n\n## Offer Details\n\n## How to Participate\n\n## Time Limit\n\n## Common Questions",
+    "tags": ["marketing", "promotion", "campaign"],
     "usage_count": 2,
     "created_at": "2025-01-07T11:00:00Z",
     "updated_at": "2025-01-07T11:00:00Z"
   },
   {
     "id": 10,
-    "name": "产品更新日志",
+    "name": "Product Release Notes",
     "category": "blog",
-    "description": "记录产品更新和改进的模板",
+    "description": "Template for documenting product updates and improvements",
     "structure": {
-      "sections": ["版本号", "新增功能", "改进优化", "已知问题", "升级指南"],
+      "sections": ["Version Number", "New Features", "Improvements", "Known Issues", "Upgrade Guide"],
       "variables": ["{{version}}", "{{release_date}}", "{{features}}", "{{fixes}}"]
     },
-    "content_template": "# 版本 {{version}} 更新\n\n## 新增功能\n\n## 改进优化\n\n## 已知问题\n\n## 升级指南",
-    "tags": ["更新", "日志", "版本"],
+    "content_template": "# Version {{version}} Release\n\n## New Features\n\n## Improvements\n\n## Known Issues\n\n## Upgrade Guide",
+    "tags": ["update", "release", "version"],
     "usage_count": 4,
     "created_at": "2025-01-06T09:30:00Z",
     "updated_at": "2025-01-06T09:30:00Z"

@@ -5,20 +5,11 @@
     "type": "image",
     "url": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1920&h=1080&fit=crop",
     "size": 2457600,
-    "dimensions": {
-      "width": 1920,
-      "height": 1080
-    },
-    "tags": ["产品", "首页", "英雄图"],
-    "description": "产品主页英雄图片",
+    "dimensions": {"width": 1920, "height": 1080},
+    "tags": ["product", "homepage", "hero"],
+    "description": "Product homepage hero image",
     "uploadedAt": "2025-01-20T10:30:00Z",
-    "usedIn": [
-      {
-        "type": "draft",
-        "id": 1,
-        "title": "AI 趋势分析文章"
-      }
-    ]
+    "usedIn": [{"type": "draft", "id": 1, "title": "AI Trends Analysis Article"}]
   },
   {
     "id": 2,
@@ -26,12 +17,9 @@
     "type": "image",
     "url": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=800&fit=crop",
     "size": 1843200,
-    "dimensions": {
-      "width": 1200,
-      "height": 800
-    },
-    "tags": ["团队", "协作", "工作"],
-    "description": "团队协作场景图",
+    "dimensions": {"width": 1200, "height": 800},
+    "tags": ["team", "collaboration", "work"],
+    "description": "Team collaboration scene",
     "uploadedAt": "2025-01-19T14:20:00Z",
     "usedIn": []
   },
@@ -41,12 +29,9 @@
     "type": "image",
     "url": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&h=800&fit=crop",
     "size": 1920000,
-    "dimensions": {
-      "width": 1200,
-      "height": 800
-    },
-    "tags": ["数据", "分析", "图表"],
-    "description": "数据分析仪表板",
+    "dimensions": {"width": 1200, "height": 800},
+    "tags": ["data", "analytics", "chart"],
+    "description": "Data analytics dashboard",
     "uploadedAt": "2025-01-18T09:15:00Z",
     "usedIn": []
   },
@@ -56,12 +41,9 @@
     "type": "image",
     "url": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=800&fit=crop",
     "size": 1728000,
-    "dimensions": {
-      "width": 1200,
-      "height": 800
-    },
-    "tags": ["客户", "成功", "案例"],
-    "description": "客户成功案例图",
+    "dimensions": {"width": 1200, "height": 800},
+    "tags": ["customer", "success", "case"],
+    "description": "Customer success case study",
     "uploadedAt": "2025-01-17T11:45:00Z",
     "usedIn": []
   },
@@ -71,8 +53,8 @@
     "type": "video",
     "url": "https://example.com/videos/product-demo.mp4",
     "size": 52428800,
-    "tags": ["产品", "演示", "视频"],
-    "description": "产品功能演示视频",
+    "tags": ["product", "demo", "video"],
+    "description": "Product feature demo video",
     "uploadedAt": "2025-01-16T16:30:00Z",
     "usedIn": []
   },
@@ -82,8 +64,8 @@
     "type": "document",
     "url": "https://example.com/docs/user-guide.pdf",
     "size": 5242880,
-    "tags": ["文档", "指南", "用户"],
-    "description": "用户使用指南",
+    "tags": ["document", "guide", "user"],
+    "description": "User guide documentation",
     "uploadedAt": "2025-01-15T13:20:00Z",
     "usedIn": []
   },
@@ -93,16 +75,10 @@
     "type": "document",
     "url": "https://example.com/docs/case-study.pdf",
     "size": 3145728,
-    "tags": ["案例", "研究", "文档"],
-    "description": "客户案例研究报告",
+    "tags": ["case", "study", "document"],
+    "description": "Customer case study report",
     "uploadedAt": "2025-01-14T10:00:00Z",
-    "usedIn": [
-      {
-        "type": "draft",
-        "id": 3,
-        "title": "客户案例分享"
-      }
-    ]
+    "usedIn": [{"type": "draft", "id": 3, "title": "Customer Success Story"}]
   },
   {
     "id": 8,
@@ -110,12 +86,9 @@
     "type": "image",
     "url": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=800&fit=crop",
     "size": 1638400,
-    "dimensions": {
-      "width": 1200,
-      "height": 800
-    },
-    "tags": ["功能", "对比", "竞品"],
-    "description": "功能对比表格",
+    "dimensions": {"width": 1200, "height": 800},
+    "tags": ["feature", "comparison", "competitor"],
+    "description": "Feature comparison table",
     "uploadedAt": "2025-01-13T15:30:00Z",
     "usedIn": []
   },
@@ -125,12 +98,9 @@
     "type": "image",
     "url": "https://images.unsplash.com/photo-1552664730-d307ca884978?w=1200&h=800&fit=crop",
     "size": 1536000,
-    "dimensions": {
-      "width": 1200,
-      "height": 800
-    },
-    "tags": ["定价", "表格", "产品"],
-    "description": "定价方案表格",
+    "dimensions": {"width": 1200, "height": 800},
+    "tags": ["pricing", "table", "product"],
+    "description": "Pricing plan table",
     "uploadedAt": "2025-01-12T12:00:00Z",
     "usedIn": []
   },
@@ -140,8 +110,8 @@
     "type": "video",
     "url": "https://example.com/videos/testimonial.mp4",
     "size": 31457280,
-    "tags": ["推荐", "视频", "客户"],
-    "description": "客户推荐视频",
+    "tags": ["testimonial", "video", "customer"],
+    "description": "Customer testimonial video",
     "uploadedAt": "2025-01-11T09:30:00Z",
     "usedIn": []
   }

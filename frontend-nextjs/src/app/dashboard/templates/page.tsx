@@ -42,11 +42,11 @@ export default function TemplatesPage() {
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
-      blog: '📝 博客',
-      website: '🌐 网站',
-      product: '📦 产品',
+      blog: '📝 Blog',
+      website: '🌐 Website',
+      product: '📦 Product',
       faq: '❓ FAQ',
-      custom: '⚙️ 自定义',
+      custom: '⚙️ Custom',
     }
     return labels[category] || category
   }
@@ -71,12 +71,12 @@ export default function TemplatesPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">模板管理</h1>
-          <p className="text-gray-600 mt-1">创建和管理内容模板</p>
+          <h1 className="text-3xl font-bold text-gray-900">Template Management</h1>
+          <p className="text-gray-600 mt-1">Create and manage content templates</p>
         </div>
         <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
           <Plus size={20} />
-          新建模板
+          New Template
         </button>
       </div>
 
@@ -86,7 +86,7 @@ export default function TemplatesPage() {
           <Search className="absolute left-3 top-3 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="搜索模板..."
+            placeholder="Search templates..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -98,12 +98,12 @@ export default function TemplatesPage() {
           onChange={(e) => setFilterCategory(e.target.value)}
           className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="">所有分类</option>
-          <option value="blog">博客</option>
-          <option value="website">网站</option>
-          <option value="product">产品</option>
+          <option value="">All Categories</option>
+          <option value="blog">Blog</option>
+          <option value="website">Website</option>
+          <option value="product">Product</option>
           <option value="faq">FAQ</option>
-          <option value="custom">自定义</option>
+          <option value="custom">Custom</option>
         </select>
       </div>
 
@@ -113,9 +113,9 @@ export default function TemplatesPage() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {isLoading ? (
-              <div className="p-8 text-center text-gray-500">加载中...</div>
+              <div className="p-8 text-center text-gray-500">Loading...</div>
             ) : templatesList.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">暂无模板</div>
+              <div className="p-8 text-center text-gray-500">No templates</div>
             ) : (
               <div className="divide-y">
                 {templatesList.map((template: Template) => (
@@ -136,9 +136,9 @@ export default function TemplatesPage() {
                         </div>
                         <p className="text-sm text-gray-600 mt-1">{template.description}</p>
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                          <span>📋 {template.structure.sections.length} 个章节</span>
-                          <span>🔤 {template.structure.variables.length} 个变量</span>
-                          <span>📊 使用 {template.usage_count || 0} 次</span>
+                          <span>📋 {template.structure.sections.length} sections</span>
+                          <span>🔤 {template.structure.variables.length} variables</span>
+                          <span>📊 Used {template.usage_count || 0} times</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -187,7 +187,7 @@ export default function TemplatesPage() {
 
               {/* Sections */}
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">章节结构</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">Section Structure</h4>
                 <ol className="space-y-1">
                   {selectedTemplate.structure.sections.map((section: string, idx: number) => (
                     <li key={idx} className="text-sm text-gray-600">
@@ -199,7 +199,7 @@ export default function TemplatesPage() {
 
               {/* Variables */}
               <div>
-                <h4 className="font-semibold text-gray-900 mb-2">模板变量</h4>
+                <h4 className="font-semibold text-gray-900 mb-2">Template Variables</h4>
                 <div className="space-y-1">
                   {selectedTemplate.structure.variables.map((variable: string, idx: number) => (
                     <div key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded font-mono text-gray-700">
@@ -212,7 +212,7 @@ export default function TemplatesPage() {
               {/* Tags */}
               {selectedTemplate.tags && selectedTemplate.tags.length > 0 && (
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-2">标签</h4>
+                  <h4 className="font-semibold text-gray-900 mb-2">Tags</h4>
                   <div className="flex flex-wrap gap-1">
                     {selectedTemplate.tags.map((tag: string) => (
                       <span key={tag} className="inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
@@ -227,13 +227,13 @@ export default function TemplatesPage() {
               <div className="grid grid-cols-2 gap-2 pt-4 border-t">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900">{selectedTemplate.usage_count || 0}</p>
-                  <p className="text-xs text-gray-600">使用次数</p>
+                  <p className="text-xs text-gray-600">Times Used</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm text-gray-600">
-                    {new Date(selectedTemplate.updated_at).toLocaleDateString('zh-CN')}
+                    {new Date(selectedTemplate.updated_at).toLocaleDateString('en-US')}
                   </p>
-                  <p className="text-xs text-gray-600">最后更新</p>
+                  <p className="text-xs text-gray-600">Last Updated</p>
                 </div>
               </div>
 
@@ -241,17 +241,17 @@ export default function TemplatesPage() {
               <div className="flex gap-2 pt-4">
                 <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
                   <Copy size={16} />
-                  复制
+                  Duplicate
                 </button>
                 <button className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
                   <Plus size={16} />
-                  使用
+                  Use
                 </button>
               </div>
             </div>
           ) : (
             <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-500">
-              选择一个模板查看详情
+              Select a template to view details
             </div>
           )}
         </div>

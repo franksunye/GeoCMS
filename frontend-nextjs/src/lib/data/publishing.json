@@ -15,21 +15,9 @@
       "seo_checked": true
     },
     "history": [
-      {
-        "status": "draft",
-        "timestamp": "2025-01-18T14:30:00Z",
-        "actor": "user_001"
-      },
-      {
-        "status": "pending_review",
-        "timestamp": "2025-01-19T09:00:00Z",
-        "actor": "user_001"
-      },
-      {
-        "status": "published",
-        "timestamp": "2025-01-20T10:00:00Z",
-        "actor": "editor_001"
-      }
+      {"status": "draft", "timestamp": "2025-01-18T14:30:00Z", "actor": "user_001"},
+      {"status": "pending_review", "timestamp": "2025-01-19T09:00:00Z", "actor": "user_001"},
+      {"status": "published", "timestamp": "2025-01-20T10:00:00Z", "actor": "editor_001"}
     ],
     "created_at": "2025-01-18T14:30:00Z",
     "updated_at": "2025-01-20T10:00:00Z"
@@ -50,16 +38,8 @@
       "seo_checked": true
     },
     "history": [
-      {
-        "status": "draft",
-        "timestamp": "2025-01-19T11:20:00Z",
-        "actor": "user_001"
-      },
-      {
-        "status": "pending_review",
-        "timestamp": "2025-01-20T08:30:00Z",
-        "actor": "user_001"
-      }
+      {"status": "draft", "timestamp": "2025-01-19T11:20:00Z", "actor": "user_001"},
+      {"status": "pending_review", "timestamp": "2025-01-20T08:30:00Z", "actor": "user_001"}
     ],
     "created_at": "2025-01-19T11:20:00Z",
     "updated_at": "2025-01-20T08:30:00Z"
@@ -80,11 +60,7 @@
       "seo_checked": false
     },
     "history": [
-      {
-        "status": "draft",
-        "timestamp": "2025-01-20T15:45:00Z",
-        "actor": "user_001"
-      }
+      {"status": "draft", "timestamp": "2025-01-20T15:45:00Z", "actor": "user_001"}
     ],
     "created_at": "2025-01-20T15:45:00Z",
     "updated_at": "2025-01-20T15:45:00Z"
@@ -105,16 +81,8 @@
       "seo_checked": true
     },
     "history": [
-      {
-        "status": "published",
-        "timestamp": "2025-01-10T08:00:00Z",
-        "actor": "editor_001"
-      },
-      {
-        "status": "archived",
-        "timestamp": "2025-01-20T16:00:00Z",
-        "actor": "editor_001"
-      }
+      {"status": "published", "timestamp": "2025-01-10T08:00:00Z", "actor": "editor_001"},
+      {"status": "archived", "timestamp": "2025-01-20T16:00:00Z", "actor": "editor_001"}
     ],
     "created_at": "2025-01-10T08:00:00Z",
     "updated_at": "2025-01-20T16:00:00Z"
@@ -135,11 +103,7 @@
       "seo_checked": false
     },
     "history": [
-      {
-        "status": "draft",
-        "timestamp": "2025-01-20T17:00:00Z",
-        "actor": "user_001"
-      }
+      {"status": "draft", "timestamp": "2025-01-20T17:00:00Z", "actor": "user_001"}
     ],
     "created_at": "2025-01-20T17:00:00Z",
     "updated_at": "2025-01-20T17:00:00Z"

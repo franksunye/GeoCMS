@@ -47,10 +47,10 @@ export default function PublishingPage() {
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
-      draft: '草稿',
-      pending_review: '待审核',
-      published: '已发布',
-      archived: '已归档',
+      draft: 'Draft',
+      pending_review: 'Pending Review',
+      published: 'Published',
+      archived: 'Archived',
     }
     return labels[status] || status
   }
@@ -81,8 +81,8 @@ export default function PublishingPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">发布管理</h1>
-          <p className="text-gray-600 mt-1">管理内容的发布流程和历史</p>
+          <h1 className="text-3xl font-bold text-gray-900">Publishing Management</h1>
+          <p className="text-gray-600 mt-1">Manage content publishing workflow and history</p>
         </div>
       </div>
 
@@ -98,7 +98,7 @@ export default function PublishingPage() {
                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            {status ? getStatusLabel(status) : '全部'}
+            {status ? getStatusLabel(status) : 'All'}
           </button>
         ))}
       </div>
@@ -109,9 +109,9 @@ export default function PublishingPage() {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             {isLoading ? (
-              <div className="p-8 text-center text-gray-500">加载中...</div>
+              <div className="p-8 text-center text-gray-500">Loading...</div>
             ) : publishingList.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">暂无内容</div>
+              <div className="p-8 text-center text-gray-500">No content</div>
             ) : (
               <div className="divide-y">
                 {publishingList.map((item: Publishing) => (
@@ -134,10 +134,10 @@ export default function PublishingPage() {
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mt-2">
-                          草稿 #{item.draft_id}
+                          Draft #{item.draft_id}
                         </p>
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(item.updated_at).toLocaleDateString('zh-CN')}
+                          {new Date(item.updated_at).toLocaleDateString('en-US')}
                         </p>
                       </div>
                     </div>
@@ -154,7 +154,7 @@ export default function PublishingPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
               {/* Status */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">状态</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">Status</h3>
                 <div className="space-y-2">
                   {['draft', 'pending_review', 'published', 'archived'].map((status) => (
                     <button
@@ -174,7 +174,7 @@ export default function PublishingPage() {
 
               {/* Checklist */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">发布检查清单</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">Publishing Checklist</h3>
                 <div className="space-y-2">
                   {Object.entries(selectedItem.checklist).map(([key, value]) => (
                     <label key={key} className="flex items-center gap-2 cursor-pointer">
@@ -187,11 +187,11 @@ export default function PublishingPage() {
                         className="w-4 h-4 rounded"
                       />
                       <span className="text-sm text-gray-700">
-                        {key === 'title_checked' && '标题检查'}
-                        {key === 'keywords_checked' && '关键词检查'}
-                        {key === 'media_checked' && '媒体检查'}
-                        {key === 'content_length_checked' && '内容长度检查'}
-                        {key === 'seo_checked' && 'SEO 检查'}
+                        {key === 'title_checked' && 'Title Check'}
+                        {key === 'keywords_checked' && 'Keywords Check'}
+                        {key === 'media_checked' && 'Media Check'}
+                        {key === 'content_length_checked' && 'Content Length Check'}
+                        {key === 'seo_checked' && 'SEO Check'}
                       </span>
                     </label>
                   ))}
@@ -200,22 +200,22 @@ export default function PublishingPage() {
 
               {/* Channel */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">发布渠道</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">Publishing Channel</h3>
                 <select
                   value={selectedItem.channel}
                   onChange={(e) => handleStatusChange(selectedItem.id, selectedItem.status)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                 >
-                  <option value="blog">📝 博客</option>
-                  <option value="website">🌐 网站</option>
-                  <option value="social">📱 社交媒体</option>
+                  <option value="blog">📝 Blog</option>
+                  <option value="website">🌐 Website</option>
+                  <option value="social">📱 Social Media</option>
                 </select>
               </div>
 
               {/* Publish Time */}
               {selectedItem.status === 'draft' && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">发布时间</h3>
+                  <h3 className="font-semibold text-gray-900 mb-3">Publish Time</h3>
                   <input
                     type="datetime-local"
                     defaultValue={selectedItem.publish_time?.slice(0, 16)}
@@ -226,13 +226,13 @@ export default function PublishingPage() {
 
               {/* History */}
               <div>
-                <h3 className="font-semibold text-gray-900 mb-3">发布历史</h3>
+                <h3 className="font-semibold text-gray-900 mb-3">Publishing History</h3>
                 <div className="space-y-2">
                   {selectedItem.history.map((entry: any, idx: number) => (
                     <div key={idx} className="text-xs text-gray-600 pb-2 border-b last:border-b-0">
                       <p className="font-medium">{getStatusLabel(entry.status)}</p>
                       <p className="text-gray-500">
-                        {new Date(entry.timestamp).toLocaleString('zh-CN')}
+                        {new Date(entry.timestamp).toLocaleString('en-US')}
                       </p>
                     </div>
                   ))}
@@ -243,17 +243,17 @@ export default function PublishingPage() {
               <div className="flex gap-2 pt-4">
                 <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2">
                   <Eye size={16} />
-                  预览
+                  Preview
                 </button>
                 <button className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2">
                   <Send size={16} />
-                  发布
+                  Publish
                 </button>
               </div>
             </div>
           ) : (
             <div className="bg-white rounded-lg border border-gray-200 p-6 text-center text-gray-500">
-              选择一个项目查看详情
+              Select an item to view details
             </div>
           )}
         </div>
