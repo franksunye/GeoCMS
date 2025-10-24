@@ -48,66 +48,74 @@ const formatDate = (dateString: string) => {
 export default function PublishingHistory({
   publication,
 }: PublishingHistoryProps) {
+  const history = publication?.history || []
+
   return (
     <div className="space-y-6">
       <h3 className="font-semibold text-gray-900">Publishing Timeline</h3>
 
       {/* Timeline */}
       <div className="space-y-4">
-        {publication.history.map((event, index) => (
+        {history.length === 0 ? (
+          <p className="text-sm text-gray-600">No publishing history yet</p>
+        ) : (
+          history.map((event, index) => (
           <div key={index} className="flex gap-4">
-            {/* Timeline Line */}
-            <div className="flex flex-col items-center">
-              <div className="flex-shrink-0">
-                {getStatusIcon(event.status)}
-              </div>
-              {index < publication.history.length - 1 && (
-                <div className="w-0.5 h-12 bg-gray-200 mt-2" />
-              )}
-            </div>
-
-            {/* Event Details */}
-            <div className="flex-1 pb-4">
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-gray-900 capitalize">
-                    {event.status}
-                  </h4>
-                  <span className="text-xs text-gray-500">
-                    {formatDate(event.timestamp)}
-                  </span>
+              {/* Timeline Line */}
+              <div className="flex flex-col items-center">
+                <div className="flex-shrink-0">
+                  {getStatusIcon(event.status)}
                 </div>
-                <p className="text-sm text-gray-600 mb-2">{event.note}</p>
-                <p className="text-xs text-gray-500">
-                  By <span className="font-medium">{event.actor}</span>
-                </p>
+                {index < history.length - 1 && (
+                  <div className="w-0.5 h-12 bg-gray-200 mt-2" />
+                )}
+              </div>
+
+              {/* Event Details */}
+              <div className="flex-1 pb-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-gray-900 capitalize">
+                      {event.status}
+                    </h4>
+                    <span className="text-xs text-gray-500">
+                      {formatDate(event.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{event.note}</p>
+                  <p className="text-xs text-gray-500">
+                    By <span className="font-medium">{event.actor}</span>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">
-            {publication.history.length}
-          </p>
-          <p className="text-xs text-gray-600">Total Events</p>
+      {history.length > 0 && (
+        <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-900">
+              {history.length}
+            </p>
+            <p className="text-xs text-gray-600">Total Events</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-900">
+              {history.filter((h) => h.status === 'published').length}
+            </p>
+            <p className="text-xs text-gray-600">Publications</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-gray-900">
+              {history.filter((h) => h.status === 'review').length}
+            </p>
+            <p className="text-xs text-gray-600">Reviews</p>
+          </div>
         </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">
-            {publication.history.filter((h) => h.status === 'published').length}
-          </p>
-          <p className="text-xs text-gray-600">Publications</p>
-        </div>
-        <div className="text-center">
-          <p className="text-2xl font-bold text-gray-900">
-            {publication.history.filter((h) => h.status === 'review').length}
-          </p>
-          <p className="text-xs text-gray-600">Reviews</p>
-        </div>
-      </div>
+      )}
     </div>
   )
 }

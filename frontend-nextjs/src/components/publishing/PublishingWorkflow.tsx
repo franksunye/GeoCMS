@@ -160,7 +160,7 @@ export default function PublishingWorkflow() {
                         </p>
                       </div>
                     )}
-                    {selected.channels.length > 0 && (
+                    {selected.channels && selected.channels.length > 0 && (
                       <div className="col-span-2">
                         <p className="text-gray-600 mb-2">Channels</p>
                         <div className="flex flex-wrap gap-2">

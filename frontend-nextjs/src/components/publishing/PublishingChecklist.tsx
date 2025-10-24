@@ -35,9 +35,10 @@ const checklistItems = [
 export default function PublishingChecklist({
   publication,
 }: PublishingChecklistProps) {
-  const completedCount = Object.values(publication.checklist).filter(Boolean).length
-  const totalCount = Object.keys(publication.checklist).length
-  const progress = Math.round((completedCount / totalCount) * 100)
+  const checklist = publication?.checklist || {}
+  const completedCount = Object.values(checklist).filter(Boolean).length
+  const totalCount = Object.keys(checklist).length || 1
+  const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   return (
     <div className="space-y-6">
@@ -65,7 +66,7 @@ export default function PublishingChecklist({
             className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <div className="flex-shrink-0 mt-0.5">
-              {publication.checklist[item.key] ? (
+              {checklist[item.key] ? (
                 <CheckCircle className="h-5 w-5 text-green-600" />
               ) : (
                 <Circle className="h-5 w-5 text-gray-400" />
@@ -77,12 +78,12 @@ export default function PublishingChecklist({
             </div>
             <button
               className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                publication.checklist[item.key]
+                checklist[item.key]
                   ? 'bg-green-50 text-green-700 hover:bg-green-100'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {publication.checklist[item.key] ? 'Done' : 'Mark Done'}
+              {checklist[item.key] ? 'Done' : 'Mark Done'}
             </button>
           </div>
         ))}
