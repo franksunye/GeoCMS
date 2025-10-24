@@ -52,6 +52,7 @@ export async function PATCH(
         status: newStatus,
         timestamp: new Date().toISOString(),
         actor: body.actor || 'user_001',
+        note: body.note || `Status changed to ${newStatus}`,
       })
 
       // Update published_at if status is published

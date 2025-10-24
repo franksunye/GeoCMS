@@ -51,17 +51,18 @@ export async function POST(request: NextRequest) {
       id: nextId++,
       status: 'draft',
       checklist: {
-        title_checked: false,
-        keywords_checked: false,
-        media_checked: false,
-        content_length_checked: false,
-        seo_checked: false,
+        titleReview: false,
+        contentReview: false,
+        seoOptimization: false,
+        imageSelection: false,
+        metaDescription: false,
       },
       history: [
         {
           status: 'draft',
           timestamp: new Date().toISOString(),
           actor: 'user_001',
+          note: 'Draft created',
         },
       ],
       created_at: new Date().toISOString(),
