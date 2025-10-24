@@ -48,7 +48,7 @@ export function KnowledgeExpirationWarning({
           <AlertTitle>Critical: Outdated Knowledge</AlertTitle>
           <AlertDescription>
             <p className="mb-3">
-              {criticalItems.length} knowledge item(s) haven't been updated for over 6 months.
+              {criticalItems.length} knowledge item(s) haven&apos;t been updated for over 6 months.
               Consider reviewing and updating them.
             </p>
             <div className="space-y-2">
@@ -87,7 +87,7 @@ export function KnowledgeExpirationWarning({
           <AlertTitle>Warning: Knowledge Needs Review</AlertTitle>
           <AlertDescription>
             <p className="mb-3">
-              {warningItems.length} knowledge item(s) haven't been updated for 3-6 months.
+              {warningItems.length} knowledge item(s) haven&apos;t been updated for 3-6 months.
             </p>
             <div className="space-y-2">
               {warningItems.map((item) => (

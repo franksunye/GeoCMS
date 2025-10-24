@@ -97,7 +97,7 @@ export function MissingKnowledgeDetection({
           <div className="text-xs text-blue-900">
             <p className="font-medium mb-1">How to Add Missing Knowledge</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li>Click "Add" button next to the missing knowledge type</li>
+              <li>Click &quot;Add&quot; button next to the missing knowledge type</li>
               <li>Fill in the suggested fields with relevant information</li>
               <li>Save the knowledge to your knowledge base</li>
               <li>Re-run your task to use the newly added knowledge</li>
@@ -110,7 +110,7 @@ export function MissingKnowledgeDetection({
       <div className="rounded-lg bg-gray-50 p-3">
         <p className="text-xs font-medium text-gray-700 mb-2">Analysis Summary</p>
         <p className="text-xs text-gray-600">
-          Based on your prompt: <span className="italic">"{prompt.substring(0, 100)}..."</span>
+          Based on your prompt: <span className="italic">&quot;{prompt.substring(0, 100)}&quot;...</span>
         </p>
         <p className="text-xs text-gray-600 mt-1">
           System detected {missingItems.length} missing knowledge type(s) that would improve
