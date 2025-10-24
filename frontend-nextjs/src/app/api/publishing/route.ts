@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (channel) {
-      filtered = filtered.filter(p => p.channel === channel)
+      filtered = filtered.filter(p => p.channels && p.channels.includes(channel))
     }
 
     // Sort by updated_at descending
