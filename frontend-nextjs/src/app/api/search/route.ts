@@ -27,16 +27,19 @@ export async function GET(request: NextRequest) {
     // Search drafts
     const drafts = draftsData as any[]
     drafts.forEach((draft) => {
+      const contentLower = draft.content.toLowerCase()
+      const titleLower = draft.metadata.title.toLowerCase()
+
       if (
-        draft.metadata.title.toLowerCase().includes(query) ||
+        titleLower.includes(query) ||
         draft.metadata.keywords.some((k: string) => k.toLowerCase().includes(query)) ||
-        draft.content.toLowerCase().includes(query)
+        contentLower.includes(query)
       ) {
         results.push({
           id: draft.id,
           type: 'draft',
           title: draft.metadata.title,
-          description: draft.content.substring(0, 100),
+          description: draft.metadata.title,
           metadata: { status: draft.status, word_count: draft.metadata.word_count },
         })
       }
