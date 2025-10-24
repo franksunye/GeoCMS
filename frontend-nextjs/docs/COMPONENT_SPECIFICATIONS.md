@@ -10,11 +10,276 @@
 
 ## 📋 目录
 
-1. [FloatingInbox 组件](#floatinginbox-组件)
-2. [AIAssistant 组件](#aiassistant-组件)
-3. [ActionItemsPanel 组件](#actionitemspanel-组件)
-4. [CollapsibleSidebar 组件](#collapsiblesidebar-组件)
-5. [EnhancedAgentStatusBar 组件](#enhancedagentstatusbar-组件)
+1. [KPIDashboard 组件](#kpidashboard-组件)
+2. [FloatingInbox 组件](#floatinginbox-组件)
+3. [AIAssistant 组件](#aiassistant-组件)
+4. [ActionItemsPanel 组件](#actionitemspanel-组件)
+5. [CollapsibleSidebar 组件](#collapsiblesidebar-组件)
+6. [EnhancedAgentStatusBar 组件](#enhancedagentstatusbar-组件)
+
+---
+
+## 📊 KPIDashboard 组件
+
+### 用途
+首页顶部的核心 KPI 仪表盘，展示内容营销的关键指标，帮助用户快速了解整体表现。
+
+### 视觉设计
+
+#### 紧凑模式（默认，首页顶部）
+```
+位置: 首页顶部，固定（sticky）
+高度: 80px
+布局: 5-6 个指标卡片横向排列
+背景: 白色，带轻微阴影
+```
+
+#### 展开模式（点击后）
+```
+位置: 全屏对话框或侧边抽屉
+内容: 详细图表、趋势分析、数据对比
+```
+
+### 组件结构
+
+```typescript
+// components/workspace/KPIDashboard.tsx
+'use client'
+
+import { useQuery } from '@tanstack/react-query'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { TrendingUp, TrendingDown, Minus, ArrowRight } from 'lucide-react'
+import { motion } from 'framer-motion'
+
+interface KPIMetric {
+  id: string
+  label: string
+  value: number | string
+  unit?: string
+  trend?: {
+    direction: 'up' | 'down' | 'stable'
+    percentage: number
+    isGood: boolean  // 上升是好事还是坏事
+  }
+  target?: number
+  status?: 'success' | 'warning' | 'danger'
+}
+
+export function KPIDashboard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['kpi-metrics'],
+    queryFn: async () => {
+      const res = await fetch('/api/workspace/kpi')
+      return res.json()
+    },
+    refetchInterval: 60000, // 每分钟刷新
+  })
+
+  const metrics: KPIMetric[] = data?.metrics || []
+
+  return (
+    <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-700">核心指标</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.href = '/dashboard/analytics'}
+          >
+            查看详细报告
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <KPISkeleton />
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {metrics.map((metric, index) => (
+              <motion.div
+                key={metric.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <KPICard metric={metric} />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// KPI 卡片组件
+function KPICard({ metric }: { metric: KPIMetric }) {
+  const getTrendIcon = () => {
+    switch (metric.trend?.direction) {
+      case 'up':
+        return <TrendingUp className="h-4 w-4" />
+      case 'down':
+        return <TrendingDown className="h-4 w-4" />
+      default:
+        return <Minus className="h-4 w-4" />
+    }
+  }
+
+  const getTrendColor = () => {
+    if (!metric.trend) return 'text-gray-500'
+
+    const { direction, isGood } = metric.trend
+
+    if (direction === 'stable') return 'text-gray-500'
+    if (direction === 'up' && isGood) return 'text-green-600'
+    if (direction === 'up' && !isGood) return 'text-red-600'
+    if (direction === 'down' && isGood) return 'text-green-600'
+    if (direction === 'down' && !isGood) return 'text-red-600'
+
+    return 'text-gray-500'
+  }
+
+  const getStatusColor = () => {
+    switch (metric.status) {
+      case 'success':
+        return 'border-green-200 bg-green-50'
+      case 'warning':
+        return 'border-yellow-200 bg-yellow-50'
+      case 'danger':
+        return 'border-red-200 bg-red-50'
+      default:
+        return 'border-gray-200 bg-white'
+    }
+  }
+
+  return (
+    <Card className={`p-3 ${getStatusColor()} transition-all hover:shadow-md cursor-pointer`}>
+      <div className="space-y-1">
+        <p className="text-xs text-gray-600 font-medium">{metric.label}</p>
+
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl font-bold text-gray-900">
+            {metric.value}
+          </span>
+          {metric.unit && (
+            <span className="text-sm text-gray-500">{metric.unit}</span>
+          )}
+        </div>
+
+        {metric.trend && (
+          <div className={`flex items-center gap-1 text-xs ${getTrendColor()}`}>
+            {getTrendIcon()}
+            <span className="font-medium">
+              {metric.trend.percentage > 0 ? '+' : ''}
+              {metric.trend.percentage}%
+            </span>
+          </div>
+        )}
+
+        {metric.target && (
+          <div className="text-xs text-gray-500">
+            目标: {metric.target}
+          </div>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+// 骨架屏
+function KPISkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Card key={i} className="p-3 animate-pulse">
+          <div className="h-4 bg-gray-200 rounded w-20 mb-2" />
+          <div className="h-8 bg-gray-200 rounded w-16 mb-1" />
+          <div className="h-3 bg-gray-200 rounded w-12" />
+        </Card>
+      ))}
+    </div>
+  )
+}
+```
+
+### 数据结构示例
+
+```typescript
+// API Response: /api/workspace/kpi
+{
+  metrics: [
+    {
+      id: 'weekly_published',
+      label: '本周发布',
+      value: 12,
+      unit: '篇',
+      trend: {
+        direction: 'up',
+        percentage: 20,
+        isGood: true
+      },
+      target: 15,
+      status: 'warning'  // 接近目标但未达成
+    },
+    {
+      id: 'pending_publish',
+      label: '待发布',
+      value: 8,
+      unit: '篇',
+      status: 'success'
+    },
+    {
+      id: 'avg_cycle',
+      label: '平均周期',
+      value: '2.3',
+      unit: '天',
+      trend: {
+        direction: 'down',
+        percentage: 15,
+        isGood: true  // 周期缩短是好事
+      },
+      status: 'success'
+    },
+    {
+      id: 'quality_score',
+      label: '质量分',
+      value: '8.5',
+      unit: '/10',
+      trend: {
+        direction: 'up',
+        percentage: 6,
+        isGood: true
+      },
+      status: 'success'
+    },
+    {
+      id: 'ai_efficiency',
+      label: 'AI 效率',
+      value: '75',
+      unit: '%',
+      trend: {
+        direction: 'up',
+        percentage: 5,
+        isGood: true
+      },
+      status: 'success'
+    }
+  ]
+}
+```
+
+### 交互细节
+
+1. **固定顶部**: 使用 `sticky` 定位，滚动时始终可见
+2. **点击卡片**: 跳转到对应的详细分析页面
+3. **颜色编码**:
+   - 绿色边框：达标或超额完成
+   - 黄色边框：接近目标，需要关注
+   - 红色边框：未达标，需要行动
+4. **趋势动画**: 数字变化时有平滑过渡动画
+5. **响应式**: 移动端显示 2 列，平板 3 列，桌面 5 列
 
 ---
 
