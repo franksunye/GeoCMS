@@ -4,6 +4,26 @@ import templatesData from '@/lib/data/templates.json'
 let templates = [...templatesData]
 let nextId = Math.max(...templates.map(t => t.id)) + 1
 
+// Transform template data from snake_case to camelCase
+function transformTemplate(template: any) {
+  return {
+    id: template.id,
+    name: template.name,
+    category: template.category,
+    description: template.description,
+    content: template.content_template || template.content || '',
+    variables: Array.isArray(template.structure?.variables)
+      ? template.structure.variables.map((v: string) => ({
+          name: v.replace(/[{}]/g, ''),
+          type: 'string',
+          required: false
+        }))
+      : [],
+    usageCount: template.usage_count || 0,
+    createdAt: template.created_at || new Date().toISOString(),
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -27,9 +47,12 @@ export async function GET(request: NextRequest) {
     // Sort by usage_count descending
     filtered.sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
 
+    // Transform data to camelCase
+    const transformedData = filtered.map(transformTemplate)
+
     return NextResponse.json({
-      data: filtered,
-      total: filtered.length,
+      data: transformedData,
+      total: transformedData.length,
       categories: ['blog', 'website', 'product', 'faq', 'custom'],
     })
   } catch (error) {
@@ -46,16 +69,24 @@ export async function POST(request: NextRequest) {
 
     const newTemplate = {
       id: nextId++,
+      name: body.name,
+      category: body.category,
+      description: body.description,
+      content_template: body.content || body.content_template,
+      structure: {
+        sections: body.sections || [],
+        variables: body.variables?.map((v: any) => `{{${v.name}}}`) || []
+      },
+      tags: body.tags || [],
       usage_count: 0,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      ...body,
     }
 
     templates.push(newTemplate)
 
     return NextResponse.json(
-      { data: newTemplate, message: 'Template created successfully' },
+      { data: transformTemplate(newTemplate), message: 'Template created successfully' },
       { status: 201 }
     )
   } catch (error) {
