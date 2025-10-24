@@ -1,0 +1,26 @@
+{
+  "brand": {
+    "brand_name": "GeoCMS",
+    "brand_voice": "Professional, informative, and engaging. We communicate with clarity and confidence, making complex topics accessible to our audience.",
+    "keywords": "content management, geo-location, AI-powered, automation, content generation",
+    "style_guide": "Use clear, concise language. Maintain consistent tone across all content. Avoid jargon unless necessary. Use active voice. Keep sentences short and punchy."
+  },
+  "ai": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "max_tokens": 2000,
+    "top_p": 0.9,
+    "system_prompt": "You are a professional content writer for GeoCMS. Create engaging, informative content that follows the brand voice and style guidelines. Always include relevant keywords naturally."
+  },
+  "publishing": {
+    "default_category_id": "1",
+    "default_status": "draft",
+    "channels": ["blog", "social-media", "newsletter"]
+  },
+  "system": {
+    "language": "en",
+    "timezone": "UTC",
+    "notifications_enabled": true
+  }
+}
+

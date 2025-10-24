@@ -171,29 +171,7 @@ export interface Stats {
   draftsByStatus: Record<string, number>
 }
 
-// Agent types
-export interface AgentTask {
-  id: number
-  run_id: number
-  task_type: string
-  task_data: Record<string, any>
-  result: Record<string, any> | null
-  status: 'pending' | 'completed' | 'failed'
-  created_at: string
-  updated_at: string
-}
-
-export interface AgentRun {
-  id: number
-  user_intent: string
-  state: Record<string, any>
-  status: 'active' | 'completed' | 'failed'
-  progress: number
-  created_at: string
-  updated_at: string
-  tasks?: AgentTask[]
-}
-
+// Agent RunList types
 export interface AgentRunList {
   total: number
   active_count: number
@@ -368,3 +346,154 @@ export interface UpdateTemplateInput {
   tags?: string[]
 }
 
+// Agent types
+export interface AgentRun {
+  id: string | number
+  user_intent: string
+  state: {
+    current_step: string
+    plan_id?: number
+    draft_id?: number
+    knowledge_used?: string[]
+    conversation?: Array<{
+      role: 'user' | 'assistant'
+      content: string
+    }>
+    error?: string
+  }
+  status: 'active' | 'completed' | 'failed'
+  progress: number
+  created_at: string
+  updated_at: string
+  tasks?: AgentTask[]
+}
+
+export interface AgentTask {
+  id: number
+  run_id: string | number
+  task_type: string
+  task_data: Record<string, any>
+  result?: Record<string, any> | null
+  status: 'pending' | 'running' | 'completed' | 'failed'
+  created_at: string
+  updated_at: string
+  logs?: Array<{
+    timestamp: string
+    level: 'info' | 'warning' | 'error'
+    message: string
+  }>
+}
+
+export interface AgentRunStats {
+  total_runs: number
+  active_runs: number
+  completed_runs: number
+  failed_runs: number
+  average_duration: number
+}
+
+// Category types
+export interface Category {
+  id: number
+  name: string
+  slug: string
+  description?: string
+  parent_id?: number
+  content_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateCategoryInput {
+  name: string
+  slug: string
+  description?: string
+  parent_id?: number
+}
+
+export interface UpdateCategoryInput {
+  name?: string
+  slug?: string
+  description?: string
+  parent_id?: number
+}
+
+// Tag types
+export interface Tag {
+  id: number
+  name: string
+  slug: string
+  description?: string
+  usage_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTagInput {
+  name: string
+  slug: string
+  description?: string
+}
+
+export interface UpdateTagInput {
+  name?: string
+  slug?: string
+  description?: string
+}
+
+// Settings types
+export interface BrandSettings {
+  brand_voice: string
+  keywords: string[]
+  style_guide: string
+}
+
+export interface AISettings {
+  model: string
+  temperature: number
+  max_tokens: number
+  top_p: number
+}
+
+export interface PublishingSettings {
+  default_category_id?: number
+  default_status: string
+  channels: string[]
+}
+
+export interface SystemSettings {
+  language: string
+  timezone: string
+  notifications_enabled: boolean
+}
+
+export interface AllSettings {
+  brand: BrandSettings
+  ai: AISettings
+  publishing: PublishingSettings
+  system: SystemSettings
+}
+
+// Calendar types
+export interface CalendarEvent {
+  id: number
+  content_id: number
+  content_title: string
+  publish_date: string
+  status: 'draft' | 'scheduled' | 'published' | 'archived'
+  category_id?: number
+  tags?: string[]
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateCalendarEventInput {
+  content_id: number
+  publish_date: string
+  status: string
+}
+
+export interface UpdateCalendarEventInput {
+  publish_date?: string
+  status?: string
+}

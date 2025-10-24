@@ -1,0 +1,83 @@
+[
+  {
+    "id": "1",
+    "name": "urgent",
+    "slug": "urgent",
+    "description": "High priority content",
+    "color": "#EF4444",
+    "count": 12
+  },
+  {
+    "id": "2",
+    "name": "featured",
+    "slug": "featured",
+    "description": "Featured content",
+    "color": "#F59E0B",
+    "count": 8
+  },
+  {
+    "id": "3",
+    "name": "trending",
+    "slug": "trending",
+    "description": "Trending topics",
+    "color": "#10B981",
+    "count": 15
+  },
+  {
+    "id": "4",
+    "name": "tutorial",
+    "slug": "tutorial",
+    "description": "How-to guides",
+    "color": "#3B82F6",
+    "count": 22
+  },
+  {
+    "id": "5",
+    "name": "case-study",
+    "slug": "case-study",
+    "description": "Case studies",
+    "color": "#8B5CF6",
+    "count": 6
+  },
+  {
+    "id": "6",
+    "name": "news",
+    "slug": "news",
+    "description": "News and updates",
+    "color": "#06B6D4",
+    "count": 18
+  },
+  {
+    "id": "7",
+    "name": "opinion",
+    "slug": "opinion",
+    "description": "Opinion pieces",
+    "color": "#EC4899",
+    "count": 9
+  },
+  {
+    "id": "8",
+    "name": "research",
+    "slug": "research",
+    "description": "Research articles",
+    "color": "#14B8A6",
+    "count": 11
+  },
+  {
+    "id": "9",
+    "name": "video",
+    "slug": "video",
+    "description": "Video content",
+    "color": "#F97316",
+    "count": 7
+  },
+  {
+    "id": "10",
+    "name": "infographic",
+    "slug": "infographic",
+    "description": "Infographics",
+    "color": "#06B6D4",
+    "count": 5
+  }
+]
+

@@ -1,0 +1,83 @@
+[
+  {
+    "id": "1",
+    "title": "AI Trends 2024",
+    "date": "2025-01-05",
+    "status": "published",
+    "category": "Technology",
+    "tags": ["AI", "trending"]
+  },
+  {
+    "id": "2",
+    "title": "Web Development Best Practices",
+    "date": "2025-01-08",
+    "status": "scheduled",
+    "category": "Technology",
+    "tags": ["tutorial", "web"]
+  },
+  {
+    "id": "3",
+    "title": "Marketing Strategy Q1",
+    "date": "2025-01-12",
+    "status": "draft",
+    "category": "Business",
+    "tags": ["marketing", "strategy"]
+  },
+  {
+    "id": "4",
+    "title": "Design System Update",
+    "date": "2025-01-15",
+    "status": "scheduled",
+    "category": "Design",
+    "tags": ["design", "update"]
+  },
+  {
+    "id": "5",
+    "title": "Case Study: Client Success",
+    "date": "2025-01-18",
+    "status": "draft",
+    "category": "Business",
+    "tags": ["case-study"]
+  },
+  {
+    "id": "6",
+    "title": "Video Tutorial Series",
+    "date": "2025-01-22",
+    "status": "scheduled",
+    "category": "Technology",
+    "tags": ["video", "tutorial"]
+  },
+  {
+    "id": "7",
+    "title": "Industry News Roundup",
+    "date": "2025-01-25",
+    "status": "published",
+    "category": "News",
+    "tags": ["news", "roundup"]
+  },
+  {
+    "id": "8",
+    "title": "Product Launch Announcement",
+    "date": "2025-01-28",
+    "status": "scheduled",
+    "category": "Business",
+    "tags": ["product", "announcement"]
+  },
+  {
+    "id": "9",
+    "title": "Content Strategy Deep Dive",
+    "date": "2025-02-01",
+    "status": "draft",
+    "category": "Business",
+    "tags": ["strategy", "content"]
+  },
+  {
+    "id": "10",
+    "title": "Mobile App Development Guide",
+    "date": "2025-02-05",
+    "status": "scheduled",
+    "category": "Technology",
+    "tags": ["tutorial", "mobile"]
+  }
+]
+

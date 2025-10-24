@@ -19,7 +19,7 @@ import type { AgentId } from '@/types'
 
 export default function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [expandedRuns, setExpandedRuns] = useState<Set<number>>(new Set())
+  const [expandedRuns, setExpandedRuns] = useState<Set<string | number>>(new Set())
 
   const { data, isLoading } = useQuery<AgentRunList>({
     queryKey: ['agent-runs', statusFilter],
@@ -31,7 +31,7 @@ export default function TasksPage() {
     refetchInterval: 3000, // 每3秒自动刷新
   })
 
-  const toggleRun = (runId: number) => {
+  const toggleRun = (runId: string | number) => {
     const newExpanded = new Set(expandedRuns)
     if (newExpanded.has(runId)) {
       newExpanded.delete(runId)

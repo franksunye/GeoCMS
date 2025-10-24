@@ -14,7 +14,10 @@ import {
   Clock,
   Image,
   Send,
-  Layout
+  Layout,
+  Tag,
+  Settings,
+  Calendar
 } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -32,6 +35,10 @@ const navigation = [
   { name: 'Media', href: '/dashboard/media', icon: Image },
   { name: 'Publishing', href: '/dashboard/publishing', icon: Send },
   { name: 'Templates', href: '/dashboard/templates', icon: Layout },
+  { name: 'Categories', href: '/dashboard/categories', icon: Tag },
+  { name: 'Tags', href: '/dashboard/tags', icon: Tag },
+  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
 export default function DashboardLayout({

@@ -1,20 +1,20 @@
-# GeoCMS 开发任务清单
+# GeoCMS Development Backlog
 
-> **说明**：本文档仅包含待完成的开发任务。已完成的工作请查看 [CHANGELOG.md](01_CHANGELOG.md)，产品愿景和路线图请查看 [ROADMAP.md](00_ROADMAP.md)。
+> **Note**: This document contains only pending development tasks. Completed work can be found in [CHANGELOG.md](01_CHANGELOG.md), and product vision and roadmap in [ROADMAP.md](00_ROADMAP.md).
 
-**最后更新**：2025-01-24
-**当前Sprint**：Sprint 0 - 核心内容管理模块（新增）
-**当前版本**：v0.3 (AI Native PoC)
-**目标版本**：v0.5 (产品化版本)
+**Last Updated**: 2025-01-24
+**Current Sprint**: Sprint 1 - Agent Workbench Foundation
+**Current Version**: v0.4 (Core Modules Complete)
+**Target Version**: v0.5 (Productized Version)
 
 ---
 
-## 📋 任务优先级说明
+## 📋 Task Priority Guide
 
-- **P0** - 核心功能，必须完成（当前Sprint）
-- **P1** - 重要功能，应该完成（下1-2个Sprint）
-- **P2** - 增强功能，可以完成（未来Sprint）
-- **P3** - 优化功能，有时间再做
+- **P0** - Core functionality, must complete (current Sprint)
+- **P1** - Important functionality, should complete (next 1-2 Sprints)
+- **P2** - Enhancement functionality, can complete (future Sprints)
+- **P3** - Optimization functionality, do if time permits
 
 ---
 
