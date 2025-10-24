@@ -1,0 +1,148 @@
+[
+  {
+    "id": 1,
+    "draft_id": 1,
+    "status": "published",
+    "channel": "blog",
+    "publish_time": "2025-01-20T10:00:00Z",
+    "published_at": "2025-01-20T10:00:00Z",
+    "published_by": "editor_001",
+    "checklist": {
+      "title_checked": true,
+      "keywords_checked": true,
+      "media_checked": true,
+      "content_length_checked": true,
+      "seo_checked": true
+    },
+    "history": [
+      {
+        "status": "draft",
+        "timestamp": "2025-01-18T14:30:00Z",
+        "actor": "user_001"
+      },
+      {
+        "status": "pending_review",
+        "timestamp": "2025-01-19T09:00:00Z",
+        "actor": "user_001"
+      },
+      {
+        "status": "published",
+        "timestamp": "2025-01-20T10:00:00Z",
+        "actor": "editor_001"
+      }
+    ],
+    "created_at": "2025-01-18T14:30:00Z",
+    "updated_at": "2025-01-20T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "draft_id": 2,
+    "status": "pending_review",
+    "channel": "blog",
+    "publish_time": null,
+    "published_at": null,
+    "published_by": null,
+    "checklist": {
+      "title_checked": true,
+      "keywords_checked": true,
+      "media_checked": false,
+      "content_length_checked": true,
+      "seo_checked": true
+    },
+    "history": [
+      {
+        "status": "draft",
+        "timestamp": "2025-01-19T11:20:00Z",
+        "actor": "user_001"
+      },
+      {
+        "status": "pending_review",
+        "timestamp": "2025-01-20T08:30:00Z",
+        "actor": "user_001"
+      }
+    ],
+    "created_at": "2025-01-19T11:20:00Z",
+    "updated_at": "2025-01-20T08:30:00Z"
+  },
+  {
+    "id": 3,
+    "draft_id": 3,
+    "status": "draft",
+    "channel": "website",
+    "publish_time": null,
+    "published_at": null,
+    "published_by": null,
+    "checklist": {
+      "title_checked": false,
+      "keywords_checked": false,
+      "media_checked": false,
+      "content_length_checked": false,
+      "seo_checked": false
+    },
+    "history": [
+      {
+        "status": "draft",
+        "timestamp": "2025-01-20T15:45:00Z",
+        "actor": "user_001"
+      }
+    ],
+    "created_at": "2025-01-20T15:45:00Z",
+    "updated_at": "2025-01-20T15:45:00Z"
+  },
+  {
+    "id": 4,
+    "draft_id": 1,
+    "status": "archived",
+    "channel": "blog",
+    "publish_time": "2025-01-10T08:00:00Z",
+    "published_at": "2025-01-10T08:00:00Z",
+    "published_by": "editor_001",
+    "checklist": {
+      "title_checked": true,
+      "keywords_checked": true,
+      "media_checked": true,
+      "content_length_checked": true,
+      "seo_checked": true
+    },
+    "history": [
+      {
+        "status": "published",
+        "timestamp": "2025-01-10T08:00:00Z",
+        "actor": "editor_001"
+      },
+      {
+        "status": "archived",
+        "timestamp": "2025-01-20T16:00:00Z",
+        "actor": "editor_001"
+      }
+    ],
+    "created_at": "2025-01-10T08:00:00Z",
+    "updated_at": "2025-01-20T16:00:00Z"
+  },
+  {
+    "id": 5,
+    "draft_id": 2,
+    "status": "draft",
+    "channel": "blog",
+    "publish_time": "2025-01-25T10:00:00Z",
+    "published_at": null,
+    "published_by": null,
+    "checklist": {
+      "title_checked": true,
+      "keywords_checked": true,
+      "media_checked": true,
+      "content_length_checked": true,
+      "seo_checked": false
+    },
+    "history": [
+      {
+        "status": "draft",
+        "timestamp": "2025-01-20T17:00:00Z",
+        "actor": "user_001"
+      }
+    ],
+    "created_at": "2025-01-20T17:00:00Z",
+    "updated_at": "2025-01-20T17:00:00Z"
+  }
+]
+

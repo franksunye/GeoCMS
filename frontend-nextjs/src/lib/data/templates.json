@@ -1,0 +1,153 @@
+[
+  {
+    "id": 1,
+    "name": "技术博客文章",
+    "category": "blog",
+    "description": "适用于技术类文章的标准模板",
+    "structure": {
+      "sections": ["引言", "问题背景", "解决方案", "案例分析", "总结"],
+      "variables": ["{{title}}", "{{keywords}}", "{{author}}", "{{date}}"]
+    },
+    "content_template": "# {{title}}\n\n## 引言\n\n## 问题背景\n\n## 解决方案\n\n## 案例分析\n\n## 总结",
+    "tags": ["技术", "教程", "深度"],
+    "usage_count": 5,
+    "created_at": "2025-01-15T10:00:00Z",
+    "updated_at": "2025-01-15T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "name": "产品发布公告",
+    "category": "blog",
+    "description": "用于发布新产品或功能的模板",
+    "structure": {
+      "sections": ["产品介绍", "核心功能", "优势亮点", "定价信息", "行动号召"],
+      "variables": ["{{product_name}}", "{{launch_date}}", "{{features}}", "{{pricing}}"]
+    },
+    "content_template": "# {{product_name}} 正式发布\n\n## 产品介绍\n\n## 核心功能\n\n## 优势亮点\n\n## 定价信息\n\n## 立即体验",
+    "tags": ["产品", "发布", "营销"],
+    "usage_count": 3,
+    "created_at": "2025-01-14T14:30:00Z",
+    "updated_at": "2025-01-14T14:30:00Z"
+  },
+  {
+    "id": 3,
+    "name": "客户案例研究",
+    "category": "blog",
+    "description": "展示客户成功故事的模板",
+    "structure": {
+      "sections": ["客户背景", "挑战", "解决方案", "成果", "推荐"],
+      "variables": ["{{customer_name}}", "{{industry}}", "{{challenge}}", "{{result}}"]
+    },
+    "content_template": "# {{customer_name}} 成功案例\n\n## 客户背景\n\n## 面临的挑战\n\n## 我们的解决方案\n\n## 取得的成果\n\n## 客户推荐",
+    "tags": ["案例", "客户", "成功"],
+    "usage_count": 2,
+    "created_at": "2025-01-13T09:00:00Z",
+    "updated_at": "2025-01-13T09:00:00Z"
+  },
+  {
+    "id": 4,
+    "name": "常见问题解答",
+    "category": "faq",
+    "description": "FAQ 页面的标准模板",
+    "structure": {
+      "sections": ["常见问题", "答案"],
+      "variables": ["{{question}}", "{{answer}}", "{{category}}"]
+    },
+    "content_template": "# 常见问题\n\n## 问题 1\n\n## 问题 2\n\n## 问题 3",
+    "tags": ["FAQ", "帮助", "文档"],
+    "usage_count": 4,
+    "created_at": "2025-01-12T11:20:00Z",
+    "updated_at": "2025-01-12T11:20:00Z"
+  },
+  {
+    "id": 5,
+    "name": "产品功能介绍",
+    "category": "product",
+    "description": "详细介绍产品功能的模板",
+    "structure": {
+      "sections": ["功能概述", "主要特性", "使用场景", "技术规格", "对比优势"],
+      "variables": ["{{feature_name}}", "{{description}}", "{{benefits}}"]
+    },
+    "content_template": "# {{feature_name}}\n\n## 功能概述\n\n## 主要特性\n\n## 使用场景\n\n## 技术规格\n\n## 对比优势",
+    "tags": ["产品", "功能", "介绍"],
+    "usage_count": 6,
+    "created_at": "2025-01-11T15:45:00Z",
+    "updated_at": "2025-01-11T15:45:00Z"
+  },
+  {
+    "id": 6,
+    "name": "行业趋势分析",
+    "category": "blog",
+    "description": "分析行业趋势和洞察的模板",
+    "structure": {
+      "sections": ["趋势概述", "数据分析", "影响分析", "未来展望", "建议"],
+      "variables": ["{{trend_name}}", "{{data}}", "{{impact}}", "{{forecast}}"]
+    },
+    "content_template": "# {{trend_name}} 趋势分析\n\n## 趋势概述\n\n## 数据分析\n\n## 影响分析\n\n## 未来展望\n\n## 专家建议",
+    "tags": ["趋势", "分析", "洞察"],
+    "usage_count": 1,
+    "created_at": "2025-01-10T13:00:00Z",
+    "updated_at": "2025-01-10T13:00:00Z"
+  },
+  {
+    "id": 7,
+    "name": "使用教程",
+    "category": "blog",
+    "description": "分步骤教用户如何使用产品的模板",
+    "structure": {
+      "sections": ["前置条件", "步骤 1", "步骤 2", "步骤 3", "常见问题", "总结"],
+      "variables": ["{{tutorial_title}}", "{{step_description}}", "{{screenshot}}"]
+    },
+    "content_template": "# {{tutorial_title}} 教程\n\n## 前置条件\n\n## 步骤 1\n\n## 步骤 2\n\n## 步骤 3\n\n## 常见问题\n\n## 总结",
+    "tags": ["教程", "指南", "帮助"],
+    "usage_count": 3,
+    "created_at": "2025-01-09T10:30:00Z",
+    "updated_at": "2025-01-09T10:30:00Z"
+  },
+  {
+    "id": 8,
+    "name": "关于我们页面",
+    "category": "website",
+    "description": "公司介绍和品牌故事的模板",
+    "structure": {
+      "sections": ["品牌故事", "使命愿景", "团队介绍", "成就荣誉", "联系我们"],
+      "variables": ["{{company_name}}", "{{mission}}", "{{vision}}", "{{team_info}}"]
+    },
+    "content_template": "# 关于 {{company_name}}\n\n## 我们的故事\n\n## 使命与愿景\n\n## 团队介绍\n\n## 成就与荣誉\n\n## 联系我们",
+    "tags": ["公司", "品牌", "介绍"],
+    "usage_count": 1,
+    "created_at": "2025-01-08T14:15:00Z",
+    "updated_at": "2025-01-08T14:15:00Z"
+  },
+  {
+    "id": 9,
+    "name": "营销活动推广",
+    "category": "blog",
+    "description": "推广营销活动和促销的模板",
+    "structure": {
+      "sections": ["活动介绍", "优惠详情", "参与方式", "时间限制", "常见问题"],
+      "variables": ["{{campaign_name}}", "{{discount}}", "{{deadline}}", "{{cta}}"]
+    },
+    "content_template": "# {{campaign_name}} 活动\n\n## 活动介绍\n\n## 优惠详情\n\n## 参与方式\n\n## 时间限制\n\n## 常见问题",
+    "tags": ["营销", "促销", "活动"],
+    "usage_count": 2,
+    "created_at": "2025-01-07T11:00:00Z",
+    "updated_at": "2025-01-07T11:00:00Z"
+  },
+  {
+    "id": 10,
+    "name": "产品更新日志",
+    "category": "blog",
+    "description": "记录产品更新和改进的模板",
+    "structure": {
+      "sections": ["版本号", "新增功能", "改进优化", "已知问题", "升级指南"],
+      "variables": ["{{version}}", "{{release_date}}", "{{features}}", "{{fixes}}"]
+    },
+    "content_template": "# 版本 {{version}} 更新\n\n## 新增功能\n\n## 改进优化\n\n## 已知问题\n\n## 升级指南",
+    "tags": ["更新", "日志", "版本"],
+    "usage_count": 4,
+    "created_at": "2025-01-06T09:30:00Z",
+    "updated_at": "2025-01-06T09:30:00Z"
+  }
+]
+

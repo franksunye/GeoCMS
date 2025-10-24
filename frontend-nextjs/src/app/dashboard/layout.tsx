@@ -11,7 +11,10 @@ import {
   Activity,
   Menu,
   Users,
-  Clock
+  Clock,
+  Image,
+  Send,
+  Layout
 } from 'lucide-react'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -26,6 +29,9 @@ const navigation = [
   { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: BookOpen },
   { name: 'Content Planning', href: '/dashboard/planning', icon: FileText },
   { name: 'Draft Management', href: '/dashboard/drafts', icon: PenTool },
+  { name: 'Media Library', href: '/dashboard/media', icon: Image },
+  { name: 'Publishing', href: '/dashboard/publishing', icon: Send },
+  { name: 'Templates', href: '/dashboard/templates', icon: Layout },
 ]
 
 export default function DashboardLayout({

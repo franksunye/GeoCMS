@@ -252,3 +252,119 @@ export interface ActivityItem {
   metadata?: Record<string, any>
 }
 
+// Media types
+export interface Media {
+  id: number
+  filename: string
+  type: 'image' | 'video' | 'document'
+  url: string
+  size: number
+  dimensions?: {
+    width: number
+    height: number
+  }
+  tags?: string[]
+  description?: string
+  uploadedAt: string
+  usedIn?: Array<{
+    type: 'plan' | 'draft'
+    id: number
+    title: string
+  }>
+}
+
+export interface CreateMediaInput {
+  filename: string
+  type: 'image' | 'video' | 'document'
+  url: string
+  size: number
+  dimensions?: {
+    width: number
+    height: number
+  }
+  tags?: string[]
+  description?: string
+}
+
+export interface UpdateMediaInput {
+  filename?: string
+  tags?: string[]
+  description?: string
+}
+
+// Publishing types
+export interface Publishing {
+  id: number
+  draft_id: number
+  status: 'draft' | 'pending_review' | 'published' | 'archived'
+  channel: 'blog' | 'website' | 'social'
+  publish_time?: string
+  published_at?: string
+  published_by?: string
+  checklist: {
+    title_checked: boolean
+    keywords_checked: boolean
+    media_checked: boolean
+    content_length_checked: boolean
+    seo_checked: boolean
+  }
+  history: Array<{
+    status: string
+    timestamp: string
+    actor: string
+  }>
+  created_at: string
+  updated_at: string
+}
+
+export interface CreatePublishingInput {
+  draft_id: number
+  channel: 'blog' | 'website' | 'social'
+  publish_time?: string
+}
+
+export interface UpdatePublishingInput {
+  status?: Publishing['status']
+  channel?: Publishing['channel']
+  publish_time?: string
+  checklist?: Partial<Publishing['checklist']>
+}
+
+// Template types
+export interface Template {
+  id: number
+  name: string
+  category: 'blog' | 'website' | 'product' | 'faq' | 'custom'
+  description?: string
+  structure: {
+    sections: string[]
+    variables: string[]
+  }
+  content_template?: string
+  tags?: string[]
+  usage_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateTemplateInput {
+  name: string
+  category: 'blog' | 'website' | 'product' | 'faq' | 'custom'
+  description?: string
+  structure: {
+    sections: string[]
+    variables: string[]
+  }
+  content_template?: string
+  tags?: string[]
+}
+
+export interface UpdateTemplateInput {
+  name?: string
+  category?: Template['category']
+  description?: string
+  structure?: Template['structure']
+  content_template?: string
+  tags?: string[]
+}
+
