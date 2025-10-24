@@ -55,10 +55,14 @@ export async function PATCH(
         note: body.note || `Status changed to ${newStatus}`,
       })
 
-      // Update published_at if status is published
+      // Update publishedAt if status is published
       if (newStatus === 'published') {
-        publishing[index].published_at = new Date().toISOString()
-        publishing[index].published_by = body.actor || 'user_001'
+        publishing[index].publishedAt = new Date().toISOString()
+      }
+
+      // Update archivedAt if status is archived
+      if (newStatus === 'archived') {
+        publishing[index].archivedAt = new Date().toISOString()
       }
     }
 
