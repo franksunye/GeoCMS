@@ -7,6 +7,130 @@
 
 ---
 
+## [0.6.0] - 2025-10-24 🎉 Sprint 5: Knowledge Base & Planning Enhancements
+
+### ✨ Frontend Components (10 New Components)
+
+#### Knowledge Base Enhancements
+- ✅ **KnowledgeCompletenessCard** - Content completeness scoring with visual progress
+- ✅ **KnowledgeExpirationWarning** - Track outdated knowledge with urgency levels
+- ✅ **KnowledgeRecommendations** - Task-based recommendations with relevance scoring
+- ✅ **MissingKnowledgeDetection** - Detect missing knowledge and suggest fields
+- ✅ **ImportExportDialog** - Import/export knowledge in JSON/CSV formats
+
+#### Planning & Drafts Enhancements
+- ✅ **KanbanBoardEnhanced** - Drag-and-drop Kanban with progress tracking
+- ✅ **TemplateSelector** - Browse and select templates with categories
+- ✅ **DeadlineManager** - Track deadlines with overdue/today/upcoming grouping
+- ✅ **ProgressVisualization** - Milestone tracking with velocity charts
+- ✅ **MultiDevicePreview** - Preview content on mobile/tablet/desktop
+
+### 🔧 Backend Services (Production Quality)
+
+- ✅ **DraftService** - Complete draft management with version history
+- ✅ **TemplateService** - Template CRUD with rendering and variable substitution
+- ✅ **KnowledgeEnhancedService** - Enhanced with completeness, recommendations, missing detection
+
+### 🌐 API Endpoints (18+ New Endpoints)
+
+#### Drafts API
+- ✅ POST /drafts - Create draft
+- ✅ GET /drafts - List drafts with filtering
+- ✅ PUT /drafts/{id} - Update draft
+- ✅ DELETE /drafts/{id} - Delete draft
+- ✅ GET /drafts/{id}/versions - Get version history
+- ✅ POST /drafts/{id}/restore/{version} - Restore version
+- ✅ POST /drafts/{id}/analyze - Analyze content
+- ✅ GET /drafts/kanban/view - Get Kanban view
+
+#### Templates API
+- ✅ POST /templates - Create template
+- ✅ GET /templates - List templates
+- ✅ PUT /templates/{id} - Update template
+- ✅ DELETE /templates/{id} - Delete template
+- ✅ GET /templates/{id}/preview - Get preview
+- ✅ POST /templates/{id}/render - Render template
+- ✅ GET /templates/popular - Get popular templates
+- ✅ GET /templates/search - Search templates
+
+#### Knowledge Enhanced API
+- ✅ GET /knowledge/{id}/completeness - Get completeness score
+- ✅ POST /knowledge/detect-missing - Detect missing knowledge
+- ✅ GET /knowledge/recommendations/{task_type} - Get recommendations
+- ✅ POST /knowledge/recommendations - Add recommendation
+
+### 🐛 Bug Fixes
+
+- ✅ Fixed ESLint entity escaping errors in components
+- ✅ Added missing shadcn/ui components (card, progress, scroll-area, alert, badge, input)
+- ✅ Fixed undefined property access in publishing components
+- ✅ Fixed data structure mismatch in publishing.json (snake_case → camelCase)
+- ✅ Fixed templates API data transformation (snake_case → camelCase)
+
+### 📚 Documentation
+
+- ✅ SPRINT5_COMPLETION_SUMMARY.md - Detailed completion report
+- ✅ SPRINT5_COMPONENT_GUIDE.md - Component usage guide with examples
+- ✅ SPRINT5_EXECUTIVE_SUMMARY.md - High-level overview
+- ✅ DEPLOYMENT_FIX_SUMMARY.md - Deployment issues resolution
+- ✅ RUNTIME_ERROR_FIX.md - Runtime error fixes
+- ✅ PUBLISHING_PAGE_FIX_COMPLETE.md - Publishing page fixes
+- ✅ TEMPLATES_PAGE_FIX.md - Templates page fixes
+
+### 🚀 Deployment
+
+- ✅ All changes committed and pushed to GitHub
+- ✅ Build passing successfully
+- ✅ Vercel deployment ready
+- ✅ Production-quality code
+
+---
+
+## [0.5.0] - 2025-10-24 🎉 Sprint 4: Core Content Workflow
+
+### ✨ Main Features - Frontend Implementation Complete
+
+#### Media Library (`/dashboard/media`)
+- ✅ Media upload and management
+- ✅ File preview (image thumbnails, document icons)
+- ✅ File metadata editing (title, description, tags)
+- ✅ File deletion and bulk deletion
+- ✅ File search and filtering (by type, date, tags)
+- ✅ Grid and list view toggle
+- ✅ Folder/category organization
+- ✅ Upload progress display
+- ✅ Drag-and-drop upload support
+- ✅ Media selector component for Drafts integration
+
+#### Publishing Management (`/dashboard/publishing`)
+- ✅ Publishing workflow states (Draft → Review → Published → Archived)
+- ✅ Status flow and history tracking
+- ✅ Publishing time settings (immediate/scheduled)
+- ✅ Publishing channel selection
+- ✅ Publishing checklist
+- ✅ Publishing preview
+- ✅ Publishing history and version comparison
+- ✅ Publishing rollback functionality
+
+#### Templates (`/dashboard/templates`)
+- ✅ Template library with presets (10 templates)
+- ✅ Template categorization and tagging
+- ✅ Template search and filtering
+- ✅ Template preview
+- ✅ Template editor for custom templates
+- ✅ Template variable definition ({{title}}, {{keywords}}, etc.)
+- ✅ Quick create from template
+- ✅ Template usage statistics
+
+### 🔧 Technical Improvements
+
+- ✅ Created demo data for all modules
+- ✅ Implemented API routes for all features
+- ✅ Added proper TypeScript types
+- ✅ Responsive design for all pages
+
+---
+
 ## [0.4.0] - 2025-01-24 🎉 Sprint 1: 内容组织和配置
 
 ### ✨ 主要功能 - 前端实现完成
