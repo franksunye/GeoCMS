@@ -26,33 +26,31 @@ export function KPIDashboard() {
   }
   
   return (
-    <div className="mb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Key Metrics</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => window.location.href = '/dashboard/analytics'}
-            >
-              View Detailed Report
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Key Metrics</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.location.href = '/dashboard/analytics'}
+          >
+            View Detailed Report
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {metrics.map((metric, index) => (
-              <motion.div
-                key={metric.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <KPICard metric={metric} />
-              </motion.div>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {metrics.map((metric, index) => (
+            <motion.div
+              key={metric.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <KPICard metric={metric} />
+            </motion.div>
+          ))}
         </div>
       </div>
     </div>
@@ -144,23 +142,21 @@ function KPICard({ metric }: { metric: KPIMetric }) {
 // Skeleton Component
 function KPISkeleton() {
   return (
-    <div className="mb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <Skeleton className="h-6 w-24" />
-            <Skeleton className="h-8 w-40" />
-          </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center justify-between mb-4">
+          <Skeleton className="h-6 w-24" />
+          <Skeleton className="h-8 w-40" />
+        </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Card key={i} className="p-3 animate-pulse">
-                <div className="h-4 bg-gray-200 rounded w-20 mb-2" />
-                <div className="h-8 bg-gray-200 rounded w-16 mb-1" />
-                <div className="h-3 bg-gray-200 rounded w-12" />
-              </Card>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card key={i} className="p-3 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-20 mb-2" />
+              <div className="h-8 bg-gray-200 rounded w-16 mb-1" />
+              <div className="h-3 bg-gray-200 rounded w-12" />
+            </Card>
+          ))}
         </div>
       </div>
     </div>

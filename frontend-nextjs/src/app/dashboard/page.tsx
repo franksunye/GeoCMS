@@ -59,28 +59,27 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">Welcome to GeoCMS AI-Native Content Management System</p>
-        </div>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">Welcome to GeoCMS AI-Native Content Management System</p>
       </div>
 
-      {/* KPI Dashboard - Below header */}
-      <KPIDashboard />
+      {/* KPI Dashboard - Below header, break out of container */}
+      <div className="-mx-4 sm:-mx-6 md:-mx-8 mb-8">
+        <KPIDashboard />
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        {/* Team Status Bar */}
-        <TeamStatusBar />
+      {/* Team Status Bar */}
+      <TeamStatusBar />
 
-        {/* Agent Workspace Summary */}
-        <div className="mb-8">
-          <ActiveTasksSummary />
-        </div>
+      {/* Agent Workspace Summary */}
+      <div className="mb-8">
+        <ActiveTasksSummary />
+      </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         {statCards.map((stat) => (
           <Link
             key={stat.name}
@@ -191,7 +190,6 @@ export default function DashboardPage() {
         </div>
         <ActivityTimeline limit={5} />
       </div>
-    </div>
     </div>
   )
 }
