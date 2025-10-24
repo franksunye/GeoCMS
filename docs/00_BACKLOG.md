@@ -18,6 +18,51 @@
 
 ---
 
+## 🎯 Sprint 3: Additional UX Improvements (Weeks 3-4) ⏸️ SKIPPED
+
+**Status**: SKIPPED - Lower priority, deferred to future sprints
+**Reason**: Focused on core workflow features (Sprint 4-5) instead
+
+### P1 - SHOULD DO (Deferred)
+
+#### User Onboarding & Help
+- [ ] Interactive onboarding tour for new users
+- [ ] Contextual help tooltips
+- [ ] Video tutorials embedded in UI
+- [ ] Help center/documentation link
+- [ ] Feature discovery prompts
+
+**Effort**: 3-4 days | **Impact**: New user success +50%
+
+#### Customization & Personalization
+- [ ] Dashboard layout customization
+- [ ] Theme selection (light/dark mode)
+- [ ] Saved filters and views
+- [ ] Favorite/bookmark content
+- [ ] Custom shortcuts
+
+**Effort**: 3-4 days | **Impact**: User satisfaction +30%
+
+#### Collaboration Features
+- [ ] Comments on drafts
+- [ ] @mentions for team members
+- [ ] Activity feed showing team actions
+- [ ] Shared workspaces
+- [ ] Role-based permissions
+
+**Effort**: 4-5 days | **Impact**: Team productivity +40%
+
+#### Advanced Search & Filtering
+- [ ] Saved search queries
+- [ ] Advanced filter combinations
+- [ ] Search history
+- [ ] Search suggestions
+- [ ] Fuzzy search
+
+**Effort**: 2-3 days | **Impact**: Content discovery +35%
+
+---
+
 ## 🎯 Sprint 6: Real-time & Performance (Weeks 9-10) 🔥 CURRENT
 
 **Duration**: 2 weeks
