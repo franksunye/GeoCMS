@@ -108,6 +108,52 @@ export interface UpdatePlanInput {
   status?: Plan['status']
 }
 
+// Quality Score types
+export interface QualityScore {
+  overall_score: number // 0-100
+  readability_score: number
+  seo_score: number
+  tone_consistency: number
+  brand_alignment: number
+  compliance_score: number
+  suggestions: QualitySuggestion[]
+}
+
+export interface QualitySuggestion {
+  id: string
+  type: 'improvement' | 'warning' | 'error'
+  category: 'readability' | 'seo' | 'tone' | 'brand' | 'compliance'
+  message: string
+  suggestion: string
+  severity: 'low' | 'medium' | 'high'
+  autoFixAvailable: boolean
+}
+
+// Agent Reasoning types
+export interface AgentReasoning {
+  agent_id: string
+  agent_name: string
+  thinking_process: string
+  confidence_score: number // 0-100
+  data_sources: string[]
+  decision_rationale: string
+  alternatives_considered: string[]
+  timestamp: string
+}
+
+// Workflow State types
+export interface WorkflowState {
+  current_stage: 'draft' | 'review' | 'approved' | 'published' | 'archived'
+  progress_percentage: number
+  estimated_completion_time?: string
+  stage_history: Array<{
+    stage: string
+    entered_at: string
+    exited_at?: string
+    actor: string
+  }>
+}
+
 // Draft types
 export interface Draft {
   id: number
@@ -128,6 +174,12 @@ export interface Draft {
   reviewer_feedback: string | null
   created_at: string
   updated_at: string
+  // New fields for Sprint 2
+  quality_score?: QualityScore
+  agent_reasoning?: AgentReasoning[]
+  workflow_state?: WorkflowState
+  category_id?: number
+  tag_ids?: number[]
 }
 
 export interface CreateDraftInput {
