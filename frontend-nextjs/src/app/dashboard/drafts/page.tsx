@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { Draft } from '@/types'
-import { PenTool, Eye, Zap, Brain, CheckCircle } from 'lucide-react'
+import { PenTool, Eye, Zap, Brain, CheckCircle, Link2 } from 'lucide-react'
 import { formatRelativeTime, getStatusColor } from '@/lib/utils'
 import { useState } from 'react'
 import AgentAvatar from '@/components/team/AgentAvatar'
@@ -13,12 +13,15 @@ import ReasoningPanel from '@/components/drafts/ReasoningPanel'
 import WorkflowStateDisplay from '@/components/drafts/WorkflowStateDisplay'
 import PreviewPanel from '@/components/drafts/PreviewPanel'
 import CategoryTagSelector from '@/components/drafts/CategoryTagSelector'
+import RelatedContentPanel from '@/components/drafts/RelatedContentPanel'
+import BulkOperations from '@/components/drafts/BulkOperations'
 
 export default function DraftsPage() {
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null)
-  const [activeTab, setActiveTab] = useState<'preview' | 'quality' | 'reasoning' | 'workflow' | 'metadata'>('preview')
+  const [activeTab, setActiveTab] = useState<'preview' | 'quality' | 'reasoning' | 'workflow' | 'metadata' | 'related'>('preview')
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([])
+  const [selectedDraftIds, setSelectedDraftIds] = useState<number[]>([])
 
   const { data: drafts, isLoading } = useQuery<Draft[]>({
     queryKey: ['drafts'],
@@ -51,32 +54,47 @@ export default function DraftsPage() {
               {drafts?.map((draft) => (
                 <div
                   key={draft.id}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 ${
+                  className={`p-4 cursor-pointer hover:bg-gray-50 flex items-start gap-3 ${
                     selectedDraft?.id === draft.id ? 'bg-blue-50' : ''
                   }`}
                   onClick={() => setSelectedDraft(draft)}
                 >
-                  <div className="flex items-start gap-2 mb-2">
-                    <AgentAvatar agentId="writer" size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(draft.status)}`}>
-                          {draft.status}
-                        </span>
-                        <span className="text-xs text-gray-500">v{draft.version}</span>
+                  <input
+                    type="checkbox"
+                    checked={selectedDraftIds.includes(draft.id)}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      setSelectedDraftIds(
+                        e.target.checked
+                          ? [...selectedDraftIds, draft.id]
+                          : selectedDraftIds.filter((id) => id !== draft.id)
+                      )
+                    }}
+                    className="mt-1"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2 mb-2">
+                      <AgentAvatar agentId="writer" size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(draft.status)}`}>
+                            {draft.status}
+                          </span>
+                          <span className="text-xs text-gray-500">v{draft.version}</span>
+                        </div>
+                        <AgentBadge agentId="writer" size="sm" />
                       </div>
-                      <AgentBadge agentId="writer" size="sm" />
                     </div>
+                    <h3 className="text-sm font-medium text-gray-900 mb-1">
+                      {draft.metadata.title}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {draft.metadata.word_count} words · {draft.metadata.estimated_reading_time}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formatRelativeTime(draft.updated_at)}
+                    </p>
                   </div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-1">
-                    {draft.metadata.title}
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    {draft.metadata.word_count} words · {draft.metadata.estimated_reading_time}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {formatRelativeTime(draft.updated_at)}
-                  </p>
                 </div>
               ))}
             </div>
@@ -124,6 +142,7 @@ export default function DraftsPage() {
                     { id: 'reasoning', label: 'Reasoning', icon: Brain },
                     { id: 'workflow', label: 'Workflow', icon: CheckCircle },
                     { id: 'metadata', label: 'Metadata', icon: PenTool },
+                    { id: 'related', label: 'Related', icon: Link2 },
                   ].map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
@@ -225,6 +244,13 @@ export default function DraftsPage() {
                     </div>
                   </div>
                 )}
+
+                {activeTab === 'related' && (
+                  <RelatedContentPanel
+                    draftId={selectedDraft.id}
+                    keywords={selectedDraft.metadata.keywords}
+                  />
+                )}
               </div>
             </div>
           ) : (
@@ -250,6 +276,15 @@ export default function DraftsPage() {
           </p>
         </div>
       )}
+
+      {/* Bulk Operations */}
+      <BulkOperations
+        selectedIds={selectedDraftIds}
+        onSuccess={() => {
+          setSelectedDraftIds([])
+          // Refetch drafts
+        }}
+      />
     </div>
   )
 }
