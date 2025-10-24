@@ -7,9 +7,7 @@ import Link from 'next/link'
 import ActiveTasksSummary from '@/components/agent/ActiveTasksSummary'
 import TeamStatusBar from '@/components/team/TeamStatusBar'
 import ActivityTimeline from '@/components/team/ActivityTimeline'
-import AgentAvatar from '@/components/team/AgentAvatar'
-import { AGENTS } from '@/lib/constants/agents'
-import type { AgentId } from '@/types'
+import { Database, FileText, PenLine, CheckCircle2 } from 'lucide-react'
 
 export default function DashboardPage() {
   const { data: stats, isLoading } = useQuery<Stats>({
@@ -32,25 +30,29 @@ export default function DashboardPage() {
     {
       name: 'Knowledge Base',
       value: stats?.totalKnowledge || 0,
-      agentId: 'knowledge' as AgentId,
+      icon: Database,
+      color: 'bg-blue-500',
       href: '/dashboard/knowledge',
     },
     {
       name: 'In Planning',
       value: stats?.totalPlans || 0,
-      agentId: 'planner' as AgentId,
+      icon: FileText,
+      color: 'bg-purple-500',
       href: '/dashboard/planning',
     },
     {
       name: 'Drafts',
       value: stats?.totalDrafts || 0,
-      agentId: 'writer' as AgentId,
+      icon: PenLine,
+      color: 'bg-orange-500',
       href: '/dashboard/drafts',
     },
     {
       name: 'Published',
       value: stats?.publishedContent || 0,
-      agentId: 'verifier' as AgentId,
+      icon: CheckCircle2,
+      color: 'bg-green-500',
       href: '/dashboard/drafts?status=published',
     },
   ]
@@ -72,34 +74,31 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        {statCards.map((stat) => {
-          const agent = AGENTS[stat.agentId]
-          return (
-            <Link
-              key={stat.name}
-              href={stat.href}
-              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-            >
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <AgentAvatar agentId={stat.agentId} size="lg" />
-                  </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        {stat.name}
-                      </dt>
-                      <dd className="text-3xl font-semibold text-gray-900">
-                        {stat.value}
-                      </dd>
-                    </dl>
-                  </div>
+        {statCards.map((stat) => (
+          <Link
+            key={stat.name}
+            href={stat.href}
+            className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+          >
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className={`flex-shrink-0 rounded-md p-3 ${stat.color}`}>
+                  <stat.icon className="h-6 w-6 text-white" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      {stat.name}
+                    </dt>
+                    <dd className="text-3xl font-semibold text-gray-900">
+                      {stat.value}
+                    </dd>
+                  </dl>
                 </div>
               </div>
-            </Link>
-          )
-        })}
+            </div>
+          </Link>
+        ))}
       </div>
 
       {/* Quick Actions */}
@@ -110,8 +109,8 @@ export default function DashboardPage() {
             href="/dashboard/knowledge"
             className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors"
           >
-            <div className="mr-3">
-              <AgentAvatar agentId="knowledge" size="lg" />
+            <div className="flex-shrink-0 rounded-md p-3 bg-blue-500 mr-3">
+              <Database className="h-6 w-6 text-white" />
             </div>
             <div>
               <h3 className="font-medium text-gray-900">Manage Knowledge Base</h3>
@@ -122,8 +121,8 @@ export default function DashboardPage() {
             href="/dashboard/planning"
             className="flex items-center p-4 border border-gray-200 rounded-lg hover:border-primary hover:bg-blue-50 transition-colors"
           >
-            <div className="mr-3">
-              <AgentAvatar agentId="planner" size="lg" />
+            <div className="flex-shrink-0 rounded-md p-3 bg-purple-500 mr-3">
+              <FileText className="h-6 w-6 text-white" />
             </div>
             <div>
               <h3 className="font-medium text-gray-900">Create Content Plan</h3>
