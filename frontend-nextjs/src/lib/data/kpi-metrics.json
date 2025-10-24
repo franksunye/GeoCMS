@@ -2,9 +2,9 @@
   "metrics": [
     {
       "id": "weekly_published",
-      "label": "本周发布",
+      "label": "Published This Week",
       "value": 12,
-      "unit": "篇",
+      "unit": "posts",
       "trend": {
         "direction": "up",
         "percentage": 20,
@@ -15,16 +15,16 @@
     },
     {
       "id": "pending_publish",
-      "label": "待发布",
+      "label": "Pending",
       "value": 8,
-      "unit": "篇",
+      "unit": "posts",
       "status": "success"
     },
     {
       "id": "avg_cycle",
-      "label": "平均周期",
+      "label": "Avg Cycle",
       "value": "2.3",
-      "unit": "天",
+      "unit": "days",
       "trend": {
         "direction": "down",
         "percentage": 15,
@@ -34,7 +34,7 @@
     },
     {
       "id": "quality_score",
-      "label": "质量分",
+      "label": "Quality Score",
       "value": "8.5",
       "unit": "/10",
       "trend": {
@@ -46,7 +46,7 @@
     },
     {
       "id": "ai_efficiency",
-      "label": "AI 效率",
+      "label": "AI Efficiency",
       "value": "75",
       "unit": "%",
       "trend": {
@@ -66,29 +66,29 @@
   "trends": [
     {
       "metric": "quality_score",
-      "message": "质量分持续上升",
+      "message": "Quality score continues to rise",
       "type": "positive"
     },
     {
       "metric": "avg_cycle",
-      "message": "制作周期缩短 15%",
+      "message": "Production cycle reduced by 15%",
       "type": "positive"
     },
     {
       "metric": "rework_rate",
-      "message": "返工率略有上升",
+      "message": "Rework rate slightly increased",
       "type": "warning"
     }
   ],
   "suggestions": [
     {
       "id": "sug-1",
-      "message": "建议增加 SEO 优化环节",
+      "message": "Recommend adding SEO optimization step",
       "priority": "high"
     },
     {
       "id": "sug-2",
-      "message": "主题 \"AI 技术\" 覆盖不足",
+      "message": "Topic \"AI Technology\" coverage insufficient",
       "priority": "normal"
     }
   ]

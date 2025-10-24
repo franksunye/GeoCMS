@@ -7,7 +7,6 @@ import { InboxItem } from '@/types'
 import { useWorkspaceStore } from '@/lib/stores/workspace-store'
 import { Clock, CheckCircle, XCircle, Eye } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
 import { useToast } from '@/hooks/use-toast'
 
 interface TaskCardProps {
@@ -52,16 +51,16 @@ export function TaskCard({ task, variant = 'compact', showActions = true }: Task
   
   const handleApprove = async () => {
     toast({
-      title: '操作成功',
-      description: '已批准该项目',
+      title: 'Success',
+      description: 'Item approved',
     })
     removeInboxItem(task.id)
   }
-  
+
   const handleReject = async () => {
     toast({
-      title: '操作成功',
-      description: '已拒绝该项目',
+      title: 'Success',
+      description: 'Item rejected',
       variant: 'destructive',
     })
     removeInboxItem(task.id)
@@ -93,12 +92,12 @@ export function TaskCard({ task, variant = 'compact', showActions = true }: Task
   
   const handleApplySuggestion = async () => {
     toast({
-      title: '已应用建议',
-      description: 'AI 建议已应用到内容中',
+      title: 'Suggestion Applied',
+      description: 'AI suggestion has been applied',
     })
     removeInboxItem(task.id)
   }
-  
+
   const handleIgnore = () => {
     removeInboxItem(task.id)
   }
@@ -125,16 +124,15 @@ export function TaskCard({ task, variant = 'compact', showActions = true }: Task
         <div className="flex items-center gap-2 text-xs text-gray-500">
           <Clock className="h-3 w-3" />
           <span>
-            {formatDistanceToNow(task.createdAt, { 
-              addSuffix: true,
-              locale: zhCN 
+            {formatDistanceToNow(task.createdAt, {
+              addSuffix: true
             })}
           </span>
           {task.dueDate && (
             <>
               <span>•</span>
               <span className="text-red-600">
-                截止 {formatDistanceToNow(task.dueDate, { locale: zhCN })}
+                Due {formatDistanceToNow(task.dueDate)}
               </span>
             </>
           )}
@@ -145,72 +143,72 @@ export function TaskCard({ task, variant = 'compact', showActions = true }: Task
           <div className="flex gap-2 pt-1">
             {task.type === 'approval' && (
               <>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="flex-1 h-8"
                   onClick={handleApprove}
                 >
-                  批准
+                  Approve
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   className="flex-1 h-8"
                   onClick={handleReject}
                 >
-                  拒绝
+                  Reject
                 </Button>
               </>
             )}
-            
+
             {task.type === 'feedback' && (
               <>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="flex-1 h-8"
                   onClick={handleViewDetails}
                 >
-                  添加反馈
+                  Add Feedback
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   className="h-8"
                   onClick={handleViewDetails}
                 >
-                  查看
+                  View
                 </Button>
               </>
             )}
-            
+
             {task.type === 'suggestion' && (
               <>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   className="flex-1 h-8"
                   onClick={handleApplySuggestion}
                 >
-                  应用
+                  Apply
                 </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
+                <Button
+                  size="sm"
+                  variant="outline"
                   className="h-8"
                   onClick={handleIgnore}
                 >
-                  忽略
+                  Ignore
                 </Button>
               </>
             )}
-            
+
             {task.type === 'alert' && (
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 className="w-full h-8"
                 onClick={handleViewDetails}
               >
-                查看详情
+                View Details
               </Button>
             )}
           </div>

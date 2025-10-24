@@ -9,7 +9,6 @@ import { motion } from 'framer-motion'
 import { useWorkspaceStore } from '@/lib/stores/workspace-store'
 import { ChatMessage } from '@/types'
 import { formatDistanceToNow } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
 
 export function AIAssistant() {
   const { isAssistantOpen, setAssistantOpen } = useWorkspaceStore()
@@ -25,10 +24,10 @@ export function AIAssistant() {
   
   // Quick questions
   const quickQuestions = [
-    { label: '我现在有什么任务？', query: '列出我的待办任务' },
-    { label: '我该先做哪个？', query: '根据优先级推荐我下一步做什么' },
-    { label: '帮我创建内容计划', query: '我想创建一个新的内容计划' },
-    { label: '查看团队状态', query: '显示 AI 团队当前的工作状态' },
+    { label: 'What are my current tasks?', query: 'List my pending tasks' },
+    { label: 'What should I do first?', query: 'Recommend my next task based on priority' },
+    { label: 'Help me create a content plan', query: 'I want to create a new content plan' },
+    { label: 'View team status', query: 'Show current AI team work status' },
   ]
   
   const sendMessage = async (text: string) => {
@@ -62,30 +61,30 @@ export function AIAssistant() {
   
   // Simulated responses for demo
   const getSimulatedResponse = (query: string): string => {
-    if (query.includes('任务')) {
-      return '你当前有 4 个待办任务：\n\n1. 🔴 紧急：草稿审批 - 春季旅游攻略\n2. 🔴 紧急：草稿审批 - 产品功能介绍\n3. 🟡 今日：计划反馈 - Q1 内容规划\n4. 🟡 今日：延迟任务提醒\n\n建议优先处理紧急任务。'
+    if (query.toLowerCase().includes('task')) {
+      return 'You currently have 4 pending tasks:\n\n1. 🔴 Urgent: Draft Approval - Spring Travel Guide\n2. 🔴 Urgent: Draft Approval - Product Features\n3. 🟡 Today: Plan Feedback - Q1 Content Planning\n4. 🟡 Today: Delayed Task Alert\n\nI recommend prioritizing urgent tasks first.'
     }
-    
-    if (query.includes('推荐') || query.includes('先做')) {
-      return '根据优先级和截止时间，建议你先处理：\n\n📝 草稿审批：春季旅游攻略\n- 优先级：紧急\n- 截止时间：今天 18:00\n- 质量分：8.5/10\n\n这篇草稿质量较高，建议快速审批后发布。'
+
+    if (query.toLowerCase().includes('recommend') || query.toLowerCase().includes('first')) {
+      return 'Based on priority and deadline, I recommend handling this first:\n\n📝 Draft Approval: Spring Travel Guide\n- Priority: Urgent\n- Deadline: Today 6:00 PM\n- Quality Score: 8.5/10\n\nThis draft has high quality and should be quickly approved for publishing.'
     }
-    
-    if (query.includes('内容计划') || query.includes('创建')) {
-      return '好的，我可以帮你创建内容计划。请告诉我：\n\n1. 内容主题是什么？\n2. 目标受众是谁？\n3. 期望达到什么效果？\n\n或者你可以直接点击下方按钮快速创建。'
+
+    if (query.toLowerCase().includes('content plan') || query.toLowerCase().includes('create')) {
+      return 'I can help you create a content plan. Please tell me:\n\n1. What is the content topic?\n2. Who is the target audience?\n3. What outcome do you expect?\n\nOr you can click the button below to create quickly.'
     }
-    
-    if (query.includes('团队') || query.includes('状态')) {
-      return '当前 AI 团队状态：\n\n👤 Alex (知识管理员) - 🟢 活跃\n正在处理：品牌指南更新\n\n👤 Sarah (内容策划) - 🟡 空闲\n上次任务：2分钟前\n\n👤 Emma (内容撰写) - 🟢 活跃\n正在写作：春季旅游攻略\n\n👤 Michael (质量审核) - 🟡 空闲\n今日完成：3 个审核'
+
+    if (query.toLowerCase().includes('team') || query.toLowerCase().includes('status')) {
+      return 'Current AI Team Status:\n\n👤 Alex (Knowledge Manager) - 🟢 Active\nWorking on: Brand Guidelines Update\n\n👤 Sarah (Content Planner) - 🟡 Idle\nLast task: 2 minutes ago\n\n👤 Emma (Content Writer) - 🟢 Active\nWriting: Spring Travel Guide\n\n👤 Michael (Quality Reviewer) - 🟡 Idle\nCompleted today: 3 reviews'
     }
-    
-    return '我理解了你的问题。作为 GeoCMS AI 助手，我可以帮你：\n\n• 管理待办任务\n• 创建内容计划\n• 查看团队状态\n• 分析内容质量\n• 提供优化建议\n\n请告诉我你需要什么帮助？'
+
+    return 'I understand your question. As GeoCMS AI Assistant, I can help you:\n\n• Manage pending tasks\n• Create content plans\n• View team status\n• Analyze content quality\n• Provide optimization suggestions\n\nWhat do you need help with?'
   }
   
   const getQuickActions = (query: string) => {
-    if (query.includes('任务')) {
+    if (query.toLowerCase().includes('task')) {
       return [
         {
-          label: '查看全部任务',
+          label: 'View All Tasks',
           onClick: () => {
             setAssistantOpen(false)
             window.location.href = '/dashboard/tasks'
@@ -93,11 +92,11 @@ export function AIAssistant() {
         }
       ]
     }
-    
-    if (query.includes('内容计划')) {
+
+    if (query.toLowerCase().includes('content plan')) {
       return [
         {
-          label: '创建内容计划',
+          label: 'Create Content Plan',
           onClick: () => {
             setAssistantOpen(false)
             window.location.href = '/dashboard/planning'
@@ -105,11 +104,11 @@ export function AIAssistant() {
         }
       ]
     }
-    
-    if (query.includes('团队')) {
+
+    if (query.toLowerCase().includes('team')) {
       return [
         {
-          label: '查看团队详情',
+          label: 'View Team Details',
           onClick: () => {
             setAssistantOpen(false)
             window.location.href = '/dashboard/team'
@@ -117,7 +116,7 @@ export function AIAssistant() {
         }
       ]
     }
-    
+
     return undefined
   }
   
@@ -134,7 +133,7 @@ export function AIAssistant() {
           size="lg"
           className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 relative overflow-hidden"
           onClick={() => setAssistantOpen(true)}
-          aria-label="打开 AI 助手"
+          aria-label="Open AI Assistant"
         >
           {/* Breathing animation */}
           <motion.div
@@ -153,10 +152,10 @@ export function AIAssistant() {
           <div className="px-6 py-4 border-b bg-gradient-to-r from-purple-500 to-blue-500 text-white">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              <h2 className="text-lg font-semibold">AI 助手</h2>
+              <h2 className="text-lg font-semibold">AI Assistant</h2>
             </div>
             <p className="text-sm text-white/80 mt-1">
-              我能帮你什么？
+              How can I help you?
             </p>
           </div>
           
@@ -165,7 +164,7 @@ export function AIAssistant() {
             {messages.length === 0 ? (
               <div className="space-y-3">
                 <p className="text-gray-600 text-sm">
-                  你好！我是 GeoCMS AI 助手。试试这些快捷问题：
+                  Hello! I&apos;m GeoCMS AI Assistant. Try these quick questions:
                 </p>
                 <div className="grid grid-cols-1 gap-2">
                   {quickQuestions.map((q, index) => (
@@ -205,7 +204,7 @@ export function AIAssistant() {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="输入你的问题..."
+                placeholder="Type your question..."
                 disabled={isLoading}
                 className="flex-1"
               />
@@ -254,8 +253,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         
         <p className="text-xs opacity-70 mt-1">
           {formatDistanceToNow(message.timestamp, {
-            addSuffix: true,
-            locale: zhCN,
+            addSuffix: true
           })}
         </p>
       </div>

@@ -29,22 +29,22 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 const navigation = [
-  { name: '工作台', href: '/dashboard', icon: LayoutDashboard },
-  { name: '我的任务', href: '/dashboard/tasks', icon: Activity, badge: true },
-  { name: '团队', href: '/dashboard/team', icon: Users },
-  { 
-    name: '内容库', 
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'My Tasks', href: '/dashboard/tasks', icon: Activity, badge: true },
+  { name: 'Team', href: '/dashboard/team', icon: Users },
+  {
+    name: 'Content',
     icon: BookOpen,
     children: [
-      { name: '知识', href: '/dashboard/knowledge', icon: BookOpen },
-      { name: '计划', href: '/dashboard/planning', icon: FileText },
-      { name: '草稿', href: '/dashboard/drafts', icon: PenTool },
-      { name: '媒体', href: '/dashboard/media', icon: Image },
+      { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
+      { name: 'Planning', href: '/dashboard/planning', icon: FileText },
+      { name: 'Drafts', href: '/dashboard/drafts', icon: PenTool },
+      { name: 'Media', href: '/dashboard/media', icon: Image },
     ]
   },
-  { name: '数据洞察', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: '日历', href: '/dashboard/calendar', icon: Calendar },
-  { name: '设置', href: '/dashboard/settings', icon: Settings },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
 interface CollapsibleSidebarProps {
@@ -89,7 +89,7 @@ export function CollapsibleSidebar({ activeBadgeCount = 0 }: CollapsibleSidebarP
               size="icon"
               className="h-8 w-8"
               onClick={toggleSidebarPin}
-              aria-label={isSidebarPinned ? '取消固定' : '固定侧边栏'}
+              aria-label={isSidebarPinned ? 'Unpin sidebar' : 'Pin sidebar'}
             >
               {isSidebarPinned ? (
                 <PinOff className="h-4 w-4" />
@@ -143,7 +143,7 @@ export function CollapsibleSidebar({ activeBadgeCount = 0 }: CollapsibleSidebarP
             ) : (
               <>
                 <ChevronLeft className="h-4 w-4 mr-2" />
-                收起
+                Collapse
               </>
             )}
           </Button>

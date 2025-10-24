@@ -66,8 +66,8 @@ export default function DashboardPage() {
       </div>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">工作台</h1>
-        <p className="mt-2 text-gray-600">欢迎使用 GeoCMS 智能内容管理系统</p>
+        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="mt-2 text-gray-600">Welcome to GeoCMS AI-Native Content Management System</p>
       </div>
 
       {/* Team Status Bar */}

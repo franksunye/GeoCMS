@@ -61,7 +61,7 @@ export function FloatingInbox() {
           size="lg"
           className="h-14 w-14 rounded-full shadow-lg relative hover:shadow-xl transition-shadow"
           onClick={() => setInboxOpen(true)}
-          aria-label="打开收件箱"
+          aria-label="Open inbox"
         >
           <Inbox className="h-6 w-6" />
           
@@ -94,7 +94,7 @@ export function FloatingInbox() {
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2">
                 <Inbox className="h-5 w-5" />
-                我的待办
+                My Inbox
                 {hasUnreadItems && (
                   <Badge variant="secondary">{unreadCount}</Badge>
                 )}
@@ -111,34 +111,34 @@ export function FloatingInbox() {
                 {/* Urgent Tasks */}
                 {groupedItems.urgent.length > 0 && (
                   <InboxSection
-                    title="🔴 紧急"
+                    title="🔴 Urgent"
                     count={groupedItems.urgent.length}
                     items={groupedItems.urgent}
                   />
                 )}
-                
+
                 {/* High Priority Tasks */}
                 {groupedItems.high.length > 0 && (
                   <InboxSection
-                    title="🟡 今日"
+                    title="🟡 Today"
                     count={groupedItems.high.length}
                     items={groupedItems.high}
                   />
                 )}
-                
+
                 {/* Normal Tasks */}
                 {groupedItems.normal.length > 0 && (
                   <InboxSection
-                    title="📋 待办"
+                    title="📋 To Do"
                     count={groupedItems.normal.length}
                     items={groupedItems.normal}
                   />
                 )}
-                
+
                 {/* AI Suggestions */}
                 {groupedItems.suggestions.length > 0 && (
                   <InboxSection
-                    title="💡 AI 建议"
+                    title="💡 AI Suggestions"
                     count={groupedItems.suggestions.length}
                     items={groupedItems.suggestions}
                   />
@@ -149,15 +149,15 @@ export function FloatingInbox() {
           
           {/* Footer */}
           <div className="border-t p-4">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full"
               onClick={() => {
                 setInboxOpen(false)
                 window.location.href = '/dashboard/tasks'
               }}
             >
-              查看全部任务
+              View All Tasks
             </Button>
           </div>
         </SheetContent>
@@ -174,16 +174,16 @@ function EmptyInbox() {
         <CheckCircle className="h-8 w-8 text-green-600" />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        太棒了！
+        All Done!
       </h3>
       <p className="text-gray-600 mb-4">
-        你已完成所有待办事项
+        You&apos;ve completed all your tasks
       </p>
-      <Button 
-        variant="outline" 
+      <Button
+        variant="outline"
         onClick={() => window.location.href = '/dashboard'}
       >
-        返回工作台
+        Back to Dashboard
       </Button>
     </div>
   )

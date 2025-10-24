@@ -29,13 +29,13 @@ export function KPIDashboard() {
     <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-700">核心指标</h2>
-          <Button 
-            variant="ghost" 
+          <h2 className="text-sm font-semibold text-gray-700">Key Metrics</h2>
+          <Button
+            variant="ghost"
             size="sm"
             onClick={() => window.location.href = '/dashboard/analytics'}
           >
-            查看详细报告
+            View Detailed Report
             <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
         </div>
@@ -131,7 +131,7 @@ function KPICard({ metric }: { metric: KPIMetric }) {
         
         {metric.target && (
           <div className="text-xs text-gray-500">
-            目标: {metric.target}
+            Target: {metric.target}
           </div>
         )}
       </div>
