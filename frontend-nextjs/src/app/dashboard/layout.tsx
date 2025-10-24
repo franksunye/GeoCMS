@@ -15,7 +15,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { isSidebarCollapsed, isSidebarPinned } = useWorkspaceStore()
+  const { isSidebarCollapsed, isSidebarPinned, isInboxPinned } = useWorkspaceStore()
 
   // 获取活跃任务数量
   const { data: agentData } = useQuery<AgentRunList>({
@@ -29,8 +29,9 @@ export default function DashboardLayout({
 
   const activeBadgeCount = agentData?.active_count || 0
 
-  // Calculate left padding based on sidebar state
+  // Calculate padding based on sidebar and inbox state
   const sidebarWidth = isSidebarCollapsed && !isSidebarPinned ? 64 : 256
+  const inboxWidth = isInboxPinned ? 400 : 0
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -40,7 +41,10 @@ export default function DashboardLayout({
       {/* Main content */}
       <div
         className="flex flex-col flex-1 transition-all duration-200"
-        style={{ paddingLeft: `${sidebarWidth}px` }}
+        style={{
+          paddingLeft: `${sidebarWidth}px`,
+          paddingRight: `${inboxWidth}px`
+        }}
       >
         {/* Header with search */}
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200">

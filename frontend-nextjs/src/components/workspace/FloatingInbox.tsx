@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Inbox, CheckCircle } from 'lucide-react'
+import { Inbox, CheckCircle, Pin, PinOff } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useWorkspaceStore } from '@/lib/stores/workspace-store'
 import { InboxItem } from '@/types'
@@ -12,12 +12,14 @@ import { TaskCard } from './TaskCard'
 import inboxData from '@/lib/data/inbox-items.json'
 
 export function FloatingInbox() {
-  const { 
-    inboxItems, 
-    unreadCount, 
-    isInboxOpen, 
+  const {
+    inboxItems,
+    unreadCount,
+    isInboxOpen,
+    isInboxPinned,
     setInboxItems,
-    setInboxOpen 
+    setInboxOpen,
+    toggleInboxPin
   } = useWorkspaceStore()
   
   // Load demo data on mount
@@ -99,6 +101,19 @@ export function FloatingInbox() {
                   <Badge variant="secondary">{unreadCount}</Badge>
                 )}
               </SheetTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={toggleInboxPin}
+                aria-label={isInboxPinned ? 'Unpin inbox' : 'Pin inbox'}
+              >
+                {isInboxPinned ? (
+                  <PinOff className="h-4 w-4" />
+                ) : (
+                  <Pin className="h-4 w-4" />
+                )}
+              </Button>
             </div>
           </SheetHeader>
           

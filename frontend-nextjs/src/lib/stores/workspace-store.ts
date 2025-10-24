@@ -6,24 +6,26 @@ interface WorkspaceStore {
   inboxItems: InboxItem[]
   unreadCount: number
   isInboxOpen: boolean
-  
+  isInboxPinned: boolean
+
   // AI Assistant state
   isAssistantOpen: boolean
-  
+
   // Sidebar state
   isSidebarCollapsed: boolean
   isSidebarPinned: boolean
-  
+
   // Actions
   setInboxItems: (items: InboxItem[]) => void
   markAsRead: (id: string) => void
   removeInboxItem: (id: string) => void
   toggleInbox: () => void
   setInboxOpen: (open: boolean) => void
-  
+  toggleInboxPin: () => void
+
   toggleAssistant: () => void
   setAssistantOpen: (open: boolean) => void
-  
+
   toggleSidebar: () => void
   setSidebarCollapsed: (collapsed: boolean) => void
   toggleSidebarPin: () => void
@@ -34,6 +36,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   inboxItems: [],
   unreadCount: 0,
   isInboxOpen: false,
+  isInboxPinned: false,
   isAssistantOpen: false,
   isSidebarCollapsed: false,
   isSidebarPinned: false,
@@ -64,11 +67,12 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   
   toggleInbox: () => set((state) => ({ isInboxOpen: !state.isInboxOpen })),
   setInboxOpen: (open) => set({ isInboxOpen: open }),
-  
+  toggleInboxPin: () => set((state) => ({ isInboxPinned: !state.isInboxPinned })),
+
   // AI Assistant actions
   toggleAssistant: () => set((state) => ({ isAssistantOpen: !state.isAssistantOpen })),
   setAssistantOpen: (open) => set({ isAssistantOpen: open }),
-  
+
   // Sidebar actions
   toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
   setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
