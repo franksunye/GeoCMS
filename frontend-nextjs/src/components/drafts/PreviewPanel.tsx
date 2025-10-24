@@ -161,11 +161,14 @@ export default function PreviewPanel({
             {/* Twitter Preview */}
             <div className="border border-gray-200 rounded-lg p-4 bg-white">
               <h4 className="text-xs font-semibold text-gray-600 mb-2 uppercase">Twitter Preview</h4>
-              <div className="border border-gray-300 rounded overflow-hidden bg-white">
+              <div className="border border-gray-300 rounded overflow-hidden bg-white shadow-sm">
                 <img
-                  src="https://images.unsplash.com/photo-1677442d019cecf8d5a32b9c94d39be18c6b3e4c?w=500&h=260&fit=crop"
-                  alt="Preview"
-                  className="w-full h-32 object-cover"
+                  src="/images/demo/social-preview.jpg"
+                  alt="Twitter preview"
+                  className="w-full h-32 object-cover bg-gray-200"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
                 <div className="p-3">
                   <p className="text-sm text-gray-900 font-medium mb-1">{socialTitle}</p>
@@ -178,12 +181,15 @@ export default function PreviewPanel({
             {/* LinkedIn Preview */}
             <div className="border border-gray-200 rounded-lg p-4 bg-white">
               <h4 className="text-xs font-semibold text-gray-600 mb-2 uppercase">LinkedIn Preview</h4>
-              <div className="border border-gray-300 rounded overflow-hidden bg-white">
+              <div className="border border-gray-300 rounded overflow-hidden bg-white shadow-sm">
                 <div className="flex gap-3 p-3">
                   <img
-                    src="https://images.unsplash.com/photo-1677442d019cecf8d5a32b9c94d39be18c6b3e4c?w=200&h=200&fit=crop"
-                    alt="Preview"
-                    className="w-24 h-24 object-cover rounded"
+                    src="/images/demo/linkedin-preview.jpg"
+                    alt="LinkedIn preview"
+                    className="w-24 h-24 object-cover rounded bg-gray-200"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
                   />
                   <div className="flex-1">
                     <p className="text-sm text-gray-900 font-medium mb-1">{socialTitle}</p>
