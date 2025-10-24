@@ -7,6 +7,7 @@ import { Menu } from 'lucide-react'
 import { AgentRunList } from '@/types'
 import UnifiedSearch from '@/components/UnifiedSearch'
 import { CollapsibleSidebar, FloatingInbox, AIAssistant } from '@/components/workspace'
+import { useWorkspaceStore } from '@/lib/stores/workspace-store'
 
 export default function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isSidebarCollapsed, isSidebarPinned } = useWorkspaceStore()
 
   // 获取活跃任务数量
   const { data: agentData } = useQuery<AgentRunList>({
@@ -27,13 +29,19 @@ export default function DashboardLayout({
 
   const activeBadgeCount = agentData?.active_count || 0
 
+  // Calculate left padding based on sidebar state
+  const sidebarWidth = isSidebarCollapsed && !isSidebarPinned ? 64 : 256
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Collapsible Sidebar for desktop */}
       <CollapsibleSidebar activeBadgeCount={activeBadgeCount} />
 
       {/* Main content */}
-      <div className="md:pl-16 flex flex-col flex-1 transition-all duration-200">
+      <div
+        className="flex flex-col flex-1 transition-all duration-200"
+        style={{ paddingLeft: `${sidebarWidth}px` }}
+      >
         {/* Header with search */}
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between px-4 py-3 sm:px-6 md:px-8">
@@ -57,11 +65,7 @@ export default function DashboardLayout({
         </div>
 
         <main className="flex-1">
-          <div className="py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-              {children}
-            </div>
-          </div>
+          {children}
         </main>
       </div>
 

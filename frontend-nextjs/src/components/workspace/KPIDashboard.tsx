@@ -26,7 +26,7 @@ export function KPIDashboard() {
   }
   
   return (
-    <div className="sticky top-0 z-20 bg-white border-b shadow-sm">
+    <div className="sticky top-[57px] z-20 bg-white border-b shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700">Key Metrics</h2>
