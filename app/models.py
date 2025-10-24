@@ -77,5 +77,64 @@ class VerifierLogs(Base):
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     content_block = relationship("ContentBlock")
 
+class Draft(Base):
+    """草稿模型 - Sprint 5 规划和草稿增强"""
+    __tablename__ = "drafts"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    title = Column(String(255), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    status = Column(String(50), default="draft")  # draft/review/published
+    kanban_status = Column(String(50), default="todo")  # todo/in_progress/done
+    template_id = Column(Integer, ForeignKey("templates.id"), nullable=True)
+    deadline = Column(DateTime, nullable=True)
+    word_count = Column(Integer, default=0)
+    reading_time = Column(Integer, default=0)  # 分钟
+    seo_score = Column(Integer, default=0)  # 0-100
+    quality_score = Column(Integer, default=0)  # 0-100
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    versions = relationship("DraftVersion", back_populates="draft", cascade="all, delete-orphan")
+    template = relationship("Template", back_populates="drafts")
+
+class DraftVersion(Base):
+    """草稿版本历史 - Sprint 5 版本控制"""
+    __tablename__ = "draft_versions"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    draft_id = Column(Integer, ForeignKey("drafts.id"), nullable=False)
+    version_number = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    change_summary = Column(String(255))
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    draft = relationship("Draft", back_populates="versions")
+
+class Template(Base):
+    """模板模型 - Sprint 5 模板系统"""
+    __tablename__ = "templates"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text)
+    content_template = Column(Text, nullable=False)  # 模板内容，包含变量占位符
+    variables = Column(Text)  # JSON 格式存储变量定义
+    category = Column(String(100), index=True)
+    usage_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    drafts = relationship("Draft", back_populates="template")
+
+class KnowledgeRecommendation(Base):
+    """知识推荐模型 - Sprint 5 知识库增强"""
+    __tablename__ = "knowledge_recommendations"
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    knowledge_id = Column(Integer, ForeignKey("knowledge_base.id"), nullable=False)
+    task_type = Column(String(100), nullable=False)  # 任务类型
+    relevance_score = Column(Integer, default=0)  # 0-100 相关性评分
+    recommendation_reason = Column(Text)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    knowledge = relationship("KnowledgeBase")
+
 # 确保导出 Base
-__all__ = ['Base', 'AgentPrompt', 'ContentBlock', 'KnowledgeBase', 'KnowledgeUsageLog', 'PlannerRuns', 'PlannerTasks', 'VerifierLogs']
+__all__ = [
+    'Base', 'AgentPrompt', 'ContentBlock', 'KnowledgeBase', 'KnowledgeUsageLog',
+    'PlannerRuns', 'PlannerTasks', 'VerifierLogs', 'Draft', 'DraftVersion',
+    'Template', 'KnowledgeRecommendation'
+]

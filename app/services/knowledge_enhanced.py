@@ -1,12 +1,13 @@
 """
-知识库增强服务 - Sprint 2产品化功能
+知识库增强服务 - Sprint 2产品化功能 + Sprint 5增强
 """
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-from app.models import KnowledgeBase, KnowledgeUsageLog
+from app.models import KnowledgeBase, KnowledgeUsageLog, KnowledgeRecommendation
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 import json
+import re
 
 class KnowledgeEnhancedService:
     """知识库增强服务"""
@@ -318,28 +319,28 @@ class KnowledgeEnhancedService:
     def import_knowledge(self, data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         导入知识（JSON格式）
-        
+
         Args:
             data: 知识数据列表
-            
+
         Returns:
             导入结果
         """
         imported = 0
         skipped = 0
         errors = []
-        
+
         for item in data:
             try:
                 # 检查是否已存在
                 existing = self.db.query(KnowledgeBase).filter(
                     KnowledgeBase.topic == item['topic']
                 ).first()
-                
+
                 if existing:
                     skipped += 1
                     continue
-                
+
                 # 创建新知识
                 knowledge = KnowledgeBase(
                     topic=item['topic'],
@@ -351,12 +352,182 @@ class KnowledgeEnhancedService:
                 imported += 1
             except Exception as e:
                 errors.append(f"导入 '{item.get('topic', 'unknown')}' 失败: {str(e)}")
-        
+
         self.db.commit()
-        
+
         return {
             "imported": imported,
             "skipped": skipped,
             "errors": errors
         }
+
+    def get_knowledge_completeness(self, knowledge_id: int) -> Dict[str, Any]:
+        """
+        获取知识完整度评分 - Sprint 5
+
+        Args:
+            knowledge_id: 知识ID
+
+        Returns:
+            完整度信息
+        """
+        knowledge = self.db.query(KnowledgeBase).filter(
+            KnowledgeBase.id == knowledge_id
+        ).first()
+
+        if not knowledge:
+            return {}
+
+        try:
+            content = json.loads(knowledge.content)
+        except:
+            return {"completeness_score": 0, "missing_fields": []}
+
+        # 定义必要字段
+        required_fields = ['description', 'details', 'examples']
+        optional_fields = ['tags', 'references', 'related_topics']
+
+        # 计算完整度
+        filled_required = sum(1 for field in required_fields if content.get(field))
+        filled_optional = sum(1 for field in optional_fields if content.get(field))
+
+        completeness_score = (filled_required / len(required_fields)) * 70 + (filled_optional / len(optional_fields)) * 30
+
+        missing_fields = [field for field in required_fields if not content.get(field)]
+
+        return {
+            "completeness_score": int(completeness_score),
+            "filled_required_fields": filled_required,
+            "total_required_fields": len(required_fields),
+            "filled_optional_fields": filled_optional,
+            "total_optional_fields": len(optional_fields),
+            "missing_fields": missing_fields
+        }
+
+    def detect_missing_knowledge(self, prompt: str) -> List[Dict[str, Any]]:
+        """
+        检测缺失的知识 - Sprint 5
+
+        Args:
+            prompt: 用户提示词
+
+        Returns:
+            缺失知识列表
+        """
+        # 关键词映射
+        keyword_mapping = {
+            "company_info": ["公司", "企业", "我们", "组织", "团队"],
+            "product_info": ["产品", "服务", "功能", "特性", "解决方案"],
+            "brand_info": ["品牌", "形象", "价值观", "使命", "愿景"],
+            "service_info": ["服务", "支持", "帮助", "咨询", "培训"]
+        }
+
+        missing = []
+        prompt_lower = prompt.lower()
+
+        for knowledge_type, keywords in keyword_mapping.items():
+            if any(keyword in prompt_lower for keyword in keywords):
+                # 检查是否存在该类型的知识
+                existing = self.db.query(KnowledgeBase).filter(
+                    KnowledgeBase.topic == knowledge_type,
+                    KnowledgeBase.is_archived == 0
+                ).first()
+
+                if not existing:
+                    missing.append({
+                        "knowledge_type": knowledge_type,
+                        "reason": f"检测到需要 {knowledge_type} 但未找到相关知识",
+                        "suggested_fields": self._get_suggested_fields(knowledge_type)
+                    })
+
+        return missing
+
+    def get_task_based_recommendations(
+        self,
+        task_type: str,
+        context: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        获取基于任务的知识推荐 - Sprint 5
+
+        Args:
+            task_type: 任务类型
+            context: 任务上下文
+
+        Returns:
+            推荐知识列表
+        """
+        # 查询推荐记录
+        recommendations = self.db.query(KnowledgeRecommendation).filter(
+            KnowledgeRecommendation.task_type == task_type
+        ).order_by(
+            KnowledgeRecommendation.relevance_score.desc()
+        ).all()
+
+        result = []
+        for rec in recommendations:
+            knowledge = rec.knowledge
+            if knowledge and knowledge.is_archived == 0:
+                result.append({
+                    "knowledge_id": knowledge.id,
+                    "topic": knowledge.topic,
+                    "description": knowledge.description,
+                    "relevance_score": rec.relevance_score,
+                    "reason": rec.recommendation_reason,
+                    "quality_score": knowledge.quality_score or 0
+                })
+
+        return result
+
+    def add_recommendation(
+        self,
+        knowledge_id: int,
+        task_type: str,
+        relevance_score: int,
+        reason: Optional[str] = None
+    ) -> KnowledgeRecommendation:
+        """
+        添加知识推荐 - Sprint 5
+
+        Args:
+            knowledge_id: 知识ID
+            task_type: 任务类型
+            relevance_score: 相关性评分 (0-100)
+            reason: 推荐原因
+
+        Returns:
+            推荐记录
+        """
+        # 检查是否已存在
+        existing = self.db.query(KnowledgeRecommendation).filter(
+            KnowledgeRecommendation.knowledge_id == knowledge_id,
+            KnowledgeRecommendation.task_type == task_type
+        ).first()
+
+        if existing:
+            existing.relevance_score = relevance_score
+            existing.recommendation_reason = reason
+            self.db.commit()
+            return existing
+
+        recommendation = KnowledgeRecommendation(
+            knowledge_id=knowledge_id,
+            task_type=task_type,
+            relevance_score=relevance_score,
+            recommendation_reason=reason
+        )
+        self.db.add(recommendation)
+        self.db.commit()
+        self.db.refresh(recommendation)
+        return recommendation
+
+    def _get_suggested_fields(self, knowledge_type: str) -> List[str]:
+        """获取建议字段"""
+        field_mapping = {
+            "company_info": ["name", "description", "mission", "vision", "team_size"],
+            "product_info": ["name", "description", "features", "pricing", "target_market"],
+            "brand_info": ["brand_name", "tagline", "values", "brand_story", "visual_identity"],
+            "service_info": ["service_name", "description", "benefits", "pricing", "support"]
+        }
+        return field_mapping.get(knowledge_type, [])
 

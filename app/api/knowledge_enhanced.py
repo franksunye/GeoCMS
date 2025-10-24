@@ -1,5 +1,5 @@
 """
-知识库增强API - Sprint 2产品化功能
+知识库增强API - Sprint 2产品化功能 + Sprint 5增强
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -12,6 +12,38 @@ from app.models import KnowledgeBase
 from app.services.knowledge_enhanced import KnowledgeEnhancedService
 
 router = APIRouter()
+
+# Sprint 5 新增 Pydantic Models
+class CompletenessResponse(BaseModel):
+    """完整度响应"""
+    completeness_score: int
+    filled_required_fields: int
+    total_required_fields: int
+    filled_optional_fields: int
+    total_optional_fields: int
+    missing_fields: List[str]
+
+class MissingKnowledgeResponse(BaseModel):
+    """缺失知识响应"""
+    knowledge_type: str
+    reason: str
+    suggested_fields: List[str]
+
+class RecommendationResponse(BaseModel):
+    """推荐响应"""
+    knowledge_id: int
+    topic: str
+    description: Optional[str]
+    relevance_score: int
+    reason: Optional[str]
+    quality_score: int
+
+class AddRecommendationRequest(BaseModel):
+    """添加推荐请求"""
+    knowledge_id: int
+    task_type: str
+    relevance_score: int
+    reason: Optional[str] = None
 
 # Pydantic Models
 class UsageStatsResponse(BaseModel):
@@ -345,12 +377,94 @@ def import_knowledge(
     try:
         service = KnowledgeEnhancedService(db)
         result = service.import_knowledge(request.data)
-        
+
         return {
             "success": True,
             **result
         }
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"导入知识失败: {str(e)}")
+
+# Sprint 5 新增端点
+
+@router.get("/knowledge/{knowledge_id}/completeness", response_model=CompletenessResponse)
+def get_knowledge_completeness(
+    knowledge_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    获取知识完整度评分 - Sprint 5
+    """
+    try:
+        service = KnowledgeEnhancedService(db)
+        result = service.get_knowledge_completeness(knowledge_id)
+
+        if not result:
+            raise HTTPException(status_code=404, detail="知识不存在")
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取完整度失败: {str(e)}")
+
+@router.post("/knowledge/detect-missing")
+def detect_missing_knowledge(
+    prompt: str = Query(...),
+    db: Session = Depends(get_db)
+):
+    """
+    检测缺失的知识 - Sprint 5
+    """
+    try:
+        service = KnowledgeEnhancedService(db)
+        missing = service.detect_missing_knowledge(prompt)
+
+        return {
+            "success": True,
+            "missing_count": len(missing),
+            "missing_knowledge": missing
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"检测缺失知识失败: {str(e)}")
+
+@router.get("/knowledge/recommendations/{task_type}", response_model=List[RecommendationResponse])
+def get_task_based_recommendations(
+    task_type: str,
+    context: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    获取基于任务的知识推荐 - Sprint 5
+    """
+    try:
+        service = KnowledgeEnhancedService(db)
+        recommendations = service.get_task_based_recommendations(task_type, context)
+        return recommendations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取推荐失败: {str(e)}")
+
+@router.post("/knowledge/recommendations")
+def add_knowledge_recommendation(
+    request: AddRecommendationRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    添加知识推荐 - Sprint 5
+    """
+    try:
+        service = KnowledgeEnhancedService(db)
+        recommendation = service.add_recommendation(
+            knowledge_id=request.knowledge_id,
+            task_type=request.task_type,
+            relevance_score=request.relevance_score,
+            reason=request.reason
+        )
+
+        return {
+            "success": True,
+            "recommendation_id": recommendation.id,
+            "message": "推荐已添加"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"添加推荐失败: {str(e)}")
 

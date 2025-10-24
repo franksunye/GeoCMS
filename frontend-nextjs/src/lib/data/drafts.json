@@ -13,6 +13,9 @@
       "readability_score": 78
     },
     "status": "pending_edit",
+    "kanban_status": "in_progress",
+    "template_id": 1,
+    "deadline": "2025-02-15T23:59:59Z",
     "version": 1,
     "reviewer_id": null,
     "reviewer_feedback": null,
@@ -115,6 +118,9 @@
       "readability_score": 82
     },
     "status": "edited",
+    "kanban_status": "in_progress",
+    "template_id": 1,
+    "deadline": "2025-02-10T23:59:59Z",
     "version": 2,
     "reviewer_id": "demo_user",
     "reviewer_feedback": "Great content quality with solid data support. Suggest adding more visual elements.",
@@ -214,6 +220,9 @@
       "readability_score": 85
     },
     "status": "approved",
+    "kanban_status": "done",
+    "template_id": 3,
+    "deadline": "2025-02-05T23:59:59Z",
     "version": 3,
     "reviewer_id": "demo_user",
     "reviewer_feedback": "Excellent case study with detailed data and strong storytelling. Approved for publication.",
