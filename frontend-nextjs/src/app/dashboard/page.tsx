@@ -7,6 +7,7 @@ import Link from 'next/link'
 import ActiveTasksSummary from '@/components/agent/ActiveTasksSummary'
 import TeamStatusBar from '@/components/team/TeamStatusBar'
 import ActivityTimeline from '@/components/team/ActivityTimeline'
+import { KPIDashboard } from '@/components/workspace'
 import { Database, FileText, PenLine, CheckCircle2 } from 'lucide-react'
 
 export default function DashboardPage() {
@@ -59,9 +60,14 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {/* KPI Dashboard - Sticky at top */}
+      <div className="-mx-4 sm:-mx-6 md:-mx-8 mb-8">
+        <KPIDashboard />
+      </div>
+
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Overview</h1>
-        <p className="mt-2 text-gray-600">Welcome to GeoCMS Content Management System</p>
+        <h1 className="text-3xl font-bold text-gray-900">工作台</h1>
+        <p className="mt-2 text-gray-600">欢迎使用 GeoCMS 智能内容管理系统</p>
       </div>
 
       {/* Team Status Bar */}

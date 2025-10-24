@@ -223,6 +223,63 @@ export interface Stats {
   draftsByStatus: Record<string, number>
 }
 
+// Workspace types
+export interface InboxItem {
+  id: string
+  type: 'approval' | 'feedback' | 'suggestion' | 'alert'
+  priority: 'urgent' | 'high' | 'normal' | 'low'
+  title: string
+  description?: string
+  actions: InboxAction[]
+  createdAt: Date
+  dueDate?: Date
+  relatedEntity: {
+    type: 'draft' | 'plan' | 'knowledge' | 'task'
+    id: string | number
+  }
+  isRead?: boolean
+}
+
+export interface InboxAction {
+  id: string
+  label: string
+  variant: 'default' | 'destructive' | 'outline'
+  onClick: () => Promise<void> | void
+}
+
+export interface KPIMetric {
+  id: string
+  label: string
+  value: number | string
+  unit?: string
+  trend?: {
+    direction: 'up' | 'down' | 'stable'
+    percentage: number
+    isGood: boolean
+  }
+  target?: number
+  status?: 'success' | 'warning' | 'danger'
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+  actions?: QuickAction[]
+}
+
+export interface QuickAction {
+  label: string
+  onClick: () => void
+}
+
+export interface QuickCommand {
+  label: string
+  command: string
+  icon?: string
+}
+
 // Agent RunList types
 export interface AgentRunList {
   total: number

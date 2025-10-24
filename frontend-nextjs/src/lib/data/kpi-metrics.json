@@ -1,0 +1,96 @@
+{
+  "metrics": [
+    {
+      "id": "weekly_published",
+      "label": "本周发布",
+      "value": 12,
+      "unit": "篇",
+      "trend": {
+        "direction": "up",
+        "percentage": 20,
+        "isGood": true
+      },
+      "target": 15,
+      "status": "warning"
+    },
+    {
+      "id": "pending_publish",
+      "label": "待发布",
+      "value": 8,
+      "unit": "篇",
+      "status": "success"
+    },
+    {
+      "id": "avg_cycle",
+      "label": "平均周期",
+      "value": "2.3",
+      "unit": "天",
+      "trend": {
+        "direction": "down",
+        "percentage": 15,
+        "isGood": true
+      },
+      "status": "success"
+    },
+    {
+      "id": "quality_score",
+      "label": "质量分",
+      "value": "8.5",
+      "unit": "/10",
+      "trend": {
+        "direction": "up",
+        "percentage": 6,
+        "isGood": true
+      },
+      "status": "success"
+    },
+    {
+      "id": "ai_efficiency",
+      "label": "AI 效率",
+      "value": "75",
+      "unit": "%",
+      "trend": {
+        "direction": "up",
+        "percentage": 5,
+        "isGood": true
+      },
+      "status": "success"
+    }
+  ],
+  "weeklyGoal": {
+    "target": 15,
+    "completed": 12,
+    "remaining": 3,
+    "progress": 0.8
+  },
+  "trends": [
+    {
+      "metric": "quality_score",
+      "message": "质量分持续上升",
+      "type": "positive"
+    },
+    {
+      "metric": "avg_cycle",
+      "message": "制作周期缩短 15%",
+      "type": "positive"
+    },
+    {
+      "metric": "rework_rate",
+      "message": "返工率略有上升",
+      "type": "warning"
+    }
+  ],
+  "suggestions": [
+    {
+      "id": "sug-1",
+      "message": "建议增加 SEO 优化环节",
+      "priority": "high"
+    },
+    {
+      "id": "sug-2",
+      "message": "主题 \"AI 技术\" 覆盖不足",
+      "priority": "normal"
+    }
+  ]
+}
+

@@ -1,0 +1,110 @@
+[
+  {
+    "id": "inbox-1",
+    "type": "approval",
+    "priority": "urgent",
+    "title": "草稿审批：春季旅游攻略",
+    "description": "AI 已完成草稿撰写，等待您的审批",
+    "createdAt": "2025-01-20T10:00:00Z",
+    "dueDate": "2025-01-20T18:00:00Z",
+    "relatedEntity": {
+      "type": "draft",
+      "id": 1
+    },
+    "isRead": false
+  },
+  {
+    "id": "inbox-2",
+    "type": "approval",
+    "priority": "urgent",
+    "title": "草稿审批：产品功能介绍",
+    "description": "质量分 8.5/10，建议批准发布",
+    "createdAt": "2025-01-20T09:30:00Z",
+    "dueDate": "2025-01-20T17:00:00Z",
+    "relatedEntity": {
+      "type": "draft",
+      "id": 2
+    },
+    "isRead": false
+  },
+  {
+    "id": "inbox-3",
+    "type": "feedback",
+    "priority": "high",
+    "title": "计划反馈：Q1 内容规划",
+    "description": "内容策划 Agent 需要您的反馈意见",
+    "createdAt": "2025-01-20T08:00:00Z",
+    "dueDate": "2025-01-21T12:00:00Z",
+    "relatedEntity": {
+      "type": "plan",
+      "id": 3
+    },
+    "isRead": false
+  },
+  {
+    "id": "inbox-4",
+    "type": "alert",
+    "priority": "high",
+    "title": "延迟任务提醒",
+    "description": "任务 #5 已延迟 2 天，需要关注",
+    "createdAt": "2025-01-20T07:00:00Z",
+    "relatedEntity": {
+      "type": "task",
+      "id": 5
+    },
+    "isRead": false
+  },
+  {
+    "id": "inbox-5",
+    "type": "suggestion",
+    "priority": "normal",
+    "title": "AI 建议：添加 SEO 关键词",
+    "description": "草稿 #1 建议添加关键词 \"春季旅游\"、\"旅游攻略\"",
+    "createdAt": "2025-01-19T16:00:00Z",
+    "relatedEntity": {
+      "type": "draft",
+      "id": 1
+    },
+    "isRead": false
+  },
+  {
+    "id": "inbox-6",
+    "type": "suggestion",
+    "priority": "normal",
+    "title": "AI 建议：主题覆盖不足",
+    "description": "建议创建关于 \"AI 技术趋势\" 的内容计划",
+    "createdAt": "2025-01-19T15:00:00Z",
+    "relatedEntity": {
+      "type": "plan",
+      "id": null
+    },
+    "isRead": false
+  },
+  {
+    "id": "inbox-7",
+    "type": "alert",
+    "priority": "normal",
+    "title": "知识库更新提醒",
+    "description": "\"品牌指南\" 知识已 30 天未更新",
+    "createdAt": "2025-01-19T14:00:00Z",
+    "relatedEntity": {
+      "type": "knowledge",
+      "id": 1
+    },
+    "isRead": true
+  },
+  {
+    "id": "inbox-8",
+    "type": "suggestion",
+    "priority": "low",
+    "title": "AI 建议：优化图片质量",
+    "description": "草稿 #2 的图片分辨率偏低，建议更换",
+    "createdAt": "2025-01-19T12:00:00Z",
+    "relatedEntity": {
+      "type": "draft",
+      "id": 2
+    },
+    "isRead": true
+  }
+]
+
