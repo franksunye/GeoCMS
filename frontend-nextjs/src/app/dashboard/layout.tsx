@@ -15,7 +15,7 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { isSidebarCollapsed, isSidebarPinned, isInboxPinned } = useWorkspaceStore()
+  const { isSidebarOpen, isInboxPinned } = useWorkspaceStore()
 
   // 获取活跃任务数量
   const { data: agentData } = useQuery<AgentRunList>({
@@ -29,8 +29,8 @@ export default function DashboardLayout({
 
   const activeBadgeCount = agentData?.active_count || 0
 
-  // Calculate padding based on sidebar and inbox state
-  const sidebarWidth = isSidebarCollapsed && !isSidebarPinned ? 64 : 256
+  // Calculate padding based on sidebar and inbox state - ChatGPT style
+  const sidebarWidth = isSidebarOpen ? 260 : 0
   const inboxWidth = isInboxPinned ? 400 : 0
 
   return (

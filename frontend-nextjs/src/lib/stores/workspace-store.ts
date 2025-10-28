@@ -12,8 +12,7 @@ interface WorkspaceStore {
   isAssistantOpen: boolean
 
   // Sidebar state
-  isSidebarCollapsed: boolean
-  isSidebarPinned: boolean
+  isSidebarOpen: boolean
 
   // Actions
   setInboxItems: (items: InboxItem[]) => void
@@ -27,8 +26,7 @@ interface WorkspaceStore {
   setAssistantOpen: (open: boolean) => void
 
   toggleSidebar: () => void
-  setSidebarCollapsed: (collapsed: boolean) => void
-  toggleSidebarPin: () => void
+  setSidebarOpen: (open: boolean) => void
 }
 
 export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
@@ -38,8 +36,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   isInboxOpen: false,
   isInboxPinned: false,
   isAssistantOpen: false,
-  isSidebarCollapsed: false,
-  isSidebarPinned: false,
+  isSidebarOpen: true, // Default to open like ChatGPT
   
   // Inbox actions
   setInboxItems: (items) => set({ 
@@ -74,8 +71,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   setAssistantOpen: (open) => set({ isAssistantOpen: open }),
 
   // Sidebar actions
-  toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
-  setSidebarCollapsed: (collapsed) => set({ isSidebarCollapsed: collapsed }),
-  toggleSidebarPin: () => set((state) => ({ isSidebarPinned: !state.isSidebarPinned })),
+  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  setSidebarOpen: (open) => set({ isSidebarOpen: open }),
 }))
 
