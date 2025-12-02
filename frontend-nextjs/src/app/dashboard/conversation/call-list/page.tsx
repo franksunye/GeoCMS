@@ -15,11 +15,15 @@ type CallRecord = {
   timestamp: string
   duration_minutes: number
   overall_score: number
+  riskScore: number
+  opportunityScore: number
+  overallQualityScore: number
+  totalScore: number
   business_grade: 'High' | 'Medium' | 'Low'
   tags: string[]
   events: string[]
   behaviors: string[]
-  service_issues: string[]
+  service_issues: Array<{ tag: string; severity: 'high' | 'medium' | 'low' }>
 }
 
 export default function ConversationCallListPage() {
@@ -194,8 +198,59 @@ export default function ConversationCallListPage() {
                   </div>
                 )}
                 {activeTab === 'metadata' && (
-                  <div className="text-gray-700 text-sm">
-                    Metadata content placeholder
+                  <div className="space-y-6">
+                    {/* Scoring */}
+                    <div className="border rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900">Scoring</h3>
+                        <div className="flex items-center gap-2">
+                          <div className={`text-4xl font-bold ${getScoreColor(selectedCall.totalScore)}`}>
+                            {selectedCall.totalScore}
+                          </div>
+                          <span className="text-sm text-gray-600">/100</span>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { label: 'Risk', value: selectedCall.riskScore },
+                          { label: 'Opportunity', value: selectedCall.opportunityScore },
+                          { label: 'Quality', value: selectedCall.overallQualityScore },
+                          { label: 'Overall', value: selectedCall.totalScore },
+                        ].map((metric) => (
+                          <div key={metric.label} className={`rounded p-3 text-center bg-white border ${getScoreBgColor(metric.value)}`}>
+                            <div className="text-xs text-gray-600 mb-1">{metric.label}</div>
+                            <div className={`text-lg font-semibold ${getScoreColor(metric.value)}`}>{metric.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Signal Tags */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-3 border-b">
+                        <h4 className="font-semibold text-gray-900">Signal Tags</h4>
+                      </div>
+                      <div className="divide-y">
+                        {buildSignalItems(selectedCall).map((sig, idx) => (
+                          <div key={idx} className="p-4 flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">{sig.tag}</p>
+                              <p className="text-xs text-gray-500 mt-1">{sig.dimension}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                                {sig.polarity}
+                              </span>
+                              {sig.severity !== 'none' && (
+                                <span className={`px-2 py-1 text-xs font-medium rounded ${sig.severity === 'high' ? 'bg-red-100 text-red-800' : sig.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                                  {sig.severity}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -215,4 +270,44 @@ export default function ConversationCallListPage() {
       </div>
     </div>
   )
+}
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return 'text-green-600'
+  if (score >= 60) return 'text-yellow-600'
+  return 'text-red-600'
+}
+
+function getScoreBgColor(score: number): string {
+  if (score >= 80) return 'border-green-200'
+  if (score >= 60) return 'border-yellow-200'
+  return 'border-red-200'
+}
+
+type SignalItem = {
+  tag: string
+  dimension: 'Client Intent' | 'Behavior' | 'Service Issue' | 'Customer Attribute'
+  polarity: 'positive' | 'neutral' | 'negative'
+  severity: 'high' | 'medium' | 'low' | 'none'
+}
+
+function buildSignalItems(call: CallRecord): SignalItem[] {
+  const items: SignalItem[] = []
+
+  // Client Intent
+  for (const e of call.events) {
+    items.push({ tag: e, dimension: 'Client Intent', polarity: 'neutral', severity: 'none' })
+  }
+
+  // Behavior
+  for (const b of call.behaviors) {
+    items.push({ tag: b, dimension: 'Behavior', polarity: 'positive', severity: 'none' })
+  }
+
+  // Service Issue (with severity required)
+  for (const s of call.service_issues) {
+    items.push({ tag: s.tag, dimension: 'Service Issue', polarity: 'negative', severity: s.severity })
+  }
+
+  return items
 }
