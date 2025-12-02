@@ -34,7 +34,8 @@ export default function AgentCard({
     knowledge: '🧠 AI Librarian',
     planner: '💡 Strategy Expert',
     writer: '✍️ Content Creator',
-    verifier: '🛡️ Quality Guardian'
+    verifier: '🛡️ Quality Guardian',
+    call_analysis: '📞 Call Analyst'
   }
 
   return (
@@ -119,4 +120,3 @@ export default function AgentCard({
     </div>
   )
 }
-

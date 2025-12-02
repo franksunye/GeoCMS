@@ -241,5 +241,97 @@
       }
     ]
   }
+  ,
+  {
+    "id": 6,
+    "user_intent": "Analyze recent customer support call for insights",
+    "state": {
+      "current_step": "call_analysis",
+      "plan_id": null,
+      "draft_id": null,
+      "knowledge_used": ["Customer Support", "Product Issues"],
+      "conversation": [
+        {
+          "role": "user",
+          "content": "Please analyze this 12-minute support call and summarize key issues"
+        },
+        {
+          "role": "assistant",
+          "content": "Starting call transcription and sentiment analysis..."
+        }
+      ]
+    },
+    "status": "active",
+    "progress": 0.4,
+    "created_at": "2025-01-20T10:40:00Z",
+    "updated_at": "2025-01-20T10:45:00Z",
+    "tasks": [
+      {
+        "id": 9,
+        "run_id": 6,
+        "task_type": "transcribe_call",
+        "task_data": {"call_id": "c-20250120-001", "language": "zh-CN"},
+        "result": {"duration": "00:12:03", "words": 1200},
+        "status": "completed",
+        "created_at": "2025-01-20T10:40:00Z",
+        "updated_at": "2025-01-20T10:42:00Z"
+      },
+      {
+        "id": 10,
+        "run_id": 6,
+        "task_type": "analyze_call",
+        "task_data": {"call_id": "c-20250120-001", "focus": ["sentiment", "topics", "action_items"]},
+        "result": null,
+        "status": "pending",
+        "created_at": "2025-01-20T10:42:00Z",
+        "updated_at": "2025-01-20T10:45:00Z"
+      }
+    ]
+  },
+  {
+    "id": 7,
+    "user_intent": "Summarize sales demo call and extract next steps",
+    "state": {
+      "current_step": "completed",
+      "plan_id": null,
+      "draft_id": 4,
+      "knowledge_used": ["Sales Playbook", "Pricing Model"],
+      "conversation": [
+        {
+          "role": "user",
+          "content": "Summarize yesterday's demo call and propose follow-ups"
+        },
+        {
+          "role": "assistant",
+          "content": "Summary generated with key pain points and next actions."
+        }
+      ]
+    },
+    "status": "completed",
+    "progress": 1.0,
+    "created_at": "2025-01-19T17:00:00Z",
+    "updated_at": "2025-01-19T17:20:00Z",
+    "tasks": [
+      {
+        "id": 11,
+        "run_id": 7,
+        "task_type": "transcribe_call",
+        "task_data": {"call_id": "c-20250119-002", "language": "en-US"},
+        "result": {"duration": "00:30:15", "words": 3200},
+        "status": "completed",
+        "created_at": "2025-01-19T17:00:00Z",
+        "updated_at": "2025-01-19T17:10:00Z"
+      },
+      {
+        "id": 12,
+        "run_id": 7,
+        "task_type": "summarize_call",
+        "task_data": {"call_id": "c-20250119-002"},
+        "result": {"summary": "Customer evaluated integrations; requested pricing breakdown", "action_items": ["Send proposal", "Share case studies", "Schedule technical review"]},
+        "status": "completed",
+        "created_at": "2025-01-19T17:10:00Z",
+        "updated_at": "2025-01-19T17:20:00Z"
+      }
+    ]
+  }
 ]
-

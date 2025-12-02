@@ -50,7 +50,7 @@ export default function TeamPage() {
     let status: AgentStatus = 'idle'
     if (activeTasks.length > 0) {
       status = 'active'
-    } else if (id === 'planner' || id === 'knowledge') {
+    } else if (id === 'planner' || id === 'knowledge' || id === 'call_analysis') {
       status = 'scheduled'
     }
 
@@ -64,6 +64,13 @@ export default function TeamPage() {
     } else if (id === 'knowledge') {
       const today = new Date()
       today.setHours(22, 0, 0, 0)
+      if (today < new Date()) {
+        today.setDate(today.getDate() + 1)
+      }
+      nextScheduledTime = today.toISOString()
+    } else if (id === 'call_analysis') {
+      const today = new Date()
+      today.setHours(19, 0, 0, 0)
       if (today < new Date()) {
         today.setDate(today.getDate() + 1)
       }
@@ -223,4 +230,3 @@ export default function TeamPage() {
     </div>
   )
 }
-

@@ -1,6 +1,6 @@
-import { Brain, Lightbulb, Pencil, ShieldCheck } from 'lucide-react'
+import { Brain, Lightbulb, Pencil, ShieldCheck, PhoneCall } from 'lucide-react'
 
-export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier'
+export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier' | 'call_analysis'
 
 export type AgentStatus = 'active' | 'idle' | 'scheduled' | 'waiting'
 
@@ -71,6 +71,20 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
     schedule: 'Auto-check after draft generation',
     triggers: ['Draft completed']
   }
+  ,
+  call_analysis: {
+    id: 'call_analysis',
+    name: 'Call Analysis',
+    icon: PhoneCall,
+    avatar: 'https://api.dicebear.com/9.x/notionists/svg?seed=Lily&backgroundColor=06b6d4&backgroundType=gradientLinear',
+    color: 'teal',
+    bgColor: 'bg-teal-500',
+    borderColor: 'border-teal-300',
+    textColor: 'text-teal-600',
+    description: 'Analyzes call recordings and extracts actionable insights',
+    schedule: 'On-demand + Daily summary at 7:00 PM',
+    triggers: ['New call recording', 'Support ticket flagged', 'Weekly report generation']
+  }
 }
 
 export const AGENT_STATUS_CONFIG: Record<AgentStatus, {
@@ -110,10 +124,17 @@ export const AGENT_STATUS_CONFIG: Record<AgentStatus, {
 // Map task types to agents
 export const TASK_TYPE_TO_AGENT: Record<string, AgentId> = {
   'ask_slot': 'planner',
+  'create_plan': 'planner',
   'generate_content': 'writer',
+  'generate_draft': 'writer',
   'verify': 'verifier',
+  'seo_check': 'verifier',
   'search_knowledge': 'knowledge',
-  'update_knowledge': 'knowledge'
+  'update_knowledge': 'knowledge',
+  'analyze_knowledge': 'knowledge',
+  'transcribe_call': 'call_analysis',
+  'analyze_call': 'call_analysis',
+  'summarize_call': 'call_analysis'
 }
 
 // Get agent by task type
@@ -121,4 +142,3 @@ export function getAgentByTaskType(taskType: string): AgentConfig {
   const agentId = TASK_TYPE_TO_AGENT[taskType] || 'planner'
   return AGENTS[agentId]
 }
-
