@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useState } from 'react'
-import { PhoneCall, Clock, Tag, Gauge, Calendar } from 'lucide-react'
+import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
@@ -381,13 +381,31 @@ function TagCard({ item }: { item: SignalItem }) {
           )}
         </div>
         {item.context && (
-          <p className="text-xs text-gray-700 mt-2">{item.context}</p>
+          <div className="mt-3">
+            <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <MessageSquare className="h-4 w-4 text-blue-600" />
+              Context
+            </h5>
+            <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
+              <p className="whitespace-pre-wrap">{item.context}</p>
+            </div>
+          </div>
         )}
         {item.reasoning && (
-          <p className="text-xs text-gray-500 mt-1">{item.reasoning}</p>
-        )}
-        {percent != null && (
-          <div className="mt-2 text-xs text-gray-600">Score {percent}</div>
+          <div className="mt-3">
+            <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <Brain className="h-4 w-4 text-purple-600" />
+              Reasoning
+            </h5>
+            <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
+              <div className="flex items-start justify-between gap-3">
+                <p className="whitespace-pre-wrap flex-1">{item.reasoning}</p>
+                {percent != null && (
+                  <span className="text-xs text-gray-600 whitespace-nowrap">Score {percent}</span>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
       <div className="text-xs text-gray-500 whitespace-nowrap">
