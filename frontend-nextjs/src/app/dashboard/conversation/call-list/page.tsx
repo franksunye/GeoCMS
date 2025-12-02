@@ -331,7 +331,20 @@ function buildSignalItems(call: CallRecord): SignalItem[] {
 
   // Behavior
   for (const b of call.behaviors) {
-    items.push({ tag: b, dimension: 'Behavior', polarity: 'positive', severity: 'none' })
+    if (b === 'listening_good') {
+      items.push({
+        tag: 'listening_good',
+        dimension: 'Behavior',
+        polarity: 'positive',
+        severity: 'none',
+        score: 0.8,
+        context: '工程师在客户描述问题时使用“嗯”等回应，并在客户说完后才提问',
+        timestamp: null,
+        reasoning: '工程师在客户描述问题时给予了简短回应，没有明显打断，表现出倾听'
+      })
+    } else {
+      items.push({ tag: b, dimension: 'Behavior', polarity: 'positive', severity: 'none' })
+    }
   }
 
   // Service Issue (with severity required)
