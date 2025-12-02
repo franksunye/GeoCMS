@@ -29,6 +29,7 @@ type CallRecord = {
 export default function ConversationCallListPage() {
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null)
   const [activeTab, setActiveTab] = useState<'summary' | 'transcript' | 'analysis' | 'metadata'>('summary')
+  const [expandedTagKey, setExpandedTagKey] = useState<string | null>(null)
 
   const { data: calls, isLoading } = useQuery<CallRecord[]>({
     queryKey: ['calls'],
@@ -236,45 +237,81 @@ export default function ConversationCallListPage() {
                       </div>
                     </div>
 
-                    <div className="border rounded-lg overflow-hidden">
-                      <div className="bg-gray-50 px-4 py-3 border-b">
-                        <h4 className="font-semibold text-gray-900">Signal Tags</h4>
-                      </div>
+                    <div className="space-y-3">
                       {(() => {
                         const items = buildSignalItems(selectedCall)
-                        const clientIntent = items.filter(i => i.dimension === 'Client Intent').slice(0, 5)
-                        const behavior = items.filter(i => i.dimension === 'Behavior')
-                        const serviceIssue = items.filter(i => i.dimension === 'Service Issue')
-                        return (
-                          <div>
-                            <div className="px-4 py-3 bg-gray-50 border-b">
-                              <h5 className="text-sm font-semibold text-gray-900">Client Intent</h5>
-                            </div>
-                            <div className="divide-y">
-                              {clientIntent.map((sig, idx) => (
-                                <TagCard key={`ci-${idx}`} item={sig} />
-                              ))}
-                            </div>
+                        return items.map((item, idx) => {
+                          const key = `${item.tag}-${idx}`
+                          const percent = item.score != null ? Math.round(item.score * 100) : null
+                          return (
+                            <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">
+                              <button
+                                onClick={() => setExpandedTagKey(expandedTagKey === key ? null : key)}
+                                className={`w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors ${expandedTagKey === key ? 'bg-blue-50' : ''}`}
+                              >
+                                <div className="flex items-center gap-3 flex-1 text-left">
+                                  <Brain className="h-5 w-5 text-blue-600" />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-semibold text-gray-900 truncate">{item.tag}</p>
+                                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
+                                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
+                                      {item.severity !== 'none' && (
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.severity === 'high' ? 'bg-red-100 text-red-800' : item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{item.severity}</span>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {percent != null && <>Score {percent}</>}
+                                      {item.timestamp && <> · {new Date(item.timestamp).toLocaleString('en-US')}</>}
+                                    </p>
+                                  </div>
+                                </div>
+                                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${expandedTagKey === key ? 'rotate-180' : ''}`} />
+                              </button>
 
-                            <div className="px-4 py-3 bg-gray-50 border-b">
-                              <h5 className="text-sm font-semibold text-gray-900">Behavior</h5>
-                            </div>
-                            <div className="divide-y">
-                              {behavior.map((sig, idx) => (
-                                <TagCard key={`bh-${idx}`} item={sig} />
-                              ))}
-                            </div>
+                              {expandedTagKey === key && (
+                                <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-4">
+                                  {percent != null && (
+                                    <div className={`border rounded-lg p-3 ${getScoreBgColor(percent)}`}>
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-gray-700">Confidence Score</span>
+                                        <span className={`text-lg font-bold ${getScoreColor(percent)}`}>{percent}%</span>
+                                      </div>
+                                    </div>
+                                  )}
 
-                            <div className="px-4 py-3 bg-gray-50 border-b">
-                              <h5 className="text-sm font-semibold text-gray-900">Service Issue</h5>
+                                  {item.context && (
+                                    <div>
+                                      <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                                        <MessageSquare className="h-4 w-4 text-blue-600" />
+                                        Context
+                                      </h5>
+                                      <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
+                                        <p className="whitespace-pre-wrap">{item.context}</p>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {item.reasoning && (
+                                    <div>
+                                      <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                                        <Brain className="h-4 w-4 text-purple-600" />
+                                        Reasoning
+                                      </h5>
+                                      <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
+                                        <p className="whitespace-pre-wrap">{item.reasoning}</p>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+                                    {item.timestamp ? `Generated: ${new Date(item.timestamp).toLocaleString('en-US')}` : 'Generated: —'}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="divide-y">
-                              {serviceIssue.map((sig, idx) => (
-                                <TagCard key={`si-${idx}`} item={sig} />
-                              ))}
-                            </div>
-                          </div>
-                        )
+                          )
+                        })
                       })()}
                     </div>
                   </div>
