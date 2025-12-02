@@ -14,6 +14,8 @@ import {
   Settings,
   Calendar,
   BarChart3,
+  MessageSquare,
+  PhoneCall,
   Menu,
   X,
 } from 'lucide-react'
@@ -24,6 +26,15 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Tasks', href: '/dashboard/tasks', icon: Activity, badge: true },
   { name: 'Team', href: '/dashboard/team', icon: Users },
+  {
+    name: 'Conversation',
+    icon: MessageSquare,
+    children: [
+      { name: 'Overview', href: '/dashboard/conversation/overview', icon: LayoutDashboard },
+      { name: 'Call List', href: '/dashboard/conversation/call-list', icon: PhoneCall },
+      { name: 'Action Log', href: '/dashboard/conversation/action-log', icon: Activity },
+    ]
+  },
   { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
   {
     name: 'Content',
