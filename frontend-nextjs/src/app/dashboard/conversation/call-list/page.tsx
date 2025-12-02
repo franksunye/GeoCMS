@@ -80,8 +80,21 @@ export default function ConversationCallListPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-600">
-                      {call.customer_name} · {call.duration_minutes} mins · Score {call.overall_score}/5 · {call.business_grade}
+                      {call.customer_name} · {call.duration_minutes} mins · Score {call.overall_score}/5
                     </p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          call.business_grade === 'High'
+                            ? 'bg-green-100 text-green-800'
+                            : call.business_grade === 'Medium'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {call.business_grade}
+                      </span>
+                    </div>
                     
 
                   </div>
