@@ -250,59 +250,27 @@ export default function ConversationCallListPage() {
                             <div className="px-4 py-3 bg-gray-50 border-b">
                               <h5 className="text-sm font-semibold text-gray-900">Client Intent</h5>
                             </div>
-                            <div className="divide-y">
+                            <div className="space-y-2 p-4">
                               {clientIntent.map((sig, idx) => (
-                                <div key={`ci-${idx}`} className="p-4 flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-gray-900">{sig.tag}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
-                                      {sig.polarity}
-                                    </span>
-                                  </div>
-                                </div>
+                                <TagCard key={`ci-${idx}`} item={sig} />
                               ))}
                             </div>
 
                             <div className="px-4 py-3 bg-gray-50 border-b">
                               <h5 className="text-sm font-semibold text-gray-900">Behavior</h5>
                             </div>
-                            <div className="divide-y">
+                            <div className="space-y-2 p-4">
                               {behavior.map((sig, idx) => (
-                                <div key={`bh-${idx}`} className="p-4 flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-gray-900">{sig.tag}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
-                                      {sig.polarity}
-                                    </span>
-                                  </div>
-                                </div>
+                                <TagCard key={`bh-${idx}`} item={sig} />
                               ))}
                             </div>
 
                             <div className="px-4 py-3 bg-gray-50 border-b">
                               <h5 className="text-sm font-semibold text-gray-900">Service Issue</h5>
                             </div>
-                            <div className="divide-y">
+                            <div className="space-y-2 p-4">
                               {serviceIssue.map((sig, idx) => (
-                                <div key={`si-${idx}`} className="p-4 flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <p className="font-medium text-gray-900">{sig.tag}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
-                                      {sig.polarity}
-                                    </span>
-                                    {sig.severity !== 'none' && (
-                                      <span className={`px-2 py-1 text-xs font-medium rounded ${sig.severity === 'high' ? 'bg-red-100 text-red-800' : sig.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
-                                        {sig.severity}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                                <TagCard key={`si-${idx}`} item={sig} />
                               ))}
                             </div>
                           </div>
@@ -347,6 +315,10 @@ type SignalItem = {
   dimension: 'Client Intent' | 'Behavior' | 'Service Issue' | 'Customer Attribute'
   polarity: 'positive' | 'neutral' | 'negative'
   severity: 'high' | 'medium' | 'low' | 'none'
+  score?: number
+  context?: string
+  timestamp?: string | null
+  reasoning?: string
 }
 
 function buildSignalItems(call: CallRecord): SignalItem[] {
@@ -368,4 +340,56 @@ function buildSignalItems(call: CallRecord): SignalItem[] {
   }
 
   return items
+}
+
+function getPolarityTint(p: 'positive' | 'neutral' | 'negative'): string {
+  if (p === 'positive') return 'bg-green-50 border-green-200'
+  if (p === 'negative') return 'bg-red-50 border-red-200'
+  return 'bg-blue-50 border-blue-200'
+}
+
+function getPolarityText(p: 'positive' | 'neutral' | 'negative'): string {
+  if (p === 'positive') return 'text-green-700'
+  if (p === 'negative') return 'text-red-700'
+  return 'text-blue-700'
+}
+
+function TagCard({ item }: { item: SignalItem }) {
+  const percent = item.score != null ? Math.round(item.score * 100) : null
+  return (
+    <div className={`p-4 rounded-lg border ${getPolarityTint(item.polarity)}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-medium text-gray-900 truncate">{item.tag}</p>
+            <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
+            {item.severity !== 'none' && (
+              <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.severity === 'high' ? 'bg-red-100 text-red-800' : item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{item.severity}</span>
+            )}
+          </div>
+          {item.context && (
+            <p className="text-xs text-gray-700 mt-2">{item.context}</p>
+          )}
+          {item.reasoning && (
+            <p className="text-xs text-gray-500 mt-1">{item.reasoning}</p>
+          )}
+          {percent != null && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-600">Score</span>
+                <span className={`font-semibold ${getPolarityText(item.polarity)}`}>{percent}</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
+                <div className={`${item.polarity === 'positive' ? 'bg-green-600' : item.polarity === 'negative' ? 'bg-red-600' : 'bg-blue-600'} h-1.5 rounded-full`} style={{ width: `${percent}%` }} />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="text-xs text-gray-500 whitespace-nowrap">
+          {item.timestamp ? new Date(item.timestamp).toLocaleString('en-US') : '—'}
+        </div>
+      </div>
+    </div>
+  )
 }
