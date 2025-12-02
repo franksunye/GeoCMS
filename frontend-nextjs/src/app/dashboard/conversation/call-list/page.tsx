@@ -211,7 +211,7 @@ export default function ConversationCallListPage() {
                 {activeTab === 'metadata' && (
                   <div className="space-y-6">
                     {/* Scoring */}
-                    <div className="border rounded-lg p-6">
+                    <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.totalScore)}`}>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">Scoring</h3>
                         <div className="flex items-center gap-2">
@@ -228,7 +228,7 @@ export default function ConversationCallListPage() {
                           { label: 'Quality', value: selectedCall.overallQualityScore },
                           { label: 'Overall', value: selectedCall.totalScore },
                         ].map((metric) => (
-                          <div key={metric.label} className={`rounded p-3 text-center bg-white border ${getScoreBgColor(metric.value)}`}>
+                          <div key={metric.label} className="bg-white rounded p-3 text-center">
                             <div className="text-xs text-gray-600 mb-1">{metric.label}</div>
                             <div className={`text-lg font-semibold ${getScoreColor(metric.value)}`}>{metric.value}</div>
                           </div>
@@ -337,9 +337,9 @@ function getScoreColor(score: number): string {
 }
 
 function getScoreBgColor(score: number): string {
-  if (score >= 80) return 'border-green-200'
-  if (score >= 60) return 'border-yellow-200'
-  return 'border-red-200'
+  if (score >= 80) return 'bg-green-50 border-green-200'
+  if (score >= 60) return 'bg-yellow-50 border-yellow-200'
+  return 'bg-red-50 border-red-200'
 }
 
 type SignalItem = {
