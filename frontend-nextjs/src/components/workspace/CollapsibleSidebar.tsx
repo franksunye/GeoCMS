@@ -24,11 +24,11 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Tasks', href: '/dashboard/tasks', icon: Activity, badge: true },
   { name: 'Team', href: '/dashboard/team', icon: Users },
+  { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
   {
     name: 'Content',
     icon: BookOpen,
     children: [
-      { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
       { name: 'Planning', href: '/dashboard/planning', icon: FileText },
       { name: 'Drafts', href: '/dashboard/drafts', icon: PenTool },
       { name: 'Media', href: '/dashboard/media', icon: Image },
@@ -199,4 +199,3 @@ function NavGroup({ item, pathname }: NavGroupProps) {
     </div>
   )
 }
-
