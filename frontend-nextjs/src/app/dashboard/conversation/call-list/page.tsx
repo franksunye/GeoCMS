@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useState } from 'react'
-import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare } from 'lucide-react'
+import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
