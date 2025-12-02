@@ -236,31 +236,78 @@ export default function ConversationCallListPage() {
                       </div>
                     </div>
 
-                    {/* Signal Tags */}
                     <div className="border rounded-lg overflow-hidden">
                       <div className="bg-gray-50 px-4 py-3 border-b">
                         <h4 className="font-semibold text-gray-900">Signal Tags</h4>
                       </div>
-                      <div className="divide-y">
-                        {buildSignalItems(selectedCall).map((sig, idx) => (
-                          <div key={idx} className="p-4 flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-900">{sig.tag}</p>
-                              <p className="text-xs text-gray-500 mt-1">{sig.dimension}</p>
+                      {(() => {
+                        const items = buildSignalItems(selectedCall)
+                        const clientIntent = items.filter(i => i.dimension === 'Client Intent').slice(0, 5)
+                        const behavior = items.filter(i => i.dimension === 'Behavior')
+                        const serviceIssue = items.filter(i => i.dimension === 'Service Issue')
+                        return (
+                          <div>
+                            <div className="px-4 py-3 bg-gray-50 border-b">
+                              <h5 className="text-sm font-semibold text-gray-900">Client Intent</h5>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
-                                {sig.polarity}
-                              </span>
-                              {sig.severity !== 'none' && (
-                                <span className={`px-2 py-1 text-xs font-medium rounded ${sig.severity === 'high' ? 'bg-red-100 text-red-800' : sig.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
-                                  {sig.severity}
-                                </span>
-                              )}
+                            <div className="divide-y">
+                              {clientIntent.map((sig, idx) => (
+                                <div key={`ci-${idx}`} className="p-4 flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-900">{sig.tag}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                                      {sig.polarity}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="px-4 py-3 bg-gray-50 border-b">
+                              <h5 className="text-sm font-semibold text-gray-900">Behavior</h5>
+                            </div>
+                            <div className="divide-y">
+                              {behavior.map((sig, idx) => (
+                                <div key={`bh-${idx}`} className="p-4 flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-900">{sig.tag}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                                      {sig.polarity}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="px-4 py-3 bg-gray-50 border-b">
+                              <h5 className="text-sm font-semibold text-gray-900">Service Issue</h5>
+                            </div>
+                            <div className="divide-y">
+                              {serviceIssue.map((sig, idx) => (
+                                <div key={`si-${idx}`} className="p-4 flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <p className="font-medium text-gray-900">{sig.tag}</p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-1 text-xs font-medium rounded ${sig.polarity === 'positive' ? 'bg-green-100 text-green-800' : sig.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                                      {sig.polarity}
+                                    </span>
+                                    {sig.severity !== 'none' && (
+                                      <span className={`px-2 py-1 text-xs font-medium rounded ${sig.severity === 'high' ? 'bg-red-100 text-red-800' : sig.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                                        {sig.severity}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )}
