@@ -82,16 +82,7 @@ export default function ConversationCallListPage() {
                     <p className="text-xs text-gray-600">
                       {call.customer_name} · {call.duration_minutes} mins · Score {call.overall_score}/5 · {call.business_grade}
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {(() => {
-                        const callType = call.title.split(' - ')[0]
-                        return (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                            {callType}
-                          </span>
-                        )
-                      })()}
-                    </div>
+                    
                     <div className="mt-2 flex flex-wrap gap-1">
                       {call.events.slice(0, 3).map((e, idx) => (
                         <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
