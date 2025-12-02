@@ -250,7 +250,7 @@ export default function ConversationCallListPage() {
                             <div className="px-4 py-3 bg-gray-50 border-b">
                               <h5 className="text-sm font-semibold text-gray-900">Client Intent</h5>
                             </div>
-                            <div className="space-y-2 p-4">
+                            <div className="divide-y">
                               {clientIntent.map((sig, idx) => (
                                 <TagCard key={`ci-${idx}`} item={sig} />
                               ))}
@@ -259,7 +259,7 @@ export default function ConversationCallListPage() {
                             <div className="px-4 py-3 bg-gray-50 border-b">
                               <h5 className="text-sm font-semibold text-gray-900">Behavior</h5>
                             </div>
-                            <div className="space-y-2 p-4">
+                            <div className="divide-y">
                               {behavior.map((sig, idx) => (
                                 <TagCard key={`bh-${idx}`} item={sig} />
                               ))}
@@ -268,7 +268,7 @@ export default function ConversationCallListPage() {
                             <div className="px-4 py-3 bg-gray-50 border-b">
                               <h5 className="text-sm font-semibold text-gray-900">Service Issue</h5>
                             </div>
-                            <div className="space-y-2 p-4">
+                            <div className="divide-y">
                               {serviceIssue.map((sig, idx) => (
                                 <TagCard key={`si-${idx}`} item={sig} />
                               ))}
@@ -370,38 +370,28 @@ function getPolarityText(p: 'positive' | 'neutral' | 'negative'): string {
 function TagCard({ item }: { item: SignalItem }) {
   const percent = item.score != null ? Math.round(item.score * 100) : null
   return (
-    <div className={`p-4 rounded-lg border ${getPolarityTint(item.polarity)}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-medium text-gray-900 truncate">{item.tag}</p>
-            <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
-            {item.severity !== 'none' && (
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.severity === 'high' ? 'bg-red-100 text-red-800' : item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{item.severity}</span>
-            )}
-          </div>
-          {item.context && (
-            <p className="text-xs text-gray-700 mt-2">{item.context}</p>
-          )}
-          {item.reasoning && (
-            <p className="text-xs text-gray-500 mt-1">{item.reasoning}</p>
-          )}
-          {percent != null && (
-            <div className="mt-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600">Score</span>
-                <span className={`font-semibold ${getPolarityText(item.polarity)}`}>{percent}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                <div className={`${item.polarity === 'positive' ? 'bg-green-600' : item.polarity === 'negative' ? 'bg-red-600' : 'bg-blue-600'} h-1.5 rounded-full`} style={{ width: `${percent}%` }} />
-              </div>
-            </div>
+    <div className="p-4 flex items-start justify-between">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="font-medium text-gray-900 truncate">{item.tag}</p>
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
+          <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
+          {item.severity !== 'none' && (
+            <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.severity === 'high' ? 'bg-red-100 text-red-800' : item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{item.severity}</span>
           )}
         </div>
-        <div className="text-xs text-gray-500 whitespace-nowrap">
-          {item.timestamp ? new Date(item.timestamp).toLocaleString('en-US') : '—'}
-        </div>
+        {item.context && (
+          <p className="text-xs text-gray-700 mt-2">{item.context}</p>
+        )}
+        {item.reasoning && (
+          <p className="text-xs text-gray-500 mt-1">{item.reasoning}</p>
+        )}
+        {percent != null && (
+          <div className="mt-2 text-xs text-gray-600">Score {percent}</div>
+        )}
+      </div>
+      <div className="text-xs text-gray-500 whitespace-nowrap">
+        {item.timestamp ? new Date(item.timestamp).toLocaleString('en-US') : '—'}
       </div>
     </div>
   )
