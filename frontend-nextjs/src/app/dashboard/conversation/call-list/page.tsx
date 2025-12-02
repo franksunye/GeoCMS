@@ -109,7 +109,18 @@ export default function ConversationCallListPage() {
                       ))}
                       {call.service_issues.slice(0, 3).map((s, idx) => (
                         <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                          {s}
+                          {s.tag}
+                          <span
+                            className={`ml-1 px-1 py-0.5 rounded text-xs font-medium ${
+                              s.severity === 'high'
+                                ? 'bg-red-100 text-red-800'
+                                : s.severity === 'medium'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {s.severity}
+                          </span>
                         </span>
                       ))}
                     </div>
