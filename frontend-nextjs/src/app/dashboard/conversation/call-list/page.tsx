@@ -250,7 +250,7 @@ export default function ConversationCallListPage() {
                                 className={`w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors ${expandedTagKey === key ? 'bg-blue-50' : ''}`}
                               >
                                 <div className="flex items-center gap-3 flex-1 text-left">
-                                  <Brain className="h-5 w-5 text-blue-600" />
+                                  <Tag className="h-5 w-5 text-blue-600" />
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2">
                                       <p className="font-semibold text-gray-900 truncate">{item.tag}</p>
@@ -274,7 +274,7 @@ export default function ConversationCallListPage() {
                                   {percent != null && (
                                     <div className={`border rounded-lg p-3 ${getScoreBgColor(percent)}`}>
                                       <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-700">Confidence Score</span>
+                                        <span className="text-sm font-medium text-gray-700">Score</span>
                                         <span className={`text-lg font-bold ${getScoreColor(percent)}`}>{percent}%</span>
                                       </div>
                                     </div>
