@@ -33,6 +33,7 @@ const navigation = [
       { name: 'Overview', href: '/dashboard/conversation/overview', icon: LayoutDashboard },
       { name: 'Call List', href: '/dashboard/conversation/call-list', icon: PhoneCall },
       { name: 'Action Log', href: '/dashboard/conversation/action-log', icon: Activity },
+      { name: 'Config', href: '/dashboard/conversation/config', icon: Settings },
     ]
   },
   { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
