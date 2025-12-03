@@ -10,13 +10,13 @@ import { formatRelativeTime } from '@/lib/utils'
 import { getScoreColor, getScoreBgColor, getScoreBadgeClass } from '@/lib/score-thresholds'
 
 /**
- * 通话记录类型
+ * 通话记录类型（UI规格定义）
  * 
  * 评分逻辑：
  * - riskScore: 风险分数（0-100）
  * - opportunityScore: 商机分数（0-100）
  * - executionScore: 执行分数（0-100）
- * - overallScore: 总体分数（0-100），由上述三个维度计算得出
+ * - overallQualityScore: 通话总体质量分数（0-100），由上述三个维度计算得出
  */
 type CallRecord = {
   id: number
@@ -27,7 +27,7 @@ type CallRecord = {
   riskScore: number
   opportunityScore: number
   executionScore: number
-  overallScore: number
+  overallQualityScore: number
   business_grade: 'High' | 'Medium' | 'Low'
   tags: string[]
   events: string[]
@@ -44,14 +44,7 @@ export default function ConversationCallListPage() {
     queryKey: ['calls'],
     queryFn: async () => {
       const res = await axios.get('/api/calls')
-      // 数据适配：将遗留的字段名映射到新的字段名
-      return res.data.map((call: any) => ({
-        ...call,
-        riskScore: call.riskScore ?? 0,
-        opportunityScore: call.opportunityScore ?? 0,
-        executionScore: call.overallQualityScore ?? call.executionScore ?? 0,
-        overallScore: call.totalScore ?? call.overallScore ?? 0,
-      }))
+      return res.data
     }
   })
 
@@ -100,9 +93,9 @@ export default function ConversationCallListPage() {
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getScoreBadgeClass(call.overallScore)}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getScoreBadgeClass(call.overallQualityScore)}`}
                       >
-                        Score {call.overallScore}
+                        Score {call.overallQualityScore}
                       </span>
                     </div>
                     
@@ -209,7 +202,7 @@ export default function ConversationCallListPage() {
                           { label: 'Risk', value: selectedCall.riskScore },
                           { label: 'Opportunity', value: selectedCall.opportunityScore },
                           { label: 'Execution', value: selectedCall.executionScore },
-                          { label: 'Overall', value: selectedCall.overallScore },
+                          { label: 'Overall', value: selectedCall.overallQualityScore },
                         ].map((metric) => (
                           <div key={metric.label} className="bg-white rounded p-3 text-center">
                             <div className="text-xs text-gray-600 mb-1">{metric.label}</div>
