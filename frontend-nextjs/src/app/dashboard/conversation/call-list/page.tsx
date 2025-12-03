@@ -10,9 +10,30 @@ import { formatRelativeTime } from '@/lib/utils'
 import { getScoreColor, getScoreBgColor, getScoreBadgeClass } from '@/lib/score-thresholds'
 
 /**
+ * 获取维度颜色（用于进度条和图标）
+ */
+const getDimensionIcon = (dimension: 'risk' | 'opportunity' | 'execution'): string => {
+  if (dimension === 'risk') return '📍'
+  if (dimension === 'opportunity') return '🎯'
+  return '⚙️'
+}
+
+const getDimensionLabel = (dimension: 'risk' | 'opportunity' | 'execution'): string => {
+  if (dimension === 'risk') return 'Risk'
+  if (dimension === 'opportunity') return 'Opportunity'
+  return 'Execution'
+}
+
+const getDimensionBarColor = (score: number): string => {
+  if (score >= 80) return 'bg-green-500'
+  if (score >= 60) return 'bg-yellow-500'
+  return 'bg-red-500'
+}
+
+/**
  * 通话记录类型（UI规格定义）
  * 
- * 评分逻辑：
+= * 评分逻辑：
  * - riskScore: 风险分数（0-100）
  * - opportunityScore: 商机分数（0-100）
  * - executionScore: 执行分数（0-100）
@@ -91,12 +112,51 @@ export default function ConversationCallListPage() {
                     <p className="text-xs text-gray-600">
                       {call.customer_name} · {call.duration_minutes} mins
                     </p>
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-2 flex flex-wrap gap-1">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getScoreBadgeClass(call.overallQualityScore)}`}
                       >
                         Score {call.overallQualityScore}
                       </span>
+                    </div>
+                    
+                    {/* Dimension Scores */}
+                    <div className="mt-2 space-y-1.5">
+                      {/* Risk */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-700 w-16">📍 Risk</span>
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${getDimensionBarColor(call.riskScore)}`}
+                            style={{ width: `${call.riskScore}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.riskScore}</span>
+                      </div>
+                      
+                      {/* Opportunity */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-700 w-16">🎯 Opp</span>
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${getDimensionBarColor(call.opportunityScore)}`}
+                            style={{ width: `${call.opportunityScore}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.opportunityScore}</span>
+                      </div>
+                      
+                      {/* Execution */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-700 w-16">⚙️ Exec</span>
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${getDimensionBarColor(call.executionScore)}`}
+                            style={{ width: `${call.executionScore}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.executionScore}</span>
+                      </div>
                     </div>
                     
 
