@@ -9,7 +9,7 @@ type Tag = {
   id: string
   name: string
   code: string
-  category: 'Objection' | 'Sales Signal' | 'Risk Factor' | 'Behavior' | 'Outcome'
+  category: 'Process' | 'Skills' | 'Communication'
   description: string
   active: boolean
   createdAt: string
@@ -24,7 +24,7 @@ type ScoringRule = {
   active: boolean
   ruleType: 'TagBased' | 'Manual' | 'ML-based'
   tagCode: string
-  targetDimension: 'risk' | 'opportunity' | 'execution'
+  targetDimension: 'process' | 'skills' | 'communication'
   scoreAdjustment: number
   weight: number
   createdAt: string
@@ -34,9 +34,9 @@ type ScoringRule = {
 type ScoreCalculationConfig = {
   id: string
   aggregationMethod: 'weighted-average' | 'custom'
-  riskWeight: number
-  opportunityWeight: number
-  executionWeight: number
+  processWeight: number
+  skillsWeight: number
+  communicationWeight: number
   customFormula?: string
   description: string
   createdAt: string
@@ -56,12 +56,12 @@ type AuditLog = {
 
 // Mock data - extracted from Call List actual data
 const mockTags: Tag[] = [
-  // Sales Signal Tags
+  // Skills Tags (formerly Sales Signal/Outcome)
   {
     id: '1',
     name: 'Customer High Intent',
     code: 'customer_high_intent',
-    category: 'Sales Signal',
+    category: 'Skills',
     description: 'Customer shows clear purchase intent during call',
     active: true,
     createdAt: '2025-12-01',
@@ -71,7 +71,7 @@ const mockTags: Tag[] = [
     id: '2',
     name: 'Customer Pricing Request',
     code: 'customer_pricing_request',
-    category: 'Sales Signal',
+    category: 'Skills',
     description: 'Customer inquires about pricing',
     active: true,
     createdAt: '2025-12-01',
@@ -81,7 +81,7 @@ const mockTags: Tag[] = [
     id: '3',
     name: 'Customer Solution Request',
     code: 'customer_solution_request',
-    category: 'Sales Signal',
+    category: 'Skills',
     description: 'Customer requests detailed solution information',
     active: true,
     createdAt: '2025-12-01',
@@ -91,69 +91,73 @@ const mockTags: Tag[] = [
     id: '4',
     name: 'Customer Schedule Request',
     code: 'customer_schedule_request',
-    category: 'Outcome',
+    category: 'Skills',
     description: 'Customer requests a scheduled appointment',
     active: true,
     createdAt: '2025-12-01',
     updatedAt: '2025-12-01',
   },
-  // Behavior Tags
+  // Communication Tags (formerly Behavior)
   {
     id: '5',
     name: 'Listening Good',
     code: 'listening_good',
-    category: 'Behavior',
+    category: 'Communication',
     description: 'Agent demonstrated good listening skills',
     active: true,
     createdAt: '2025-12-01',
     updatedAt: '2025-12-01',
   },
+  // Process Tags (formerly Behavior)
   {
     id: '6',
     name: 'Opening Complete',
     code: 'opening_complete',
-    category: 'Behavior',
+    category: 'Process',
     description: 'Call opening procedure was properly completed',
     active: true,
     createdAt: '2025-12-01',
     updatedAt: '2025-12-01',
   },
+  // Skills Tags
   {
     id: '7',
     name: 'Active Selling Proposition',
     code: 'active_selling_proposition',
-    category: 'Behavior',
+    category: 'Skills',
     description: 'Agent actively presented value proposition',
     active: true,
     createdAt: '2025-12-02',
     updatedAt: '2025-12-02',
   },
+  // Communication Tags
   {
     id: '8',
     name: 'Agent Positive Attitude',
     code: 'agent_positive_attitude',
-    category: 'Behavior',
+    category: 'Communication',
     description: 'Agent maintained positive professional attitude',
     active: true,
     createdAt: '2025-12-02',
     updatedAt: '2025-12-02',
   },
+  // Process Tags
   {
     id: '9',
     name: 'Same Day Visit Attempt',
     code: 'same_day_visit_attempt',
-    category: 'Behavior',
+    category: 'Process',
     description: 'Agent attempted to schedule same-day visit',
     active: true,
     createdAt: '2025-12-02',
     updatedAt: '2025-12-02',
   },
-  // Risk Factor Tags
+  // Process Tags (formerly Risk Factor)
   {
     id: '10',
     name: 'SLA Exceeded',
     code: 'sla_exceeded',
-    category: 'Risk Factor',
+    category: 'Process',
     description: 'Service level agreement was breached',
     active: true,
     createdAt: '2025-12-02',
@@ -163,7 +167,7 @@ const mockTags: Tag[] = [
     id: '11',
     name: 'Callback Delay',
     code: 'callback_delay',
-    category: 'Risk Factor',
+    category: 'Process',
     description: 'Delayed callback to customer',
     active: true,
     createdAt: '2025-12-02',
@@ -173,7 +177,7 @@ const mockTags: Tag[] = [
     id: '12',
     name: 'Schedule Delay - Customer Reason',
     code: 'schedule_delay_customer_reason',
-    category: 'Risk Factor',
+    category: 'Process',
     description: 'Schedule delay caused by customer reason',
     active: true,
     createdAt: '2025-12-02',
@@ -183,7 +187,7 @@ const mockTags: Tag[] = [
     id: '13',
     name: 'Late Arrival',
     code: 'late_arrival',
-    category: 'Risk Factor',
+    category: 'Process',
     description: 'Agent or service arrived late',
     active: true,
     createdAt: '2025-12-02',
@@ -193,7 +197,7 @@ const mockTags: Tag[] = [
     id: '14',
     name: 'Appointment Content Issue',
     code: 'appointment_content',
-    category: 'Risk Factor',
+    category: 'Process',
     description: 'Appointment content did not match expectations',
     active: true,
     createdAt: '2025-12-02',
@@ -206,11 +210,11 @@ const mockRules: ScoringRule[] = [
     id: '1',
     name: 'Customer High Intent Signal',
     appliesTo: 'Calls',
-    description: 'Strong signal of purchase intent - boost opportunity score significantly',
+    description: 'Strong signal of purchase intent - boost skills score significantly',
     active: true,
     ruleType: 'TagBased',
     tagCode: 'customer_high_intent',
-    targetDimension: 'opportunity',
+    targetDimension: 'skills',
     scoreAdjustment: 35,
     weight: 1.5,
     createdAt: '2025-12-01',
@@ -220,11 +224,11 @@ const mockRules: ScoringRule[] = [
     id: '2',
     name: 'Pricing Inquiry Risk Monitor',
     appliesTo: 'Calls',
-    description: 'Pricing inquiry may indicate concerns or objection - moderate risk flag',
+    description: 'Pricing inquiry may indicate concerns or objection - moderate skill challenge',
     active: true,
     ruleType: 'TagBased',
     tagCode: 'customer_pricing_request',
-    targetDimension: 'risk',
+    targetDimension: 'skills',
     scoreAdjustment: -15,
     weight: 0.9,
     createdAt: '2025-12-01',
@@ -238,7 +242,7 @@ const mockRules: ScoringRule[] = [
     active: true,
     ruleType: 'TagBased',
     tagCode: 'customer_solution_request',
-    targetDimension: 'opportunity',
+    targetDimension: 'skills',
     scoreAdjustment: 25,
     weight: 1.2,
     createdAt: '2025-12-01',
@@ -248,11 +252,11 @@ const mockRules: ScoringRule[] = [
     id: '4',
     name: 'Good Listening Practice',
     appliesTo: 'Calls',
-    description: 'Agent demonstrated excellent listening - increases execution quality',
+    description: 'Agent demonstrated excellent listening - increases communication quality',
     active: true,
     ruleType: 'TagBased',
     tagCode: 'listening_good',
-    targetDimension: 'execution',
+    targetDimension: 'communication',
     scoreAdjustment: 20,
     weight: 1.1,
     createdAt: '2025-12-02',
@@ -262,11 +266,11 @@ const mockRules: ScoringRule[] = [
     id: '5',
     name: 'Active Sales Engagement',
     appliesTo: 'Calls',
-    description: 'Agent proactively presented value - positive execution indicator',
+    description: 'Agent proactively presented value - positive skills indicator',
     active: true,
     ruleType: 'TagBased',
     tagCode: 'active_selling_proposition',
-    targetDimension: 'execution',
+    targetDimension: 'skills',
     scoreAdjustment: 22,
     weight: 1.15,
     createdAt: '2025-12-02',
@@ -276,11 +280,11 @@ const mockRules: ScoringRule[] = [
     id: '6',
     name: 'SLA Breach Risk Alert',
     appliesTo: 'Calls',
-    description: 'Service level agreement breach - significant risk impact',
+    description: 'Service level agreement breach - significant process failure',
     active: true,
     ruleType: 'TagBased',
     tagCode: 'sla_exceeded',
-    targetDimension: 'risk',
+    targetDimension: 'process',
     scoreAdjustment: -40,
     weight: 1.3,
     createdAt: '2025-12-02',
@@ -290,11 +294,11 @@ const mockRules: ScoringRule[] = [
     id: '7',
     name: 'Callback Delay Issue',
     appliesTo: 'Calls',
-    description: 'Delayed callback impacts customer satisfaction and execution',
+    description: 'Delayed callback impacts customer satisfaction and process score',
     active: true,
     ruleType: 'TagBased',
     tagCode: 'callback_delay',
-    targetDimension: 'risk',
+    targetDimension: 'process',
     scoreAdjustment: -25,
     weight: 1.0,
     createdAt: '2025-12-02',

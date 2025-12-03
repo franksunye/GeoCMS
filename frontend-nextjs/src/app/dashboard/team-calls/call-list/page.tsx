@@ -12,16 +12,16 @@ import { getScoreColor, getScoreBgColor, getScoreBadgeClass } from '@/lib/score-
 /**
  * 获取维度颜色（用于进度条和图标）
  */
-const getDimensionIcon = (dimension: 'risk' | 'opportunity' | 'execution'): string => {
-  if (dimension === 'risk') return '📍'
-  if (dimension === 'opportunity') return '🎯'
-  return '⚙️'
+const getDimensionIcon = (dimension: 'process' | 'skills' | 'communication'): string => {
+  if (dimension === 'process') return '⚙️'
+  if (dimension === 'skills') return '🎯'
+  return '💬'
 }
 
-const getDimensionLabel = (dimension: 'risk' | 'opportunity' | 'execution'): string => {
-  if (dimension === 'risk') return 'Risk'
-  if (dimension === 'opportunity') return 'Opportunity'
-  return 'Execution'
+const getDimensionLabel = (dimension: 'process' | 'skills' | 'communication'): string => {
+  if (dimension === 'process') return 'Process'
+  if (dimension === 'skills') return 'Skills'
+  return 'Communication'
 }
 
 const getDimensionBarColor = (score: number): string => {
@@ -34,9 +34,9 @@ const getDimensionBarColor = (score: number): string => {
  * 通话记录类型（UI规格定义）
  * 
  * 评分逻辑：
- * - riskScore: 风险分数（0-100）
- * - opportunityScore: 商机分数（0-100）
- * - executionScore: 执行分数（0-100）
+ * - processScore: 流程规范分数（0-100）
+ * - skillsScore: 业务技能分数（0-100）
+ * - communicationScore: 沟通技巧分数（0-100）
  * - overallQualityScore: 通话总体质量分数（0-100），由上述三个维度计算得出
  */
 type TranscriptEntry = {
@@ -51,9 +51,9 @@ type CallRecord = {
   customer_name: string
   timestamp: string
   duration_minutes: number
-  riskScore: number
-  opportunityScore: number
-  executionScore: number
+  processScore: number
+  skillsScore: number
+  communicationScore: number
   overallQualityScore: number
   business_grade: 'High' | 'Medium' | 'Low'
   tags: string[]
@@ -307,40 +307,40 @@ export default function ConversationCallListPage() {
                     
                     {/* Dimension Scores */}
                     <div className="mt-2 space-y-1.5">
-                      {/* Risk */}
+                      {/* Process */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">Risk</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">Process</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${getDimensionBarColor(call.riskScore)}`}
-                            style={{ width: `${call.riskScore}%` }}
+                            className={`h-full ${getDimensionBarColor(call.processScore)}`}
+                            style={{ width: `${call.processScore}%` }}
                           />
                         </div>
-                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.riskScore}</span>
+                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.processScore}</span>
                       </div>
                       
-                      {/* Opportunity */}
+                      {/* Skills */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">Opp</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">Skills</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${getDimensionBarColor(call.opportunityScore)}`}
-                            style={{ width: `${call.opportunityScore}%` }}
+                            className={`h-full ${getDimensionBarColor(call.skillsScore)}`}
+                            style={{ width: `${call.skillsScore}%` }}
                           />
                         </div>
-                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.opportunityScore}</span>
+                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.skillsScore}</span>
                       </div>
                       
-                      {/* Execution */}
+                      {/* Communication */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">Exec</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">Comm</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${getDimensionBarColor(call.executionScore)}`}
-                            style={{ width: `${call.executionScore}%` }}
+                            className={`h-full ${getDimensionBarColor(call.communicationScore)}`}
+                            style={{ width: `${call.communicationScore}%` }}
                           />
                         </div>
-                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.executionScore}</span>
+                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.communicationScore}</span>
                       </div>
                     </div>
                     
@@ -444,9 +444,9 @@ export default function ConversationCallListPage() {
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Quality Score Overview</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
-                          { label: 'Risk', value: selectedCall.riskScore },
-                          { label: 'Opportunity', value: selectedCall.opportunityScore },
-                          { label: 'Execution', value: selectedCall.executionScore },
+                          { label: 'Process', value: selectedCall.processScore },
+                          { label: 'Skills', value: selectedCall.skillsScore },
+                          { label: 'Communication', value: selectedCall.communicationScore },
                           { label: 'Overall Quality Score', value: selectedCall.overallQualityScore },
                         ].map((metric) => (
                           <div key={metric.label} className="bg-white rounded p-3 text-center">
