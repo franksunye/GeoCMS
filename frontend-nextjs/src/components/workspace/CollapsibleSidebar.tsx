@@ -110,7 +110,7 @@ export function CollapsibleSidebar({ activeBadgeCount = 0 }: CollapsibleSidebarP
               )
             }
 
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))
             const showBadge = item.badge && activeBadgeCount > 0
 
             return (
@@ -185,7 +185,7 @@ interface NavGroupProps {
 
 function NavGroup({ item, pathname }: NavGroupProps) {
   const isAnyChildActive = item.children.some((child: any) =>
-    pathname === child.href || pathname.startsWith(child.href)
+    pathname === child.href || pathname.startsWith(`${child.href}/`)
   )
 
   return (
