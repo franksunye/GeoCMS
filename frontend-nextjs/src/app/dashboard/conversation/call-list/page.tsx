@@ -133,7 +133,7 @@ export default function ConversationCallListPage() {
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
                     <Gauge className="h-4 w-4" />
-                    <span>Score {selectedCall.overall_score}/5</span>
+                    <span>Score {selectedCall.overallQualityScore}/100</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
                     <Tag className="h-4 w-4" />
@@ -187,12 +187,12 @@ export default function ConversationCallListPage() {
                 {activeTab === 'metadata' && (
                   <div className="space-y-6">
                     {/* Scoring */}
-                    <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallScore)}`}>
+                    <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallQualityScore)}`}>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">Scoring</h3>
                         <div className="flex items-center gap-2">
-                          <div className={`text-4xl font-bold ${getScoreColor(selectedCall.overallScore)}`}>
-                            {selectedCall.overallScore}
+                          <div className={`text-4xl font-bold ${getScoreColor(selectedCall.overallQualityScore)}`}>
+                            {selectedCall.overallQualityScore}
                           </div>
                           <span className="text-sm text-gray-600">/100</span>
                         </div>
