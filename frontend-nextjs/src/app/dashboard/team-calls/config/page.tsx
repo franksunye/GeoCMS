@@ -56,12 +56,12 @@ type AuditLog = {
 
 // Mock data - extracted from Call List actual data
 const mockTags: Tag[] = [
-  // Event Tags (Intent category)
+  // Sales Signal Tags
   {
     id: '1',
     name: 'Customer High Intent',
     code: 'customer_high_intent',
-    category: 'Intent',
+    category: 'Sales Signal',
     description: 'Customer shows clear purchase intent during call',
     active: true,
     createdAt: '2025-12-01',
@@ -71,7 +71,7 @@ const mockTags: Tag[] = [
     id: '2',
     name: 'Customer Pricing Request',
     code: 'customer_pricing_request',
-    category: 'Intent',
+    category: 'Sales Signal',
     description: 'Customer inquires about pricing',
     active: true,
     createdAt: '2025-12-01',
@@ -81,7 +81,7 @@ const mockTags: Tag[] = [
     id: '3',
     name: 'Customer Solution Request',
     code: 'customer_solution_request',
-    category: 'Intent',
+    category: 'Sales Signal',
     description: 'Customer requests detailed solution information',
     active: true,
     createdAt: '2025-12-01',
@@ -91,7 +91,7 @@ const mockTags: Tag[] = [
     id: '4',
     name: 'Customer Schedule Request',
     code: 'customer_schedule_request',
-    category: 'Intent',
+    category: 'Outcome',
     description: 'Customer requests a scheduled appointment',
     active: true,
     createdAt: '2025-12-01',
@@ -148,12 +148,12 @@ const mockTags: Tag[] = [
     createdAt: '2025-12-02',
     updatedAt: '2025-12-02',
   },
-  // Risk Factor Tags (Service Issues)
+  // Risk Factor Tags
   {
     id: '10',
     name: 'SLA Exceeded',
     code: 'sla_exceeded',
-    category: 'RiskFactor',
+    category: 'Risk Factor',
     description: 'Service level agreement was breached',
     active: true,
     createdAt: '2025-12-02',
@@ -163,7 +163,7 @@ const mockTags: Tag[] = [
     id: '11',
     name: 'Callback Delay',
     code: 'callback_delay',
-    category: 'RiskFactor',
+    category: 'Risk Factor',
     description: 'Delayed callback to customer',
     active: true,
     createdAt: '2025-12-02',
@@ -173,7 +173,7 @@ const mockTags: Tag[] = [
     id: '12',
     name: 'Schedule Delay - Customer Reason',
     code: 'schedule_delay_customer_reason',
-    category: 'RiskFactor',
+    category: 'Risk Factor',
     description: 'Schedule delay caused by customer reason',
     active: true,
     createdAt: '2025-12-02',
@@ -183,7 +183,7 @@ const mockTags: Tag[] = [
     id: '13',
     name: 'Late Arrival',
     code: 'late_arrival',
-    category: 'RiskFactor',
+    category: 'Risk Factor',
     description: 'Agent or service arrived late',
     active: true,
     createdAt: '2025-12-02',
@@ -193,7 +193,7 @@ const mockTags: Tag[] = [
     id: '14',
     name: 'Appointment Content Issue',
     code: 'appointment_content',
-    category: 'RiskFactor',
+    category: 'Risk Factor',
     description: 'Appointment content did not match expectations',
     active: true,
     createdAt: '2025-12-02',
