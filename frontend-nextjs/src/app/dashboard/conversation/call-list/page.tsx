@@ -262,7 +262,7 @@ export default function ConversationCallListPage() {
                           { label: 'Risk', value: selectedCall.riskScore },
                           { label: 'Opportunity', value: selectedCall.opportunityScore },
                           { label: 'Execution', value: selectedCall.executionScore },
-                          { label: 'Overall', value: selectedCall.overallQualityScore },
+                          { label: 'Overall Quality Score', value: selectedCall.overallQualityScore },
                         ].map((metric) => (
                           <div key={metric.label} className="bg-white rounded p-3 text-center">
                             <div className="text-xs text-gray-600 mb-1">{metric.label}</div>
