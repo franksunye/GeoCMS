@@ -3,22 +3,11 @@
 import { QualityScore, QualitySuggestion } from '@/types'
 import { AlertCircle, CheckCircle, AlertTriangle, Zap } from 'lucide-react'
 import { useState } from 'react'
+import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
 
 interface QualityScoreCardProps {
   qualityScore: QualityScore
   onApplySuggestion?: (suggestion: QualitySuggestion) => void
-}
-
-const getScoreColor = (score: number): string => {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-const getScoreBgColor = (score: number): string => {
-  if (score >= 80) return 'bg-green-50 border-green-200'
-  if (score >= 60) return 'bg-yellow-50 border-yellow-200'
-  return 'bg-red-50 border-red-200'
 }
 
 const getSuggestionIcon = (type: string) => {

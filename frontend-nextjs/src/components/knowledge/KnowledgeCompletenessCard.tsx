@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { getScoreColor } from '@/lib/score-thresholds';
 
 interface CompletenessData {
   completeness_score: number;
@@ -26,12 +27,6 @@ export function KnowledgeCompletenessCard({
   knowledgeId,
   knowledgeTopic,
 }: KnowledgeCompletenessCardProps) {
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-green-600';
-    if (score >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
   const getScoreBadgeVariant = (score: number) => {
     if (score >= 80) return 'default';
     if (score >= 60) return 'secondary';

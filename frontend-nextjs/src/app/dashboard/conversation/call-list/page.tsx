@@ -7,6 +7,7 @@ import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDo
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
+import { getScoreColor, getScoreBgColor, getScoreBadgeClass } from '@/lib/score-thresholds'
 
 type CallRecord = {
   id: number
@@ -299,24 +300,6 @@ export default function ConversationCallListPage() {
       </div>
     </div>
   )
-}
-
-function getScoreBadgeClass(score: number): string {
-  if (score >= 80) return 'bg-green-100 text-green-800'
-  if (score >= 60) return 'bg-yellow-100 text-yellow-800'
-  return 'bg-red-100 text-red-800'
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-function getScoreBgColor(score: number): string {
-  if (score >= 80) return 'bg-green-50 border-green-200'
-  if (score >= 60) return 'bg-yellow-50 border-yellow-200'
-  return 'bg-red-50 border-red-200'
 }
 
 type SignalItem = {
