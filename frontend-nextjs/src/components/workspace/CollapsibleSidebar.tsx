@@ -36,6 +36,16 @@ const navigation = [
       { name: 'Config', href: '/dashboard/conversation/config', icon: Settings },
     ]
   },
+  {
+    name: 'Team Calls',
+    icon: PhoneCall,
+    children: [
+      { name: 'Overview', href: '/dashboard/team-calls/overview', icon: LayoutDashboard },
+      { name: 'Call List', href: '/dashboard/team-calls/call-list', icon: PhoneCall },
+      { name: 'Action Log', href: '/dashboard/team-calls/action-log', icon: Activity },
+      { name: 'Config', href: '/dashboard/team-calls/config', icon: Settings },
+    ]
+  },
   { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
   {
     name: 'Content',
