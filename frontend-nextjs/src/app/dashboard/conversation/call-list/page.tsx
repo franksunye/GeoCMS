@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useState } from 'react'
-import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2 } from 'lucide-react'
+import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
@@ -33,12 +33,18 @@ const getDimensionBarColor = (score: number): string => {
 /**
  * 通话记录类型（UI规格定义）
  * 
-= * 评分逻辑：
+ * 评分逻辑：
  * - riskScore: 风险分数（0-100）
  * - opportunityScore: 商机分数（0-100）
  * - executionScore: 执行分数（0-100）
  * - overallQualityScore: 通话总体质量分数（0-100），由上述三个维度计算得出
  */
+type TranscriptEntry = {
+  timestamp: number
+  speaker: 'agent' | 'customer'
+  text: string
+}
+
 type CallRecord = {
   id: number
   title: string
@@ -54,6 +60,7 @@ type CallRecord = {
   events: string[]
   behaviors: string[]
   service_issues: Array<{ tag: string; severity: 'high' | 'medium' | 'low' }>
+  transcript: TranscriptEntry[]
 }
 
 /**
@@ -424,8 +431,79 @@ export default function ConversationCallListPage() {
                   </div>
                 )}
                 {activeTab === 'transcript' && (
-                  <div className="text-gray-700 text-sm">
-                    Transcript content placeholder
+                  <div className="space-y-4">
+                    {/* Transcript Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Call Transcript</h3>
+                        <p className="text-sm text-gray-600 mt-1">{selectedCall.transcript.length} messages · {selectedCall.duration_minutes} minutes</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MessageCircle className="h-5 w-5 text-blue-600" />
+                      </div>
+                    </div>
+
+                    {/* Transcript Entries */}
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                      {selectedCall.transcript.map((entry, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex gap-3 p-3 rounded-lg border ${
+                            entry.speaker === 'agent'
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-gray-50 border-gray-200'
+                          }`}
+                        >
+                          {/* Speaker Avatar */}
+                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white ${
+                            entry.speaker === 'agent'
+                              ? 'bg-blue-600'
+                              : 'bg-gray-600'
+                          }`}>
+                            {entry.speaker === 'agent' ? 'A' : 'C'}
+                          </div>
+
+                          {/* Message Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-semibold text-gray-900">
+                                {entry.speaker === 'agent' ? 'Agent' : 'Customer'}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {Math.floor(entry.timestamp / 60)}:{(entry.timestamp % 60).toString().padStart(2, '0')}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700 break-words">{entry.text}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Transcript Stats */}
+                    <div className="mt-6 pt-4 border-t border-gray-200 grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="text-center p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-gray-600">Total Messages</p>
+                        <p className="text-lg font-semibold text-blue-600">{selectedCall.transcript.length}</p>
+                      </div>
+                      <div className="text-center p-3 bg-blue-50 rounded-lg">
+                        <p className="text-xs text-gray-600">Agent Messages</p>
+                        <p className="text-lg font-semibold text-blue-600">
+                          {selectedCall.transcript.filter(e => e.speaker === 'agent').length}
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600">Customer Messages</p>
+                        <p className="text-lg font-semibold text-gray-600">
+                          {selectedCall.transcript.filter(e => e.speaker === 'customer').length}
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-600">Avg Duration</p>
+                        <p className="text-lg font-semibold text-gray-600">
+                          {Math.round(selectedCall.duration_minutes * 60 / selectedCall.transcript.length)}s
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 {activeTab === 'analysis' && (
