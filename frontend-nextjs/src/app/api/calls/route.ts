@@ -9,6 +9,7 @@ type CallRecord = {
   overall_score: number
   riskScore: number
   opportunityScore: number
+  executionScore: number
   overallQualityScore: number
   totalScore: number
   business_grade: 'High' | 'Medium' | 'Low'
@@ -29,6 +30,7 @@ const CALLS: CallRecord[] = [
     overall_score: 3.1,
     riskScore: 65,
     opportunityScore: 78,
+    executionScore: 75,
     overallQualityScore: 72,
     totalScore: 72,
     business_grade: 'High',
@@ -50,6 +52,7 @@ const CALLS: CallRecord[] = [
     overall_score: 4.2,
     riskScore: 30,
     opportunityScore: 84,
+    executionScore: 82,
     overallQualityScore: 80,
     totalScore: 78,
     business_grade: 'Medium',
@@ -67,6 +70,7 @@ const CALLS: CallRecord[] = [
     overall_score: 2.8,
     riskScore: 82,
     opportunityScore: 40,
+    executionScore: 45,
     overallQualityScore: 55,
     totalScore: 59,
     business_grade: 'Low',
