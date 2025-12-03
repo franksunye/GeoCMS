@@ -124,7 +124,7 @@ export default function ConversationCallListPage() {
                     <div className="mt-2 space-y-1.5">
                       {/* Risk */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-16">📍 Risk</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">Risk</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${getDimensionBarColor(call.riskScore)}`}
@@ -136,7 +136,7 @@ export default function ConversationCallListPage() {
                       
                       {/* Opportunity */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-16">🎯 Opp</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">Opp</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${getDimensionBarColor(call.opportunityScore)}`}
@@ -148,7 +148,7 @@ export default function ConversationCallListPage() {
                       
                       {/* Execution */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-16">⚙️ Exec</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">Exec</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${getDimensionBarColor(call.executionScore)}`}
