@@ -9,17 +9,25 @@ import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
 import { getScoreColor, getScoreBgColor, getScoreBadgeClass } from '@/lib/score-thresholds'
 
+/**
+ * 通话记录类型
+ * 
+ * 评分逻辑：
+ * - riskScore: 风险分数（0-100）
+ * - opportunityScore: 商机分数（0-100）
+ * - executionScore: 执行分数（0-100）
+ * - overallScore: 总体分数（0-100），由上述三个维度计算得出
+ */
 type CallRecord = {
   id: number
   title: string
   customer_name: string
   timestamp: string
   duration_minutes: number
-  overall_score: number
   riskScore: number
   opportunityScore: number
-  overallQualityScore: number
-  totalScore: number
+  executionScore: number
+  overallScore: number
   business_grade: 'High' | 'Medium' | 'Low'
   tags: string[]
   events: string[]
@@ -36,7 +44,14 @@ export default function ConversationCallListPage() {
     queryKey: ['calls'],
     queryFn: async () => {
       const res = await axios.get('/api/calls')
-      return res.data
+      // 数据适配：将遗留的字段名映射到新的字段名
+      return res.data.map((call: any) => ({
+        ...call,
+        riskScore: call.riskScore ?? 0,
+        opportunityScore: call.opportunityScore ?? 0,
+        executionScore: call.overallQualityScore ?? call.executionScore ?? 0,
+        overallScore: call.totalScore ?? call.overallScore ?? 0,
+      }))
     }
   })
 
@@ -85,9 +100,9 @@ export default function ConversationCallListPage() {
                     </p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getScoreBadgeClass(call.totalScore)}`}
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getScoreBadgeClass(call.overallScore)}`}
                       >
-                        Score {call.totalScore}
+                        Score {call.overallScore}
                       </span>
                     </div>
                     
@@ -179,12 +194,12 @@ export default function ConversationCallListPage() {
                 {activeTab === 'metadata' && (
                   <div className="space-y-6">
                     {/* Scoring */}
-                    <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.totalScore)}`}>
+                    <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallScore)}`}>
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">Scoring</h3>
                         <div className="flex items-center gap-2">
-                          <div className={`text-4xl font-bold ${getScoreColor(selectedCall.totalScore)}`}>
-                            {selectedCall.totalScore}
+                          <div className={`text-4xl font-bold ${getScoreColor(selectedCall.overallScore)}`}>
+                            {selectedCall.overallScore}
                           </div>
                           <span className="text-sm text-gray-600">/100</span>
                         </div>
@@ -193,8 +208,8 @@ export default function ConversationCallListPage() {
                         {[
                           { label: 'Risk', value: selectedCall.riskScore },
                           { label: 'Opportunity', value: selectedCall.opportunityScore },
-                          { label: 'Execution', value: selectedCall.overallQualityScore },
-                          { label: 'Overall', value: selectedCall.totalScore },
+                          { label: 'Execution', value: selectedCall.executionScore },
+                          { label: 'Overall', value: selectedCall.overallScore },
                         ].map((metric) => (
                           <div key={metric.label} className="bg-white rounded p-3 text-center">
                             <div className="text-xs text-gray-600 mb-1">{metric.label}</div>
