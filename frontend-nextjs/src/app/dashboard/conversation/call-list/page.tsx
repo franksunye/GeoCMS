@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useState } from 'react'
-import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown } from 'lucide-react'
+import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2 } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
@@ -54,6 +54,137 @@ type CallRecord = {
   events: string[]
   behaviors: string[]
   service_issues: Array<{ tag: string; severity: 'high' | 'medium' | 'low' }>
+}
+
+/**
+ * Audio Player Component for Call Recording
+ */
+function CallRecordingPlayer({ callId, duration }: { callId: number; duration: number }) {
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [volume, setVolume] = useState(100)
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const handlePlayPause = () => {
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleReset = () => {
+    setCurrentTime(0)
+    setIsPlaying(false)
+  }
+
+  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCurrentTime(parseFloat(e.target.value))
+  }
+
+  return (
+    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-100">
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Call Recording</h3>
+          <p className="text-xs text-gray-600 mt-1">
+            Total Duration: {formatTime(duration)}
+          </p>
+        </div>
+        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+          Available
+        </span>
+      </div>
+
+      {/* Player Controls */}
+      <div className="space-y-4">
+        {/* Play/Pause Controls */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handlePlayPause}
+            className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md hover:shadow-lg"
+          >
+            {isPlaying ? (
+              <Pause className="h-5 w-5 fill-current" />
+            ) : (
+              <Play className="h-5 w-5 fill-current ml-0.5" />
+            )}
+          </button>
+          <button
+            onClick={handleReset}
+            className="inline-flex items-center justify-center px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors text-sm font-medium"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+          <span className="text-sm font-mono text-gray-700">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min="0"
+            max={duration}
+            value={currentTime}
+            onChange={handleProgressChange}
+            className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+        </div>
+
+        {/* Volume Control */}
+        <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
+          <Volume2 className="h-4 w-4 text-gray-600" />
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={volume}
+            onChange={(e) => setVolume(parseInt(e.target.value))}
+            className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+          />
+          <span className="text-xs text-gray-600 w-8 text-right">{volume}%</span>
+        </div>
+
+        {/* Playback Speed */}
+        <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
+          <span className="text-xs font-medium text-gray-700">Speed:</span>
+          <div className="flex gap-1">
+            {[0.75, 1, 1.25, 1.5].map((speed) => (
+              <button
+                key={speed}
+                className="px-2 py-1 rounded bg-white border border-gray-300 hover:border-blue-500 text-xs font-medium text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                {speed}x
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recording Info */}
+      <div className="mt-4 pt-4 border-t border-blue-200 grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <span className="text-gray-600">Format:</span>
+          <p className="font-medium text-gray-900">MP3</p>
+        </div>
+        <div>
+          <span className="text-gray-600">Size:</span>
+          <p className="font-medium text-gray-900">12.5 MB</p>
+        </div>
+        <div>
+          <span className="text-gray-600">Bitrate:</span>
+          <p className="font-medium text-gray-900">128 kbps</p>
+        </div>
+        <div>
+          <span className="text-gray-600">Channels:</span>
+          <p className="font-medium text-gray-900">Stereo</p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function ConversationCallListPage() {
@@ -230,8 +361,66 @@ export default function ConversationCallListPage() {
               {/* Tab Content */}
               <div className="p-6">
                 {activeTab === 'summary' && (
-                  <div className="text-gray-700 text-sm">
-                    Summary content placeholder
+                  <div className="space-y-6">
+                    {/* Call Recording Player */}
+                    <CallRecordingPlayer callId={selectedCall.id} duration={selectedCall.duration_minutes * 60} />
+
+                    {/* Call Overview */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p className="text-xs text-gray-600 mb-1">Customer</p>
+                        <p className="text-lg font-semibold text-gray-900">{selectedCall.customer_name}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p className="text-xs text-gray-600 mb-1">Call Duration</p>
+                        <p className="text-lg font-semibold text-gray-900">{selectedCall.duration_minutes} minutes</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p className="text-xs text-gray-600 mb-1">Business Grade</p>
+                        <p className="text-lg font-semibold text-gray-900">{selectedCall.business_grade}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <p className="text-xs text-gray-600 mb-1">Call Date</p>
+                        <p className="text-lg font-semibold text-gray-900">{new Date(selectedCall.timestamp).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    {/* Quality Scores Overview */}
+                    <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallQualityScore)}`}>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Quality Score Overview</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {[
+                          { label: 'Risk', value: selectedCall.riskScore },
+                          { label: 'Opportunity', value: selectedCall.opportunityScore },
+                          { label: 'Execution', value: selectedCall.executionScore },
+                          { label: 'Overall Quality Score', value: selectedCall.overallQualityScore },
+                        ].map((metric) => (
+                          <div key={metric.label} className="bg-white rounded p-3 text-center">
+                            <div className="text-xs text-gray-600 mb-1">{metric.label}</div>
+                            <div className={`text-lg font-semibold ${getScoreColor(metric.value)}`}>{metric.value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tags Summary */}
+                    {(selectedCall.tags.length > 0 || selectedCall.events.length > 0) && (
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags & Events</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedCall.tags.map((tag) => (
+                            <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                              {tag}
+                            </span>
+                          ))}
+                          {selectedCall.events.map((event) => (
+                            <span key={event} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                              {event}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 {activeTab === 'transcript' && (
