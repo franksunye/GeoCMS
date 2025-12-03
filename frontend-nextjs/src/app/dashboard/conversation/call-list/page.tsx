@@ -240,11 +240,6 @@ export default function ConversationCallListPage() {
                   </div>
                 )}
                 {activeTab === 'analysis' && (
-                  <div className="text-gray-700 text-sm">
-                    Analysis content placeholder
-                  </div>
-                )}
-                {activeTab === 'metadata' && (
                   <div className="space-y-6">
                     {/* Scoring */}
                     <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallQualityScore)}`}>
@@ -308,46 +303,35 @@ export default function ConversationCallListPage() {
                                 <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-4">
                                   {percent != null && (
                                     <div className={`border rounded-lg p-3 ${getScoreBgColor(percent)}`}>
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-sm font-medium text-gray-700">Score</span>
-                                        <span className={`text-lg font-bold ${getScoreColor(percent)}`}>{percent}%</span>
-                                      </div>
+                                      <div className="text-sm font-medium text-gray-900">Score Impact</div>
+                                      <div className={`text-2xl font-bold ${getScoreColor(percent)} mt-1`}>{percent}</div>
                                     </div>
                                   )}
-
                                   {item.context && (
                                     <div>
-                                      <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4 text-blue-600" />
-                                        Context
-                                      </h5>
-                                      <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
-                                        <p className="whitespace-pre-wrap">{item.context}</p>
-                                      </div>
+                                      <div className="text-sm font-medium text-gray-900 mb-1">Context</div>
+                                      <div className="text-sm text-gray-600">{item.context}</div>
                                     </div>
                                   )}
-
                                   {item.reasoning && (
                                     <div>
-                                      <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                        <Brain className="h-4 w-4 text-purple-600" />
-                                        Reasoning
-                                      </h5>
-                                      <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
-                                        <p className="whitespace-pre-wrap">{item.reasoning}</p>
-                                      </div>
+                                      <div className="text-sm font-medium text-gray-900 mb-1">Reasoning</div>
+                                      <div className="text-sm text-gray-600">{item.reasoning}</div>
                                     </div>
                                   )}
-
-                                  <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
-                                    {item.timestamp ? `Generated: ${new Date(item.timestamp).toLocaleString('en-US')}` : 'Generated: —'}
-                                  </div>
                                 </div>
                               )}
                             </div>
                           )
                         })
                       })()}
+                    </div>
+                  </div>
+                )}
+                {activeTab === 'metadata' && (
+                  <div className="space-y-6">
+                    <div className="text-gray-700 text-sm">
+                      Metadata content placeholder
                     </div>
                   </div>
                 )}
