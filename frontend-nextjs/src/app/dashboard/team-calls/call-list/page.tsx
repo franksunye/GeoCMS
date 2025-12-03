@@ -1,13 +1,13 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
 import { useState } from 'react'
 import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
 import { getScoreColor, getScoreBgColor, getScoreBadgeClass } from '@/lib/score-thresholds'
+import { MOCK_CALLS, type CallRecord } from './mock-data'
 
 /**
  * 获取维度颜色（用于进度条和图标）
@@ -28,39 +28,6 @@ const getDimensionBarColor = (score: number): string => {
   if (score >= 80) return 'bg-green-500'
   if (score >= 60) return 'bg-yellow-500'
   return 'bg-red-500'
-}
-
-/**
- * 通话记录类型（UI规格定义）
- * 
- * 评分逻辑：
- * - processScore: 流程规范分数（0-100）
- * - skillsScore: 业务技能分数（0-100）
- * - communicationScore: 沟通技巧分数（0-100）
- * - overallQualityScore: 通话总体质量分数（0-100），由上述三个维度计算得出
- */
-type TranscriptEntry = {
-  timestamp: number
-  speaker: 'agent' | 'customer'
-  text: string
-}
-
-type CallRecord = {
-  id: number
-  title: string
-  customer_name: string
-  timestamp: string
-  duration_minutes: number
-  processScore: number
-  skillsScore: number
-  communicationScore: number
-  overallQualityScore: number
-  business_grade: 'High' | 'Medium' | 'Low'
-  tags: string[]
-  events: string[]
-  behaviors: string[]
-  service_issues: Array<{ tag: string; severity: 'high' | 'medium' | 'low' }>
-  transcript: TranscriptEntry[]
 }
 
 /**
@@ -204,8 +171,9 @@ export default function ConversationCallListPage() {
   const { data: calls, isLoading } = useQuery<CallRecord[]>({
     queryKey: ['calls'],
     queryFn: async () => {
-      const res = await axios.get('/api/calls')
-      return res.data
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+      return MOCK_CALLS
     }
   })
 
@@ -568,9 +536,9 @@ export default function ConversationCallListPage() {
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
-                          { label: 'Risk', value: selectedCall.riskScore },
-                          { label: 'Opportunity', value: selectedCall.opportunityScore },
-                          { label: 'Execution', value: selectedCall.executionScore },
+                          { label: 'Process', value: selectedCall.processScore },
+                          { label: 'Skills', value: selectedCall.skillsScore },
+                          { label: 'Communication', value: selectedCall.communicationScore },
                           { label: 'Overall Quality Score', value: selectedCall.overallQualityScore },
                         ].map((metric) => (
                           <div key={metric.label} className="bg-white rounded p-3 text-center">
@@ -684,7 +652,7 @@ export default function ConversationCallListPage() {
 
 type SignalItem = {
   tag: string
-  dimension: 'Client Intent' | 'Behavior' | 'Service Issue' | 'Customer Attribute'
+  dimension: 'Process' | 'Skills' | 'Communication' | 'Customer Attribute'
   polarity: 'positive' | 'neutral' | 'negative'
   severity: 'high' | 'medium' | 'low' | 'none'
   score?: number
@@ -696,17 +664,17 @@ type SignalItem = {
 function buildSignalItems(call: CallRecord): SignalItem[] {
   const items: SignalItem[] = []
 
-  // Client Intent
+  // Skills (formerly Client Intent/Events)
   for (const e of call.events) {
-    items.push({ tag: e, dimension: 'Client Intent', polarity: 'neutral', severity: 'none' })
+    items.push({ tag: e, dimension: 'Skills', polarity: 'neutral', severity: 'none' })
   }
 
-  // Behavior
+  // Communication (formerly Behavior)
   for (const b of call.behaviors) {
     if (b === 'listening_good') {
       items.push({
         tag: 'listening_good',
-        dimension: 'Behavior',
+        dimension: 'Communication',
         polarity: 'positive',
         severity: 'none',
         score: 0.8,
@@ -715,13 +683,13 @@ function buildSignalItems(call: CallRecord): SignalItem[] {
         reasoning: '工程师在客户描述问题时给予了简短回应，没有明显打断，表现出倾听'
       })
     } else {
-      items.push({ tag: b, dimension: 'Behavior', polarity: 'positive', severity: 'none' })
+      items.push({ tag: b, dimension: 'Communication', polarity: 'positive', severity: 'none' })
     }
   }
 
-  // Service Issue (with severity required)
+  // Process (formerly Service Issue)
   for (const s of call.service_issues) {
-    items.push({ tag: s.tag, dimension: 'Service Issue', polarity: 'negative', severity: s.severity })
+    items.push({ tag: s.tag, dimension: 'Process', polarity: 'negative', severity: s.severity })
   }
 
   return items
