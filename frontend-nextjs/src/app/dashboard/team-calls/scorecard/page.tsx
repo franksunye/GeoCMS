@@ -323,7 +323,6 @@ export default function ScorecardPage() {
             </div>
           ))}
         </div>
-      </div>
     </div>
   )
 }
