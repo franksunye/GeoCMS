@@ -236,45 +236,46 @@ export default function ScorecardPage() {
         </div>
       </div>
 
-      {/* Team Overview - Single Section */}
+      {/* Team Overview Card with Nested Category Metrics */}
       <div className="bg-white shadow rounded-lg p-8 border-l-4 border-blue-600">
-        <h2 className="text-4xl font-bold text-gray-900 mb-8">{mockTeamData.name}</h2>
-        
-        {/* KPI Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Overall Score */}
-          <div>
-            <p className="text-sm text-gray-600 mb-2">Overall Score</p>
-            <p className={`text-5xl font-bold ${getScoreColor(mockTeamData.overallScore)}`}>
-              {mockTeamData.overallScore}
-            </p>
-          </div>
-
-          {/* Recordings */}
-          <div>
-            <p className="text-sm text-gray-600 mb-2">Recordings</p>
-            <p className="text-5xl font-bold text-gray-900">{mockTeamData.recordings}</p>
-          </div>
-
-          {/* Win Rate */}
-          <div>
-            <p className="text-sm text-gray-600 mb-2">Win Rate</p>
-            <p className="text-5xl font-bold text-gray-900">{mockTeamData.winRate}%</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Category Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {mockCategories.map((category) => (
-          <div key={category.name} className={`rounded-lg p-6 border border-gray-200 ${getScoreBgColor(category.score)}`}>
-            <p className="text-sm text-gray-600 mb-3">{category.name}</p>
-            <div className="flex items-baseline justify-between">
-              <p className={`text-4xl font-bold ${getScoreColor(category.score)}`}>{category.score}</p>
-              <p className="text-xs text-gray-600">Weight: {category.weight}%</p>
+        {/* Top Section: Team Info + Button */}
+        <div className="flex items-start justify-between mb-8">
+          <div className="flex items-center gap-6">
+            {/* Team Name and Score */}
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold text-gray-900">Team {mockTeamData.name}</h2>
+                <p className={`text-4xl font-bold ${getScoreColor(mockTeamData.overallScore)}`}>
+                  {mockTeamData.overallScore}
+                </p>
+              </div>
+              <div className="mt-2 text-sm text-gray-600 space-y-1">
+                <p>{mockTeamData.recordings} Recordings</p>
+                <p>{mockTeamData.winRate}% Win Rate</p>
+              </div>
             </div>
           </div>
-        ))}
+          
+          {/* View Recordings Button */}
+          <button className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-4 py-2 rounded-lg transition-colors">
+            View Recordings →
+          </button>
+        </div>
+        
+        {/* Category Metrics Grid - Inside the main card */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {mockCategories.map((category) => (
+            <div key={category.name} className={`rounded-lg p-6 border border-gray-200 ${getScoreBgColor(category.score)}`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-900 font-semibold">{category.name}</p>
+                  <p className="text-xs text-gray-600 mt-3">Category Weight: {category.weight}%</p>
+                </div>
+                <p className={`text-3xl font-bold ${getScoreColor(category.score)}`}>{category.score}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Agent Rankings Grid */}
