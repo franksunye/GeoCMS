@@ -268,7 +268,7 @@ export default function ConversationCallListPage() {
                       )}
                       {call.service_issues?.some(s => s.severity === 'high') && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                          ⚠ Risk
+                          ⚠ Process Issue
                         </span>
                       )}
                     </div>

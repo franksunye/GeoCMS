@@ -152,7 +152,7 @@ const mockTags: Tag[] = [
     createdAt: '2025-12-02',
     updatedAt: '2025-12-02',
   },
-  // Process Tags (formerly Risk Factor)
+  // Process Tags
   {
     id: '10',
     name: 'SLA Exceeded',
@@ -222,7 +222,7 @@ const mockRules: ScoringRule[] = [
   },
   {
     id: '2',
-    name: 'Pricing Inquiry Risk Monitor',
+    name: 'Pricing Inquiry Check',
     appliesTo: 'Calls',
     description: 'Pricing inquiry may indicate concerns or objection - moderate skill challenge',
     active: true,
@@ -278,7 +278,7 @@ const mockRules: ScoringRule[] = [
   },
   {
     id: '6',
-    name: 'SLA Breach Risk Alert',
+    name: 'SLA Breach Alert',
     appliesTo: 'Calls',
     description: 'Service level agreement breach - significant process failure',
     active: true,
