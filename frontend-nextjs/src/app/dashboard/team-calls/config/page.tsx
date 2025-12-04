@@ -315,7 +315,7 @@ const mockAuditLogs: AuditLog[] = [
     objectType: 'Tag',
     objectName: 'Competitor Mention',
     changes: 'New tag created',
-    details: 'Code: competitor_mention, Category: RiskFactor',
+    details: 'Code: competitor_mention, Category: Skills',
   },
   {
     id: '2',
@@ -332,10 +332,10 @@ const mockAuditLogs: AuditLog[] = [
 const mockScoreConfig: ScoreCalculationConfig = {
   id: '1',
   aggregationMethod: 'weighted-average',
-  riskWeight: 30,
-  opportunityWeight: 50,
-  executionWeight: 20,
-  description: 'Default score calculation: balanced emphasis on opportunity',
+  processWeight: 30,
+  skillsWeight: 50,
+  communicationWeight: 20,
+  description: 'Default score calculation: balanced emphasis on skills and process',
   createdAt: '2025-12-01',
   updatedAt: '2025-12-03',
 }
@@ -354,13 +354,13 @@ export default function ConversationConfigPage() {
   const [isSaving, setIsSaving] = useState(false)
   
   // Tag form state
-  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Other' as const, description: '', active: true })
+  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Skills' as const, description: '', active: true })
   
   // Rule form state
-  const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'risk' as const, scoreAdjustment: 0, weight: 1.0, active: true })
+  const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as const, scoreAdjustment: 0, weight: 1.0, active: true })
   
   // Score config form state
-  const [scoreForm, setScoreForm] = useState({ riskWeight: 30, opportunityWeight: 50, executionWeight: 20 })
+  const [scoreForm, setScoreForm] = useState({ processWeight: 30, skillsWeight: 50, communicationWeight: 20 })
 
   const handleSaveTag = () => {
     setIsSaving(true)
@@ -555,9 +555,9 @@ export default function ConversationConfigPage() {
                     <td className="px-6 py-4 text-sm text-gray-600 font-mono text-xs">{rule.tagCode}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {rule.targetDimension === 'risk' && '📍 Risk'}
-                        {rule.targetDimension === 'opportunity' && '🎯 Opportunity'}
-                        {rule.targetDimension === 'execution' && '⚙️ Execution'}
+                        {rule.targetDimension === 'process' && '⚙️ Process'}
+                        {rule.targetDimension === 'skills' && '🎯 Skills'}
+                        {rule.targetDimension === 'communication' && '🗣️ Communication'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm font-mono text-gray-900">
@@ -629,7 +629,7 @@ export default function ConversationConfigPage() {
                   <input type="radio" name="method" value="weighted-average" defaultChecked className="h-4 w-4 text-blue-600" />
                   <span className="text-sm text-gray-700"><strong>Weighted Average</strong> (Recommended)</span>
                 </label>
-                <p className="text-xs text-gray-500 ml-7">overallScore = (risk × weight) + (opportunity × weight) + (execution × weight)</p>
+                <p className="text-xs text-gray-500 ml-7">overallScore = (process × weight) + (skills × weight) + (communication × weight)</p>
               </div>
             </div>
 
@@ -639,66 +639,66 @@ export default function ConversationConfigPage() {
               <p className="text-xs text-gray-500 mb-4">Adjust how each dimension contributes to the overall score (total must equal 100%)</p>
               
               <div className="space-y-5">
-                {/* Risk Weight */}
+                {/* Process Weight */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">📍 Risk Score Weight</label>
-                    <span className="text-sm font-semibold text-gray-900">{scoreForm.riskWeight}%</span>
+                    <label className="text-sm font-medium text-gray-700">⚙️ Process Score Weight</label>
+                    <span className="text-sm font-semibold text-gray-900">{scoreForm.processWeight}%</span>
                   </div>
                   <input
                     type="range"
                     min={0}
                     max={100}
-                    value={scoreForm.riskWeight}
+                    value={scoreForm.processWeight}
                     onChange={(e) => {
-                      const newRisk = parseInt(e.target.value)
-                      const available = 100 - newRisk
+                      const newProcess = parseInt(e.target.value)
+                      const available = 100 - newProcess
                       setScoreForm({
                         ...scoreForm,
-                        riskWeight: newRisk,
-                        opportunityWeight: Math.min(scoreForm.opportunityWeight, available),
+                        processWeight: newProcess,
+                        skillsWeight: Math.min(scoreForm.skillsWeight, available),
                       })
                     }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
 
-                {/* Opportunity Weight */}
+                {/* Skills Weight */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">🎯 Opportunity Score Weight</label>
-                    <span className="text-sm font-semibold text-gray-900">{scoreForm.opportunityWeight}%</span>
+                    <label className="text-sm font-medium text-gray-700">🎯 Skills Score Weight</label>
+                    <span className="text-sm font-semibold text-gray-900">{scoreForm.skillsWeight}%</span>
                   </div>
                   <input
                     type="range"
                     min={0}
                     max={100}
-                    value={scoreForm.opportunityWeight}
+                    value={scoreForm.skillsWeight}
                     onChange={(e) => {
-                      const newOpp = parseInt(e.target.value)
-                      const available = 100 - newOpp
+                      const newSkills = parseInt(e.target.value)
+                      const available = 100 - newSkills
                       setScoreForm({
                         ...scoreForm,
-                        opportunityWeight: newOpp,
-                        executionWeight: Math.min(scoreForm.executionWeight, available),
+                        skillsWeight: newSkills,
+                        communicationWeight: Math.min(scoreForm.communicationWeight, available),
                       })
                     }}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
 
-                {/* Execution Weight */}
+                {/* Communication Weight */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">⚙️ Execution Score Weight</label>
-                    <span className="text-sm font-semibold text-gray-900">{scoreForm.executionWeight}%</span>
+                    <label className="text-sm font-medium text-gray-700">🗣️ Communication Score Weight</label>
+                    <span className="text-sm font-semibold text-gray-900">{scoreForm.communicationWeight}%</span>
                   </div>
                   <input
                     type="range"
                     min={0}
                     max={100}
-                    value={scoreForm.executionWeight}
-                    onChange={(e) => setScoreForm({ ...scoreForm, executionWeight: parseInt(e.target.value) })}
+                    value={scoreForm.communicationWeight}
+                    onChange={(e) => setScoreForm({ ...scoreForm, communicationWeight: parseInt(e.target.value) })}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                   />
                 </div>
@@ -706,8 +706,8 @@ export default function ConversationConfigPage() {
                 {/* Total Display */}
                 <div className="bg-gray-50 rounded p-3 border border-gray-200">
                   <p className="text-xs text-gray-600 font-medium">Total Weight</p>
-                  <p className={`text-lg font-bold ${scoreForm.riskWeight + scoreForm.opportunityWeight + scoreForm.executionWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
-                    {scoreForm.riskWeight + scoreForm.opportunityWeight + scoreForm.executionWeight}%
+                  <p className={`text-lg font-bold ${scoreForm.processWeight + scoreForm.skillsWeight + scoreForm.communicationWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                    {scoreForm.processWeight + scoreForm.skillsWeight + scoreForm.communicationWeight}%
                   </p>
                 </div>
               </div>
@@ -717,7 +717,7 @@ export default function ConversationConfigPage() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-blue-900 mb-2">Formula Preview</h4>
               <code className="text-sm text-blue-800 font-mono block p-3 bg-white rounded border border-blue-100">
-                overallScore = (risk × {(scoreForm.riskWeight / 100).toFixed(2)}) + (opportunity × {(scoreForm.opportunityWeight / 100).toFixed(2)}) + (execution × {(scoreForm.executionWeight / 100).toFixed(2)})
+                overallScore = (process × {(scoreForm.processWeight / 100).toFixed(2)}) + (skills × {(scoreForm.skillsWeight / 100).toFixed(2)}) + (communication × {(scoreForm.communicationWeight / 100).toFixed(2)})
               </code>
             </div>
 
@@ -827,11 +827,9 @@ export default function ConversationConfigPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                  <option value="Objection">Objection</option>
-                  <option value="Intent">Intent</option>
-                  <option value="RiskFactor">RiskFactor</option>
-                  <option value="Behavior">Behavior</option>
-                  <option value="Other">Other</option>
+                  <option value="Process">Process</option>
+                  <option value="Skills">Skills</option>
+                  <option value="Communication">Communication</option>
                 </select>
               </div>
               <div>
@@ -908,9 +906,9 @@ export default function ConversationConfigPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Affects Dimension</label>
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
-                    <option value="risk">📍 Risk Score</option>
-                    <option value="opportunity">🎯 Opportunity Score</option>
-                    <option value="execution">⚙️ Execution Score</option>
+                    <option value="process">⚙️ Process Score</option>
+                    <option value="skills">🎯 Skills Score</option>
+                    <option value="communication">🗣️ Communication Score</option>
                   </select>
                 </div>
               </div>
@@ -983,29 +981,24 @@ export default function ConversationConfigPage() {
                 <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
                   <p className="text-xs text-purple-600 font-medium uppercase">Target</p>
                   <p className="text-lg font-bold text-purple-900 mt-1">
-                    {selectedRule.targetDimension === 'risk' && '📍 Risk'}
-                    {selectedRule.targetDimension === 'opportunity' && '🎯 Opportunity'}
-                    {selectedRule.targetDimension === 'execution' && '⚙️ Execution'}
-                  </p>
-                </div>
-                <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-                  <p className="text-xs text-green-600 font-medium uppercase">Adjustment</p>
-                  <p className={`text-lg font-bold mt-1 ${selectedRule.scoreAdjustment > 0 ? 'text-green-600' : selectedRule.scoreAdjustment < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                    {selectedRule.scoreAdjustment > 0 ? '+' : ''}{selectedRule.scoreAdjustment}
+                    {selectedRule.targetDimension === 'process' && '⚙️ Process'}
+                    {selectedRule.targetDimension === 'skills' && '🎯 Skills'}
+                    {selectedRule.targetDimension === 'communication' && '🗣️ Communication'}
                   </p>
                 </div>
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <p className="text-xs text-blue-600 font-medium uppercase">Weight</p>
-                  <p className="text-lg font-bold text-blue-900 mt-1">{selectedRule.weight.toFixed(1)}x</p>
+                  <p className="text-xs text-blue-600 font-medium uppercase">Impact</p>
+                  <p className={`text-lg font-bold mt-1 ${selectedRule.scoreAdjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {selectedRule.scoreAdjustment > 0 ? '+' : ''}{selectedRule.scoreAdjustment} pts
+                  </p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                  <p className="text-xs text-orange-600 font-medium uppercase">Weight</p>
+                  <p className="text-lg font-bold text-orange-900 mt-1">{selectedRule.weight}x</p>
                 </div>
               </div>
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <p className="text-sm text-blue-800">
-                  <strong>Effect:</strong> When this rule matches, the <strong>{selectedRule.targetDimension}</strong> score will be adjusted by <strong>{selectedRule.scoreAdjustment > 0 ? '+' : ''}{selectedRule.scoreAdjustment}</strong> with a weight multiplier of <strong>{selectedRule.weight.toFixed(1)}x</strong>.
-                </p>
-              </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex gap-2 justify-end">
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
               <button
                 onClick={() => setShowRulePreview(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"

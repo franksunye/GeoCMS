@@ -236,27 +236,30 @@ export default function ScorecardPage() {
         </div>
       </div>
 
-      {/* Team Overview */}
-      <div className="bg-white shadow rounded-lg p-6 border-l-4 border-blue-600">
-        <div className="flex items-start justify-between">
+      {/* Team Overview - Single Section */}
+      <div className="bg-white shadow rounded-lg p-8 border-l-4 border-blue-600">
+        <h2 className="text-4xl font-bold text-gray-900 mb-8">{mockTeamData.name}</h2>
+        
+        {/* KPI Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Overall Score */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">{mockTeamData.name}</h2>
-            <div className="flex items-baseline gap-4">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Overall Score</p>
-                <p className={`text-4xl font-bold ${getScoreColor(mockTeamData.overallScore)}`}>
-                  {mockTeamData.overallScore}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Recordings</p>
-                <p className="text-2xl font-bold text-gray-900">{mockTeamData.recordings}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Win Rate</p>
-                <p className="text-2xl font-bold text-gray-900">{mockTeamData.winRate}%</p>
-              </div>
-            </div>
+            <p className="text-sm text-gray-600 mb-2">Overall Score</p>
+            <p className={`text-5xl font-bold ${getScoreColor(mockTeamData.overallScore)}`}>
+              {mockTeamData.overallScore}
+            </p>
+          </div>
+
+          {/* Recordings */}
+          <div>
+            <p className="text-sm text-gray-600 mb-2">Recordings</p>
+            <p className="text-5xl font-bold text-gray-900">{mockTeamData.recordings}</p>
+          </div>
+
+          {/* Win Rate */}
+          <div>
+            <p className="text-sm text-gray-600 mb-2">Win Rate</p>
+            <p className="text-5xl font-bold text-gray-900">{mockTeamData.winRate}%</p>
           </div>
         </div>
       </div>
@@ -264,40 +267,36 @@ export default function ScorecardPage() {
       {/* Category Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {mockCategories.map((category) => (
-          <div key={category.name} className={`rounded-lg p-4 border border-gray-200 ${getScoreBgColor(category.score)}`}>
-            <p className="text-sm text-gray-600 mb-2">{category.name}</p>
+          <div key={category.name} className={`rounded-lg p-6 border border-gray-200 ${getScoreBgColor(category.score)}`}>
+            <p className="text-sm text-gray-600 mb-3">{category.name}</p>
             <div className="flex items-baseline justify-between">
-              <p className={`text-3xl font-bold ${getScoreColor(category.score)}`}>{category.score}</p>
+              <p className={`text-4xl font-bold ${getScoreColor(category.score)}`}>{category.score}</p>
               <p className="text-xs text-gray-600">Weight: {category.weight}%</p>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Agent Rankings */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Agent Rankings</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Agent Rankings Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {sortedAgents.map((agent) => (
             <div
               key={agent.id}
-              className={`rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow ${getScoreBgColor(
-                agent.overallScore
-              )}`}
+              className="rounded-lg border border-gray-200 p-5 bg-white hover:shadow-md transition-shadow"
             >
               {/* Agent Header */}
-              <div className="mb-3">
-                <h4 className="font-semibold text-gray-900">{agent.name}</h4>
-                <div className="flex items-center justify-between mt-2">
-                  <p className={`text-2xl font-bold ${getScoreColor(agent.overallScore)}`}>
+              <div className="mb-4">
+                <h4 className="font-semibold text-gray-900 text-sm">{agent.name}</h4>
+                <div className="flex items-center justify-between mt-3">
+                  <p className={`text-3xl font-bold ${getScoreColor(agent.overallScore)}`}>
                     {agent.overallScore}
                   </p>
                   <TrendingUp className={`h-5 w-5 ${agent.overallScore >= 80 ? 'text-green-600' : 'text-gray-400'}`} />
                 </div>
               </div>
 
-              {/* Recording & Win Rate */}
-              <div className="mb-3 pb-3 border-t border-gray-200 text-xs text-gray-600 space-y-1">
+              {/* Recording & Win Rate - Compact */}
+              <div className="mb-4 pb-4 border-t border-gray-200 text-xs text-gray-600 space-y-1">
                 <div className="flex justify-between">
                   <span>{agent.recordings} Recordings</span>
                 </div>
@@ -306,19 +305,19 @@ export default function ScorecardPage() {
                 </div>
               </div>
 
-              {/* Category Scores */}
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Process</span>
-                  <span className={`font-semibold ${getScoreColor(agent.process)}`}>{agent.process}</span>
+              {/* Category Scores with Individual Backgrounds */}
+              <div className="space-y-2">
+                <div className={`rounded p-3 flex justify-between items-center ${getScoreBgColor(agent.process)}`}>
+                  <span className="text-xs font-medium text-gray-700">Process</span>
+                  <span className={`text-sm font-bold ${getScoreColor(agent.process)}`}>{agent.process}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Skills</span>
-                  <span className={`font-semibold ${getScoreColor(agent.skills)}`}>{agent.skills}</span>
+                <div className={`rounded p-3 flex justify-between items-center ${getScoreBgColor(agent.skills)}`}>
+                  <span className="text-xs font-medium text-gray-700">Skills</span>
+                  <span className={`text-sm font-bold ${getScoreColor(agent.skills)}`}>{agent.skills}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Communication</span>
-                  <span className={`font-semibold ${getScoreColor(agent.communication)}`}>{agent.communication}</span>
+                <div className={`rounded p-3 flex justify-between items-center ${getScoreBgColor(agent.communication)}`}>
+                  <span className="text-xs font-medium text-gray-700">Communication</span>
+                  <span className={`text-sm font-bold ${getScoreColor(agent.communication)}`}>{agent.communication}</span>
                 </div>
               </div>
             </div>
