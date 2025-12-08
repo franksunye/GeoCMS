@@ -58,7 +58,7 @@ export function CollapsibleSidebar({ activeBadgeCount = 0 }: CollapsibleSidebarP
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b">
           <h1 className="text-2xl font-bold text-primary">
-            GeoCMS
+            智能通话分析
           </h1>
 
           <Button

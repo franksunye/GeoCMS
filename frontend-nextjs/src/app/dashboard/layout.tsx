@@ -17,7 +17,7 @@ export default function DashboardLayout({
           <div className="flex h-16 items-center justify-between px-4 sm:px-6 md:px-8 relative">
              {/* Logo */}
              <div className="flex items-center absolute left-8">
-               <h1 className="text-xl font-bold text-primary">GeoCMS</h1>
+               <h1 className="text-xl font-bold text-primary">智能通话分析</h1>
              </div>
              
              {/* Navigation - Centered */}
