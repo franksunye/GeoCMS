@@ -66,7 +66,7 @@ export default function ScorecardPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const agentsRes = await fetch('/api/team-calls/scorecard/agents')
+        const agentsRes = await fetch(`/api/team-calls/scorecard/agents?timeframe=${timeFrame}`)
         if (agentsRes.ok) {
           const data = await agentsRes.json()
           setAgents(data)
@@ -86,7 +86,7 @@ export default function ScorecardPage() {
       }
     }
     fetchData()
-  }, [])
+  }, [timeFrame])
 
   const teams = useMemo(() => {
     const uniqueTeams = new Set(agents.map(a => a.teamId).filter(Boolean) as string[])
@@ -192,16 +192,98 @@ export default function ScorecardPage() {
     }
   })
 
+  const [validationResult, setValidationResult] = useState<any>(null)
+  const [showValidation, setShowValidation] = useState(false)
+
+  // 运行验证的函数
+  const runValidation = async () => {
+    try {
+      const response = await fetch('/api/team-calls/scorecard/validation')
+      const result = await response.json()
+      setValidationResult(result)
+      setShowValidation(true)
+    } catch (error) {
+      console.error('验证失败:', error)
+    }
+  }
+
   const activeCategory = categories.find(c => c.name === expandedCategory)
 
   return (
     <div className="space-y-6">
+      {/* 验证结果面板 */}
+      {showValidation && validationResult && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-blue-900">
+              📊 Score验证结果
+            </h3>
+            <button 
+              onClick={() => setShowValidation(false)}
+              className="text-blue-600 hover:text-blue-800"
+            >
+              隐藏
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-900">
+                {validationResult.correlation?.toFixed(3)}
+              </div>
+              <div className="text-blue-600">相关系数</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-900">
+                {validationResult.sampleSize}
+              </div>
+              <div className="text-green-600">样本数量</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-900">
+                {validationResult.quartileAnalysis?.q4?.avgWinRate}%
+              </div>
+              <div className="text-purple-600">精英组赢单率</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-900">
+                {validationResult.businessThresholds?.filter((t: any) => t.meetsExpectation).length}/
+                {validationResult.businessThresholds?.length}
+              </div>
+              <div className="text-orange-600">标准达标</div>
+            </div>
+          </div>
+          {validationResult.correlation > 0.3 ? (
+            <div className="mt-3 p-2 bg-green-100 border border-green-200 rounded">
+              <div className="flex items-center gap-2 text-green-800">
+                <span className="text-lg">✅</span>
+                <span>验证通过: Score系统有效预测赢单率</span>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-3 p-2 bg-yellow-100 border border-yellow-200 rounded">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <span className="text-lg">⚠️</span>
+                <span>需要优化: 评分与赢单率关联性不足</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Scorecard</h1>
           <p className="mt-2 text-gray-600">Team performance metrics and individual agent rankings</p>
         </div>
+        
+        {/* 验证按钮 */}
+        <button
+          onClick={runValidation}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <TrendingUp className="h-4 w-4" />
+          运行Score验证
+        </button>
       </div>
 
       {/* Top Filters */}

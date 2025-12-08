@@ -1,8 +1,30 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import db from '@/lib/db'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const timeframe = searchParams.get('timeframe') || '7d'
+
+    let cutoffDate = new Date()
+    cutoffDate.setHours(0, 0, 0, 0)
+
+    if (timeframe === '3m') {
+      cutoffDate.setMonth(cutoffDate.getMonth() - 3)
+    } else if (timeframe === '30d') {
+      cutoffDate.setDate(cutoffDate.getDate() - 30)
+    } else if (timeframe === '7d') {
+      cutoffDate.setDate(cutoffDate.getDate() - 7)
+    } else if (timeframe === 'yesterday') {
+      cutoffDate.setDate(cutoffDate.getDate() - 1)
+    } else if (timeframe === 'all') {
+      cutoffDate = new Date(0) // Epoch
+    } else if (timeframe === 'custom') {
+      cutoffDate.setDate(cutoffDate.getDate() - 7)
+    }
+
+    const cutoffIso = cutoffDate.toISOString()
+
     // 1. Get Agents
     const agents = db.prepare('SELECT * FROM agents').all()
 
@@ -20,40 +42,56 @@ export async function GET() {
     const skillsRefTags = allTags.filter(t => t.dimension === 'Sales.Skills')
     const commRefTags = allTags.filter(t => t.dimension === 'Sales.Communication')
 
-    // 4. Process each agent
+    // 4. Batch Query: Call Stats per Agent
+    const agentStats = db.prepare(`
+      SELECT 
+        agentId,
+        count(*) as totalCalls,
+        sum(CASE WHEN outcome = 'won' THEN 1 ELSE 0 END) as wonCalls
+      FROM calls 
+      WHERE startedAt >= ?
+      GROUP BY agentId
+    `).all(cutoffIso) as any[]
+
+    const statsMap = new Map(agentStats.map(s => [s.agentId, s]))
+
+    // 5. Batch Query: Tag Scores per Agent
+    const allTagScores = db.prepare(`
+      SELECT 
+        c.agentId,
+        t.id as tagId,
+        AVG(ca.score) as score
+      FROM call_assessments ca 
+      JOIN calls c ON c.id = ca.callId 
+      JOIN tags t ON t.id = ca.tagId 
+      WHERE c.startedAt >= ?
+      GROUP BY c.agentId, t.id
+    `).all(cutoffIso) as any[]
+
+    // Map: AgentId -> TagId -> Score
+    const agentTagScoresMap = new Map<string, Map<string, number>>()
+    allTagScores.forEach((row: any) => {
+      if (!agentTagScoresMap.has(row.agentId)) {
+        agentTagScoresMap.set(row.agentId, new Map())
+      }
+      agentTagScoresMap.get(row.agentId)!.set(row.tagId, row.score)
+    })
+
+    // 6. Process each agent
     const formattedAgents = agents.map((agent: any) => {
-      // A. Get Call Stats
-      const callStats = db.prepare(`
-        SELECT 
-          count(*) as totalCalls,
-          sum(CASE WHEN outcome = 'won' THEN 1 ELSE 0 END) as wonCalls
-        FROM calls 
-        WHERE agentId = ?
-      `).get(agent.id) as any
+      // A. Get Call Stats from Map
+      const stats = statsMap.get(agent.id) || { totalCalls: 0, wonCalls: 0 }
+      const recordings = stats.totalCalls
+      const winRate = recordings > 0 ? Math.round((stats.wonCalls / recordings) * 100) : 0
 
-      const recordings = callStats.totalCalls || 0
-      const winRate = recordings > 0 ? Math.round((callStats.wonCalls / recordings) * 100) : 0
-
-      // B. Get Tag Scores (Grouped by Dimension)
-      const tagScores = db.prepare(`
-        SELECT 
-          t.id as tagId,
-          AVG(ca.score) as score
-        FROM call_assessments ca 
-        JOIN calls c ON c.id = ca.callId 
-        JOIN tags t ON t.id = ca.tagId 
-        WHERE c.agentId = ?
-        GROUP BY t.id
-      `).all(agent.id) as any[]
-
-      // Create a map for O(1) lookup
-      const scoreMap = new Map(tagScores.map(t => [t.tagId, t.score]))
+      // B. Get Tag Scores from Map
+      const agentScores = agentTagScoresMap.get(agent.id) || new Map()
 
       // C. Helper to build details array ensuring consistent order/length
       const buildDetails = (refTags: any[]) => {
         return refTags.map(tag => ({
           name: tag.name,
-          score: Math.round(scoreMap.get(tag.id) || 0)
+          score: Math.round(agentScores.get(tag.id) || 0)
         }))
       }
 

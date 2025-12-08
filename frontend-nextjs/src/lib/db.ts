@@ -301,14 +301,14 @@ function seedDatabase() {
       // Mike (0) is great (0.9), Sarah (1) is good (0.8), others lower
       const performance = 0.9 - (index * 0.15) 
       
-      for (let i = 0; i < 20; i++) {
+      for (let i = 0; i < 50; i++) {
         const callId = `call_${callIdCounter++}`
         const isWin = Math.random() < performance // Win rate correlated with performance
         
         insertCall.run({
           id: callId,
           agentId: agent.id,
-          startedAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toISOString(), // Past 7 days
+          startedAt: new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 180).toISOString(), // Past 6 months
           duration: 120 + Math.floor(Math.random() * 600), // 2-12 minutes
           outcome: isWin ? 'won' : 'lost',
           audioUrl: `https://example.com/audio/${callId}.mp3`
