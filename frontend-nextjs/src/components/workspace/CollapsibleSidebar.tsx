@@ -26,39 +26,20 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Tasks', href: '/dashboard/tasks', icon: Activity, badge: true },
   { name: 'Team', href: '/dashboard/team', icon: Users },
-  {
-    name: 'Conversation',
-    icon: MessageSquare,
-    children: [
-      { name: 'Overview', href: '/dashboard/conversation/overview', icon: LayoutDashboard },
-      { name: 'Call List', href: '/dashboard/conversation/call-list', icon: PhoneCall },
-      { name: 'Action Log', href: '/dashboard/conversation/action-log', icon: Activity },
-      { name: 'Config', href: '/dashboard/conversation/config', icon: Settings },
-    ]
-  },
+
   {
     name: 'Team Calls',
     icon: PhoneCall,
     children: [
       { name: 'Overview', href: '/dashboard/team-calls/overview', icon: LayoutDashboard },
       { name: 'Call List', href: '/dashboard/team-calls/call-list', icon: PhoneCall },
-      { name: 'Scorecard', href: '/dashboard/team-calls/scorecard', icon: BarChart3 },
       { name: 'Analytics', href: '/dashboard/team-calls/analytics', icon: BarChart3 },
+      { name: 'Scorecard', href: '/dashboard/team-calls/scorecard', icon: BarChart3 },
       { name: 'Action Log', href: '/dashboard/team-calls/action-log', icon: Activity },
       { name: 'Config', href: '/dashboard/team-calls/config', icon: Settings },
     ]
   },
   { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
-  {
-    name: 'Content',
-    icon: BookOpen,
-    children: [
-      { name: 'Planning', href: '/dashboard/planning', icon: FileText },
-      { name: 'Drafts', href: '/dashboard/drafts', icon: PenTool },
-      { name: 'Media', href: '/dashboard/media', icon: Image },
-    ]
-  },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]

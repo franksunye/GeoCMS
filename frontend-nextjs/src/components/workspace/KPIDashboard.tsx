@@ -30,14 +30,6 @@ export function KPIDashboard() {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Key Metrics</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.location.href = '/dashboard/analytics'}
-          >
-            View Detailed Report
-            <ArrowRight className="ml-1 h-4 w-4" />
-          </Button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
