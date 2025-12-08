@@ -31,11 +31,9 @@ const navigation = [
     name: 'Team Calls',
     icon: PhoneCall,
     children: [
-      { name: 'Overview', href: '/dashboard/team-calls/overview', icon: LayoutDashboard },
       { name: 'Call List', href: '/dashboard/team-calls/call-list', icon: PhoneCall },
       { name: 'Analytics', href: '/dashboard/team-calls/analytics', icon: BarChart3 },
       { name: 'Scorecard', href: '/dashboard/team-calls/scorecard', icon: BarChart3 },
-      { name: 'Action Log', href: '/dashboard/team-calls/action-log', icon: Activity },
       { name: 'Config', href: '/dashboard/team-calls/config', icon: Settings },
     ]
   },
