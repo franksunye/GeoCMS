@@ -11,9 +11,9 @@ import {
 } from 'lucide-react'
 
 const navigation = [
+  { name: 'Scorecard', href: '/dashboard/team-calls/scorecard', icon: BarChart3 },
   { name: 'Call List', href: '/dashboard/team-calls/call-list', icon: PhoneCall },
   { name: 'Analytics', href: '/dashboard/team-calls/analytics', icon: BarChart3 },
-  { name: 'Scorecard', href: '/dashboard/team-calls/scorecard', icon: BarChart3 },
   { name: 'Config', href: '/dashboard/team-calls/config', icon: Settings },
   { name: 'Team', href: '/dashboard/team', icon: Users },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
