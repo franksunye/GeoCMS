@@ -36,7 +36,9 @@ export default function AgentAvatar({
   showStatus = false,
   status = 'idle'
 }: AgentAvatarProps) {
-  const agent = AGENTS[agentId]
+  const agent = AGENTS[agentId] || AGENTS['default-avatar']
+
+  if (!agent) return null
 
   const statusColors = {
     active: 'bg-green-500',

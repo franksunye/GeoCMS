@@ -1,7 +1,7 @@
 'use client'
 
-import { Settings, Save, RotateCcw, Plus, Edit2, Trash2, Eye, MoreHorizontal, Clock, User, Copy } from 'lucide-react'
-import { useState } from 'react'
+import { Settings, Save, RotateCcw, Plus, Edit2, Trash2, Eye, MoreHorizontal, Clock, User, Copy, Filter, X } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
 
 type Tab = 'tags' | 'rules' | 'scoring' | 'history'
 
@@ -9,7 +9,11 @@ type Tag = {
   id: string
   name: string
   code: string
-  category: 'Process' | 'Skills' | 'Communication'
+  category: string
+  dimension: string
+  type: 'positive' | 'neutral' | 'negative'
+  severity?: string
+  scoreRange: string
   description: string
   active: boolean
   createdAt: string
@@ -56,153 +60,55 @@ type AuditLog = {
 
 // Mock data - extracted from Call List actual data
 const mockTags: Tag[] = [
-  // Skills Tags (formerly Sales Signal/Outcome)
-  {
-    id: '1',
-    name: 'Customer High Intent',
-    code: 'customer_high_intent',
-    category: 'Skills',
-    description: 'Customer shows clear purchase intent during call',
-    active: true,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  {
-    id: '2',
-    name: 'Customer Pricing Request',
-    code: 'customer_pricing_request',
-    category: 'Skills',
-    description: 'Customer inquires about pricing',
-    active: true,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  {
-    id: '3',
-    name: 'Customer Solution Request',
-    code: 'customer_solution_request',
-    category: 'Skills',
-    description: 'Customer requests detailed solution information',
-    active: true,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  {
-    id: '4',
-    name: 'Customer Schedule Request',
-    code: 'customer_schedule_request',
-    category: 'Skills',
-    description: 'Customer requests a scheduled appointment',
-    active: true,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  // Communication Tags (formerly Behavior)
-  {
-    id: '5',
-    name: 'Listening Good',
-    code: 'listening_good',
-    category: 'Communication',
-    description: 'Agent demonstrated good listening skills',
-    active: true,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  // Process Tags (formerly Behavior)
-  {
-    id: '6',
-    name: 'Opening Complete',
-    code: 'opening_complete',
-    category: 'Process',
-    description: 'Call opening procedure was properly completed',
-    active: true,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  // Skills Tags
-  {
-    id: '7',
-    name: 'Active Selling Proposition',
-    code: 'active_selling_proposition',
-    category: 'Skills',
-    description: 'Agent actively presented value proposition',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  // Communication Tags
-  {
-    id: '8',
-    name: 'Agent Positive Attitude',
-    code: 'agent_positive_attitude',
-    category: 'Communication',
-    description: 'Agent maintained positive professional attitude',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  // Process Tags
-  {
-    id: '9',
-    name: 'Same Day Visit Attempt',
-    code: 'same_day_visit_attempt',
-    category: 'Process',
-    description: 'Agent attempted to schedule same-day visit',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  // Process Tags
-  {
-    id: '10',
-    name: 'SLA Exceeded',
-    code: 'sla_exceeded',
-    category: 'Process',
-    description: 'Service level agreement was breached',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  {
-    id: '11',
-    name: 'Callback Delay',
-    code: 'callback_delay',
-    category: 'Process',
-    description: 'Delayed callback to customer',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  {
-    id: '12',
-    name: 'Schedule Delay - Customer Reason',
-    code: 'schedule_delay_customer_reason',
-    category: 'Process',
-    description: 'Schedule delay caused by customer reason',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  {
-    id: '13',
-    name: 'Late Arrival',
-    code: 'late_arrival',
-    category: 'Process',
-    description: 'Agent or service arrived late',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  {
-    id: '14',
-    name: 'Appointment Content Issue',
-    code: 'appointment_content',
-    category: 'Process',
-    description: 'Appointment content did not match expectations',
-    active: true,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
+  // Sales - Sales.Process
+  { id: '1', name: 'Opening Complete', code: 'opening_complete', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-1', description: '完整介绍角色与目的', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '2', name: 'Needs Identification Basic', code: 'needs_identification_basic', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '基础需求识别', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '3', name: 'Needs Identification Deep', code: 'needs_identification_deep', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '深度需求探查（原因推测等）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '4', name: 'Solution Proposal Basic', code: 'solution_proposal_basic', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '提供基础方案方向', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '5', name: 'Solution Proposal Professional', code: 'solution_proposal_professional', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '解释检测技术、拆除可能性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '6', name: 'Schedule Attempt', code: 'schedule_attempt', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '尝试推进预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '7', name: 'Same Day Visit Attempt', code: 'same_day_visit_attempt', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动提出当天上门', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '8', name: 'Handover Process Explained', code: 'handover_process_explained', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '明确流程（检测→报价→施工）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  
+  // Sales - Sales.Skills
+  { id: '9', name: 'Handle Objection Basic', code: 'skill_handle_objection_basic', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '常规异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '10', name: 'Handle Objection Price', code: 'skill_handle_objection_price', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '价格异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '11', name: 'Handle Objection Time', code: 'skill_handle_objection_time', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '时间类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '12', name: 'Handle Objection Scope', code: 'skill_handle_objection_scope', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对检测/拆除的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '13', name: 'Handle Objection Risk', code: 'skill_handle_objection_risk', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对风险的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '14', name: 'Handle Objection Trust', code: 'skill_handle_objection_trust', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '信任类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '15', name: 'Active Selling Proposition', code: 'active_selling_proposition', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动介绍服务价值', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '16', name: 'Objection Prevention Proactive', code: 'objection_prevention_proactive', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动预防异议（提前说明）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '17', name: 'Expectation Setting', code: 'expectation_setting', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '预期管理（时间/施工范围）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '18', name: 'Expertise Display', code: 'expertise_display', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '技术专业性展示', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+
+  // Sales - Sales.Communication
+  { id: '19', name: 'Listening Good', code: 'listening_good', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '认真倾听（复述、回应）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '20', name: 'Empathy Response', code: 'empathy_response', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '共情、安抚客户情绪', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '21', name: 'Clarity of Explanation', code: 'clarity_of_explanation', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '解释清晰易懂', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '22', name: 'Tone Professional', code: 'tone_professional', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '专业语气', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '23', name: 'Attitude Positive', code: 'attitude_positive', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '态度积极', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+
+  // Customer - Customer.Intent
+  { id: '24', name: 'Customer High Intent', code: 'customer_high_intent', category: 'Customer', dimension: 'Customer.Intent', type: 'positive', severity: '无', scoreRange: '1-5', description: '强烈需求（急、焦虑）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '25', name: 'Customer Solution Request', code: 'customer_solution_request', category: 'Customer', dimension: 'Customer.Intent', type: 'neutral', severity: '无', scoreRange: '1-5', description: '索要维修方案', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '26', name: 'Customer Pricing Request', code: 'customer_pricing_request', category: 'Customer', dimension: 'Customer.Intent', type: 'neutral', severity: '无', scoreRange: '1-5', description: '索要报价', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '27', name: 'Customer Schedule Request', code: 'customer_schedule_request', category: 'Customer', dimension: 'Customer.Intent', type: 'neutral', severity: '无', scoreRange: '1-5', description: '主动提议预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+
+  // Customer - Customer.Attribute
+  { id: '28', name: 'Customer Role Owner', code: 'customer_role_owner', category: 'Customer', dimension: 'Customer.Attribute', type: 'neutral', severity: '无', scoreRange: '1-5', description: '房主身份', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '29', name: 'Customer Objection Price', code: 'customer_objection_price', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '价格异议', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '30', name: 'Customer Objection Time', code: 'customer_objection_time', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '时间冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '31', name: 'Customer Objection Trust', code: 'customer_objection_trust', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '不信任', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '32', name: 'Customer Objection Scope', code: 'customer_objection_scope', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '质疑必要性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+
+  // Service Issue
+  { id: '33', name: 'Schedule Delay Customer Reason', code: 'schedule_delay_customer_reason', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '因客户导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '34', name: 'Schedule Delay Agent Reason', code: 'schedule_delay_agent_reason', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '因工程师导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '35', name: 'Misalignment Price', code: 'misalignment_price', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '费用沟通不一致', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '36', name: 'Misalignment Scope', code: 'misalignment_scope', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '对施工范围理解偏差', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '37', name: 'Communication Breakdown', code: 'communication_breakdown', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '沟通中断/冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '38', name: 'Risk Unaddressed', code: 'risk_unaddressed', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '风险被忽略未解释', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 ]
 
 const mockRules: ScoringRule[] = [
@@ -353,14 +259,55 @@ export default function ConversationConfigPage() {
   const [selectedRule, setSelectedRule] = useState<ScoringRule | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   
+  // Filter State
+  const [filterState, setFilterState] = useState({
+    category: '',
+    dimension: '',
+    type: '' as '' | 'positive' | 'neutral' | 'negative'
+  })
+
+  // Fetch Tags from SQLite
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const res = await fetch('/api/team-calls/config/tags')
+        if (res.ok) {
+          const data = await res.json()
+          setTags(data)
+        } else {
+           console.warn('Failed to fetch tags from API, keeping mock data')
+        }
+      } catch (e) {
+        console.error('Error fetching tags:', e)
+      }
+    }
+    fetchTags()
+  }, [])
+
+  // Derived Filtered Tags
+  const filteredTags = useMemo(() => {
+    return tags.filter(tag => {
+      if (filterState.category && tag.category !== filterState.category) return false
+      if (filterState.dimension && tag.dimension !== filterState.dimension) return false
+      if (filterState.type && tag.type !== filterState.type) return false
+      return true
+    })
+  }, [tags, filterState])
+
+  // Unique Options for Filters
+  const categories = useMemo(() => Array.from(new Set(tags.map(t => t.category))), [tags])
+  const dimensions = useMemo(() => Array.from(new Set(tags.map(t => t.dimension))), [tags])
+  
   // Tag form state
-  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Skills' as const, description: '', active: true })
+  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', type: 'positive' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
   
   // Rule form state
   const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as const, scoreAdjustment: 0, weight: 1.0, active: true })
   
   // Score config form state
   const [scoreForm, setScoreForm] = useState({ processWeight: 30, skillsWeight: 50, communicationWeight: 20 })
+
+
 
   const handleSaveTag = () => {
     setIsSaving(true)
@@ -443,18 +390,65 @@ export default function ConversationConfigPage() {
       {activeTab === 'tags' && (
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Tag Management</h2>
-            <button
-              onClick={() => {
-                setSelectedTag(null)
-                setShowTagModal(true)
-              }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
-            >
-              <Plus className="h-4 w-4" />
-              Add Tag
-            </button>
+          <div className="px-6 py-4 border-b border-gray-200 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Tag Management</h2>
+              <button
+                onClick={() => {
+                  setSelectedTag(null)
+                  setShowTagModal(true)
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                Add Tag
+              </button>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4">
+              <select
+                value={filterState.category}
+                onChange={(e) => setFilterState({ ...filterState, category: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Categories</option>
+                {Array.from(new Set(tags.map(t => t.category))).sort().map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterState.dimension}
+                onChange={(e) => setFilterState({ ...filterState, dimension: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Dimensions</option>
+                {Array.from(new Set(tags.filter(t => !filterState.category || t.category === filterState.category).map(t => t.dimension))).sort().map(dim => (
+                  <option key={dim} value={dim}>{dim}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterState.type}
+                onChange={(e) => setFilterState({ ...filterState, type: e.target.value as any })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Types</option>
+                <option value="positive">Positive</option>
+                <option value="neutral">Neutral</option>
+                <option value="negative">Negative</option>
+              </select>
+
+              {(filterState.category || filterState.dimension || filterState.type) && (
+                <button
+                  onClick={() => setFilterState({ category: '', dimension: '', type: '' })}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Tags Table */}
@@ -464,20 +458,31 @@ export default function ConversationConfigPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category / Dimension</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {tags.map((tag) => (
+                {filteredTags.map((tag) => (
                   <tr key={tag.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{tag.name}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 font-mono">{tag.code}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 font-mono text-xs">{tag.code}</td>
                     <td className="px-6 py-4 text-sm">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {tag.category}
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{tag.category}</span>
+                        <span className="text-xs text-gray-500">{tag.dimension}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        tag.type === 'positive' ? 'bg-green-100 text-green-800' :
+                        tag.type === 'negative' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {tag.type}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
@@ -824,13 +829,49 @@ export default function ConversationConfigPage() {
                   defaultValue={selectedTag?.code || ''}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                  <option value="Process">Process</option>
-                  <option value="Skills">Skills</option>
-                  <option value="Communication">Communication</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={selectedTag?.category || 'Sales'}
+                  >
+                    <option value="Sales">Sales</option>
+                    <option value="Customer">Customer</option>
+                    <option value="Service Issue">Service Issue</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dimension</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Sales.Process"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={selectedTag?.dimension || ''}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={selectedTag?.type || 'positive'}
+                  >
+                    <option value="positive">Positive</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="negative">Negative</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Score Range</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., 1-5"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    defaultValue={selectedTag?.scoreRange || '1-5'}
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>

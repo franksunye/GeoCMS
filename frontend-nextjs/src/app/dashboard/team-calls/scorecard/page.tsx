@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, TrendingUp } from 'lucide-react'
+import AgentAvatar from '@/components/team/AgentAvatar'
+import { AgentId } from '@/types'
 
 type TimeFrame = 'custom' | 'yesterday' | '7d' | '30d' | '3m'
 type SortBy = 'overall' | 'process' | 'skills' | 'communication'
@@ -20,6 +22,8 @@ interface CategoryMetric {
 
 interface Agent {
   id: string
+  teamId?: string
+  avatarId: AgentId
   name: string
   overallScore: number
   recordings: number
@@ -31,182 +35,6 @@ interface Agent {
   skillsDetails: SubcategoryScore[]
   communicationDetails: SubcategoryScore[]
 }
-
-// Mock data
-const mockTeamData = {
-  name: 'Sales Team',
-  overallScore: 80,
-  recordings: 40,
-  winRate: 55,
-}
-
-// Define subcategories for each dimension
-const processSubcategories = [
-  'Shoe Covers',
-  'Agenda',
-  'Inspection / Discovery',
-  'Options Presentation',
-  'Price Presentation',
-  'Pre-close',
-  'Paperwork / Next Steps',
-]
-
-const skillsSubcategories = [
-  'Discovery Questions',
-  'Needs Analysis',
-  'Solution Positioning',
-  'Objection Handling',
-  'Negotiation',
-  'Closing Technique',
-]
-
-const communicationSubcategories = [
-  'Active Listening',
-  'Clarity & Conciseness',
-  'Tone & Confidence',
-  'Non-verbal Communication',
-  'Rapport Building',
-]
-
-// Helper function to generate subcategory scores
-const generateSubcategoryScores = (
-  subcategories: string[],
-  baseScore: number,
-  variance: number = 15
-): SubcategoryScore[] => {
-  return subcategories.map((name) => ({
-    name,
-    score: Math.max(0, Math.min(100, baseScore + (Math.random() - 0.5) * variance * 2)),
-  }))
-}
-
-const mockCategories: CategoryMetric[] = [
-  {
-    name: 'Process Adherence',
-    score: 79,
-    weight: 60,
-    subcategories: processSubcategories.map((name) => ({ name, score: 79 })),
-  },
-  {
-    name: 'Sales Skills',
-    score: 93,
-    weight: 30,
-    subcategories: skillsSubcategories.map((name) => ({ name, score: 93 })),
-  },
-  {
-    name: 'Communication',
-    score: 60,
-    weight: 10,
-    subcategories: communicationSubcategories.map((name) => ({ name, score: 60 })),
-  },
-]
-
-const mockAgents: Agent[] = [
-  {
-    id: '1',
-    name: 'Mike Jones',
-    overallScore: 95,
-    recordings: 10,
-    winRate: 60,
-    process: 96,
-    skills: 93,
-    communication: 95,
-    processDetails: generateSubcategoryScores(processSubcategories, 96),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 93),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 95),
-  },
-  {
-    id: '2',
-    name: 'Sarah Johnson',
-    overallScore: 94,
-    recordings: 10,
-    winRate: 50,
-    process: 92,
-    skills: 81,
-    communication: 98,
-    processDetails: generateSubcategoryScores(processSubcategories, 92),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 81),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 98),
-  },
-  {
-    id: '3',
-    name: 'Derrick Deacon',
-    overallScore: 80,
-    recordings: 10,
-    winRate: 40,
-    process: 79,
-    skills: 81,
-    communication: 45,
-    processDetails: generateSubcategoryScores(processSubcategories, 79),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 81),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 45),
-  },
-  {
-    id: '4',
-    name: 'Sheryl Grow',
-    overallScore: 78,
-    recordings: 10,
-    winRate: 30,
-    process: 73,
-    skills: 90,
-    communication: 45,
-    processDetails: generateSubcategoryScores(processSubcategories, 73),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 90),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 45),
-  },
-  {
-    id: '5',
-    name: 'Sam Waltman',
-    overallScore: 77,
-    recordings: 10,
-    winRate: 30,
-    process: 79,
-    skills: 88,
-    communication: 65,
-    processDetails: generateSubcategoryScores(processSubcategories, 79),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 88),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 65),
-  },
-  {
-    id: '6',
-    name: 'Bree Dawn',
-    overallScore: 72,
-    recordings: 10,
-    winRate: 20,
-    process: 75,
-    skills: 88,
-    communication: 55,
-    processDetails: generateSubcategoryScores(processSubcategories, 75),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 88),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 55),
-  },
-  {
-    id: '7',
-    name: 'Hillary Wilt',
-    overallScore: 42,
-    recordings: 10,
-    winRate: 20,
-    process: 39,
-    skills: 50,
-    communication: 45,
-    processDetails: generateSubcategoryScores(processSubcategories, 39),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 50),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 45),
-  },
-  {
-    id: '8',
-    name: 'Drew Able',
-    overallScore: 38,
-    recordings: 10,
-    winRate: 10,
-    process: 30,
-    skills: 48,
-    communication: 45,
-    processDetails: generateSubcategoryScores(processSubcategories, 30),
-    skillsDetails: generateSubcategoryScores(skillsSubcategories, 48),
-    communicationDetails: generateSubcategoryScores(communicationSubcategories, 45),
-  },
-]
 
 // Helper function to get score color
 const getScoreColor = (score: number): string => {
@@ -223,23 +51,148 @@ const getScoreBgColor = (score: number): string => {
 
 export default function ScorecardPage() {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('7d')
+  const [selectedTeam, setSelectedTeam] = useState<string>('all')
+  const [showOnlyActive, setShowOnlyActive] = useState<boolean>(true)
   const [sortBy, setSortBy] = useState<SortBy>('overall')
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [scoreConfig, setScoreConfig] = useState({
+    processWeight: 30,
+    skillsWeight: 50,
+    communicationWeight: 20
+  })
 
-  const sortedAgents = [...mockAgents].sort((a, b) => {
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const agentsRes = await fetch('/api/team-calls/scorecard/agents')
+        if (agentsRes.ok) {
+          const data = await agentsRes.json()
+          setAgents(data)
+        } else {
+          console.warn('Failed to fetch agents')
+          setAgents([])
+        }
+
+        const configRes = await fetch('/api/team-calls/config/score')
+        if (configRes.ok) {
+          const data = await configRes.json()
+          setScoreConfig(data)
+        }
+      } catch (e) {
+        console.error('Error fetching data:', e)
+        setAgents([])
+      }
+    }
+    fetchData()
+  }, [])
+
+  const teams = useMemo(() => {
+    const uniqueTeams = new Set(agents.map(a => a.teamId).filter(Boolean) as string[])
+    return Array.from(uniqueTeams).sort()
+  }, [agents])
+
+  const filteredAgents = useMemo(() => {
+    let result = agents
+    if (selectedTeam !== 'all') {
+      result = result.filter(a => a.teamId === selectedTeam)
+    }
+    if (showOnlyActive) {
+      result = result.filter(a => a.recordings > 0)
+    }
+    return result
+  }, [agents, selectedTeam, showOnlyActive])
+
+  const categories = useMemo(() => {
+    if (filteredAgents.length === 0) {
+      return [
+        {
+          name: 'Process Adherence',
+          score: 0,
+          weight: scoreConfig.processWeight,
+          subcategories: []
+        },
+        {
+          name: 'Sales Skills',
+          score: 0,
+          weight: scoreConfig.skillsWeight,
+          subcategories: []
+        },
+        {
+          name: 'Communication',
+          score: 0,
+          weight: scoreConfig.communicationWeight,
+          subcategories: []
+        }
+      ]
+    }
+
+    const processScore = Math.round(filteredAgents.reduce((acc, a) => acc + a.process, 0) / filteredAgents.length)
+    const skillsScore = Math.round(filteredAgents.reduce((acc, a) => acc + a.skills, 0) / filteredAgents.length)
+    const communicationScore = Math.round(filteredAgents.reduce((acc, a) => acc + a.communication, 0) / filteredAgents.length)
+
+    const getSubcategoryAverages = (key: 'processDetails' | 'skillsDetails' | 'communicationDetails') => {
+      const firstAgent = filteredAgents[0]
+      if (!firstAgent || !firstAgent[key] || firstAgent[key].length === 0) {
+        return []
+      }
+      
+      return firstAgent[key].map((sub, idx) => {
+        const avg = Math.round(filteredAgents.reduce((acc, a) => acc + (a[key][idx]?.score || 0), 0) / filteredAgents.length)
+        return { name: sub.name, score: avg }
+      })
+    }
+
+    return [
+      {
+        name: 'Process Adherence',
+        score: processScore,
+        weight: scoreConfig.processWeight,
+        subcategories: getSubcategoryAverages('processDetails')
+      },
+      {
+        name: 'Sales Skills',
+        score: skillsScore,
+        weight: scoreConfig.skillsWeight,
+        subcategories: getSubcategoryAverages('skillsDetails')
+      },
+      {
+        name: 'Communication',
+        score: communicationScore,
+        weight: scoreConfig.communicationWeight,
+        subcategories: getSubcategoryAverages('communicationDetails')
+      }
+    ]
+  }, [filteredAgents, scoreConfig])
+
+  const teamStats = useMemo(() => {
+    if (filteredAgents.length === 0) {
+      return {
+        name: 'Sales Team',
+        overallScore: 0,
+        recordings: 0,
+        winRate: 0
+      }
+    }
+    return {
+      name: 'Sales Team',
+      overallScore: Math.round(filteredAgents.reduce((acc, a) => acc + a.overallScore, 0) / filteredAgents.length),
+      recordings: filteredAgents.reduce((acc, a) => acc + a.recordings, 0),
+      winRate: Math.round(filteredAgents.reduce((acc, a) => acc + a.winRate, 0) / filteredAgents.length)
+    }
+  }, [filteredAgents])
+
+  const sortedAgents = [...filteredAgents].sort((a, b) => {
     switch (sortBy) {
-      case 'process':
-        return b.process - a.process
-      case 'skills':
-        return b.skills - a.skills
-      case 'communication':
-        return b.communication - a.communication
-      case 'overall':
-      default:
-        return b.overallScore - a.overallScore
+      case 'process': return b.process - a.process
+      case 'skills': return b.skills - a.skills
+      case 'communication': return b.communication - a.communication
+      case 'overall': default: return b.overallScore - a.overallScore
     }
   })
+
+  const activeCategory = categories.find(c => c.name === expandedCategory)
 
   return (
     <div className="space-y-6">
@@ -253,60 +206,69 @@ export default function ScorecardPage() {
 
       {/* Top Filters */}
       <div className="flex items-center justify-between gap-4">
-        {/* Timeframe Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">TIMEFRAME</span>
-          <div className="flex gap-2">
-            {(['custom', 'yesterday', '7d', '30d', '3m'] as const).map((tf) => (
-              <button
-                key={tf}
-                onClick={() => setTimeFrame(tf)}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  timeFrame === tf
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">TEAM</span>
+            <div className="relative">
+              <select
+                value={selectedTeam}
+                onChange={(e) => setSelectedTeam(e.target.value)}
+                className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
               >
-                {tf === 'custom'
-                  ? 'Custom'
-                  : tf === 'yesterday'
-                  ? 'Yesterday'
-                  : tf === '7d'
-                  ? '7D'
-                  : tf === '30d'
-                  ? '30D'
-                  : '3M'}
-              </button>
-            ))}
+                <option value="all">All Teams</option>
+                {teams.map(team => (
+                  <option key={team} value={team}>{team}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <ChevronDown className="h-4 w-4" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">TIMEFRAME</span>
+            <div className="flex gap-2">
+              {(['custom', 'yesterday', '7d', '30d', '3m'] as const).map((tf) => (
+                <button
+                  key={tf}
+                  onClick={() => setTimeFrame(tf)}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    timeFrame === tf ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                  }`}
+                >
+                  {tf === 'custom' ? 'Custom' : tf === 'yesterday' ? 'Yesterday' : tf === '7d' ? 'Last 7 Days' : tf === '30d' ? 'Last 30 Days' : 'Last 3 Months'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Scorecard Selector */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">SCORECARD</span>
-          <div className="relative">
-            <button className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-              Default
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input 
+                type="checkbox" 
+                className="sr-only" 
+                checked={showOnlyActive}
+                onChange={(e) => setShowOnlyActive(e.target.checked)}
+              />
+              <div className={`block w-10 h-6 rounded-full transition-colors ${showOnlyActive ? 'bg-blue-600' : 'bg-gray-200'}`}></div>
+              <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${showOnlyActive ? 'transform translate-x-4' : ''}`}></div>
+            </div>
+            <div className="ml-3 text-sm font-medium text-gray-700">
+              Recordings Only
+            </div>
+          </label>
 
-        {/* Sort By */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">SORT BY</span>
-          <div className="relative">
-            <button className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-              {sortBy === 'overall'
-                ? 'Overall Score'
-                : sortBy === 'process'
-                ? 'Process Adherence'
-                : sortBy === 'skills'
-                ? 'Sales Skills'
-                : 'Communication'}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">SORT BY</span>
+            <div className="relative group">
+            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+              {sortBy === 'overall' ? 'Overall Score' : sortBy === 'process' ? 'Process Adherence' : sortBy === 'skills' ? 'Sales Skills' : 'Communication'}
               <ChevronDown className="h-4 w-4" />
             </button>
-            <div className="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
+            <div className="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 group-hover:block">
               {[
                 { value: 'overall', label: 'Overall Score' },
                 { value: 'process', label: 'Process Adherence' },
@@ -325,36 +287,32 @@ export default function ScorecardPage() {
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Team Overview Card with Nested Category Metrics */}
+      {/* Team Overview Card */}
       <div className="bg-white shadow rounded-lg p-8 border-l-4 border-blue-600">
-        {/* Top Section: Team Info + Button */}
         <div className="flex items-start justify-between mb-8">
           <div className="flex items-center gap-6">
-            {/* Team Name and Score */}
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold text-gray-900">Team {mockTeamData.name}</h2>
-                <p className={`text-4xl font-bold ${getScoreColor(mockTeamData.overallScore)}`}>
-                  {mockTeamData.overallScore}
+                <h2 className="text-2xl font-bold text-gray-900">Team {teamStats.name}</h2>
+                <p className={`text-4xl font-bold ${getScoreColor(teamStats.overallScore)}`}>
+                  {teamStats.overallScore}
                 </p>
               </div>
               <div className="mt-2 text-sm text-gray-600 space-y-1">
-                <p>{mockTeamData.recordings} Recordings</p>
-                <p>{mockTeamData.winRate}% Win Rate</p>
+                <p>{teamStats.recordings} Recordings</p>
+                <p>{teamStats.winRate}% Win Rate</p>
               </div>
             </div>
           </div>
-          
-          {/* View Recordings Button */}
           <button className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-4 py-2 rounded-lg transition-colors">
             View Recordings →
           </button>
         </div>
         
-        {/* Category Metrics Grid - Inside the main card */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {mockCategories.map((category) => (
+          {categories.map((category) => (
             <div key={category.name}>
               <button
                 onClick={() => setExpandedCategory(expandedCategory === category.name ? null : category.name)}
@@ -372,8 +330,7 @@ export default function ScorecardPage() {
           ))}
         </div>
         
-        {/* Expanded Category Table */}
-        {expandedCategory && (
+        {expandedCategory && activeCategory && activeCategory.subcategories.length > 0 && (
           <div className="mt-6 border border-gray-200 rounded-lg overflow-hidden">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -388,71 +345,28 @@ export default function ScorecardPage() {
                 </tr>
               </thead>
               <tbody>
-                {expandedCategory === 'Process Adherence'
-                  ? mockAgents[0].processDetails.map((sub, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-6 py-3 text-sm text-gray-900 font-medium">{sub.name}</td>
-                        <td className={`px-6 py-3 text-sm font-bold ${getScoreColor(mockCategories[0].score)}`}>
-                          {Math.round(
-                            mockAgents.reduce((sum, agent) => sum + agent.processDetails[idx].score, 0) /
-                              mockAgents.length
-                          )}
+                {activeCategory.subcategories.map((sub, idx) => (
+                  <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                    <td className="px-6 py-3 text-sm text-gray-900 font-medium">{sub.name}</td>
+                    <td className={`px-6 py-3 text-sm font-bold ${getScoreColor(activeCategory.score)}`}>
+                      {sub.score}
+                    </td>
+                    {sortedAgents.map((agent) => {
+                       const details = expandedCategory === 'Process Adherence' ? agent.processDetails :
+                                       expandedCategory === 'Sales Skills' ? agent.skillsDetails :
+                                       agent.communicationDetails
+                       const score = details[idx]?.score || 0
+                       return (
+                        <td
+                          key={agent.id}
+                          className={`px-6 py-3 text-sm font-bold ${getScoreColor(score)}`}
+                        >
+                          {Math.round(score)}
                         </td>
-                        {sortedAgents.map((agent) => (
-                          <td
-                            key={agent.id}
-                            className={`px-6 py-3 text-sm font-bold ${getScoreColor(
-                              agent.processDetails[idx].score
-                            )}`}
-                          >
-                            {Math.round(agent.processDetails[idx].score)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  : expandedCategory === 'Sales Skills'
-                  ? mockAgents[0].skillsDetails.map((sub, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-6 py-3 text-sm text-gray-900 font-medium">{sub.name}</td>
-                        <td className={`px-6 py-3 text-sm font-bold ${getScoreColor(mockCategories[1].score)}`}>
-                          {Math.round(
-                            mockAgents.reduce((sum, agent) => sum + agent.skillsDetails[idx].score, 0) /
-                              mockAgents.length
-                          )}
-                        </td>
-                        {sortedAgents.map((agent) => (
-                          <td
-                            key={agent.id}
-                            className={`px-6 py-3 text-sm font-bold ${getScoreColor(
-                              agent.skillsDetails[idx].score
-                            )}`}
-                          >
-                            {Math.round(agent.skillsDetails[idx].score)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))
-                  : mockAgents[0].communicationDetails.map((sub, idx) => (
-                      <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                        <td className="px-6 py-3 text-sm text-gray-900 font-medium">{sub.name}</td>
-                        <td className={`px-6 py-3 text-sm font-bold ${getScoreColor(mockCategories[2].score)}`}>
-                          {Math.round(
-                            mockAgents.reduce((sum, agent) => sum + agent.communicationDetails[idx].score, 0) /
-                              mockAgents.length
-                          )}
-                        </td>
-                        {sortedAgents.map((agent) => (
-                          <td
-                            key={agent.id}
-                            className={`px-6 py-3 text-sm font-bold ${getScoreColor(
-                              agent.communicationDetails[idx].score
-                            )}`}
-                          >
-                            {Math.round(agent.communicationDetails[idx].score)}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
+                       )
+                    })}
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -469,23 +383,21 @@ export default function ScorecardPage() {
                 agent.overallScore
               )}`}
             >
-              {/* Header: Name/Stats & Overall Score */}
               <div className="flex justify-between items-start mb-5">
-                <div>
-                  <h4 className="font-bold text-gray-900 text-lg">{agent.name}</h4>
-                  <div className="mt-1 space-y-0.5 text-xs font-medium text-gray-500">
-                    <p>{agent.recordings} Recordings</p>
-                    <p>{agent.winRate}% Win Rate</p>
+                <div className="flex items-center gap-3">
+                  <AgentAvatar agentId={agent.avatarId} size="md" />
+                  <div>
+                    <h4 className="font-bold text-gray-900 text-lg">{agent.name}</h4>
+                    <div className="mt-1 space-y-0.5 text-xs font-medium text-gray-500">
+                      <p>{agent.recordings} Recordings</p>
+                      <p>{agent.winRate}% Win Rate</p>
+                    </div>
                   </div>
                 </div>
-                
-                {/* Overall Score Circle */}
                 <div className={`flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-sm ${getScoreColor(agent.overallScore)}`}>
                   <span className="text-3xl font-bold">{agent.overallScore}</span>
                 </div>
               </div>
-
-              {/* Categories */}
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm">
                   <span className="text-sm font-medium text-gray-700">Process</span>
@@ -508,18 +420,22 @@ export default function ScorecardPage() {
       {selectedAgent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
             <div className="flex items-start justify-between p-8 border-b border-gray-200 bg-gray-900 text-white">
-              <div>
-                <h2 className="text-3xl font-bold">{selectedAgent.name}</h2>
-                <div className="flex items-center gap-4 mt-4">
-                  <div>
-                    <p className="text-sm text-gray-400">Recordings</p>
-                    <p className="text-lg font-semibold">{selectedAgent.recordings}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-400">Win Rate</p>
-                    <p className="text-lg font-semibold">{selectedAgent.winRate}%</p>
+              <div className="flex gap-6 items-center">
+                <div className="bg-white rounded-full p-1">
+                  <AgentAvatar agentId={selectedAgent.avatarId} size="xl" />
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold">{selectedAgent.name}</h2>
+                  <div className="flex items-center gap-4 mt-4">
+                    <div>
+                      <p className="text-sm text-gray-400">Recordings</p>
+                      <p className="text-lg font-semibold">{selectedAgent.recordings}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-400">Win Rate</p>
+                      <p className="text-lg font-semibold">{selectedAgent.winRate}%</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -534,9 +450,7 @@ export default function ScorecardPage() {
               </div>
             </div>
 
-            {/* Modal Content - Three Dimensions with Tables */}
             <div className="p-8 space-y-8">
-              {/* Helper function to calculate team average and diff */}
               {[
                 {
                   title: 'Process Adherence',
@@ -561,9 +475,8 @@ export default function ScorecardPage() {
                       {dimension.score}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-600 mb-4">Category Weight: {mockCategories[dimIdx].weight}%</p>
+                  <p className="text-sm text-gray-600 mb-4">Category Weight: {categories[dimIdx].weight}%</p>
 
-                  {/* Table */}
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b-2 border-gray-300">
@@ -575,18 +488,23 @@ export default function ScorecardPage() {
                     </thead>
                     <tbody>
                       {dimension.details.map((detail, idx) => {
-                        const teamAvg = Math.round(
-                          mockAgents.reduce(
+                        // Filter agents to get only those in the same team as the selected agent
+                        const teamAgents = selectedAgent.teamId 
+                          ? agents.filter(a => a.teamId === selectedAgent.teamId)
+                          : agents;
+                          
+                        const teamAvg = teamAgents.length > 0 ? Math.round(
+                          teamAgents.reduce(
                             (sum, agent) =>
                               sum +
                               (dimIdx === 0
-                                ? agent.processDetails[idx].score
+                                ? agent.processDetails[idx]?.score || 0
                                 : dimIdx === 1
-                                ? agent.skillsDetails[idx].score
-                                : agent.communicationDetails[idx].score),
+                                ? agent.skillsDetails[idx]?.score || 0
+                                : agent.communicationDetails[idx]?.score || 0),
                             0
-                          ) / mockAgents.length
-                        );
+                          ) / teamAgents.length
+                        ) : 0;
                         const diff = Math.round(detail.score) - teamAvg;
                         return (
                           <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
@@ -617,7 +535,6 @@ export default function ScorecardPage() {
               ))}
             </div>
 
-            {/* Modal Footer */}
             <div className="flex justify-end gap-2 p-6 border-t border-gray-200 bg-gray-50">
               <button
                 onClick={() => setSelectedAgent(null)}
