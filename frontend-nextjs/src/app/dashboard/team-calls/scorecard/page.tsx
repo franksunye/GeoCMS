@@ -51,7 +51,7 @@ const getScoreBgColor = (score: number): string => {
 
 export default function ScorecardPage() {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('7d')
-  const [selectedTeam, setSelectedTeam] = useState<string>('all')
+  const [selectedTeam, setSelectedTeam] = useState<string>('9055771909563658940')
   const [showOnlyActive, setShowOnlyActive] = useState<boolean>(true)
   const [sortBy, setSortBy] = useState<SortBy>('overall')
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
