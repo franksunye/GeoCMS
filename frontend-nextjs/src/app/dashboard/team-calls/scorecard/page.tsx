@@ -108,19 +108,19 @@ export default function ScorecardPage() {
     if (filteredAgents.length === 0) {
       return [
         {
-          name: 'Process Adherence',
+          name: '流程遵循度',
           score: 0,
           weight: scoreConfig.processWeight,
           subcategories: []
         },
         {
-          name: 'Sales Skills',
+          name: '销售技巧',
           score: 0,
           weight: scoreConfig.skillsWeight,
           subcategories: []
         },
         {
-          name: 'Communication',
+          name: '沟通能力',
           score: 0,
           weight: scoreConfig.communicationWeight,
           subcategories: []
@@ -146,19 +146,19 @@ export default function ScorecardPage() {
 
     return [
       {
-        name: 'Process Adherence',
+        name: '流程遵循度',
         score: processScore,
         weight: scoreConfig.processWeight,
         subcategories: getSubcategoryAverages('processDetails')
       },
       {
-        name: 'Sales Skills',
+        name: '销售技巧',
         score: skillsScore,
         weight: scoreConfig.skillsWeight,
         subcategories: getSubcategoryAverages('skillsDetails')
       },
       {
-        name: 'Communication',
+        name: '沟通能力',
         score: communicationScore,
         weight: scoreConfig.communicationWeight,
         subcategories: getSubcategoryAverages('communicationDetails')
@@ -169,14 +169,14 @@ export default function ScorecardPage() {
   const teamStats = useMemo(() => {
     if (filteredAgents.length === 0) {
       return {
-        name: 'Sales Team',
+        name: '销售团队',
         overallScore: 0,
         recordings: 0,
         winRate: 0
       }
     }
     return {
-      name: 'Sales Team',
+      name: '销售团队',
       overallScore: Math.round(filteredAgents.reduce((acc, a) => acc + a.overallScore, 0) / filteredAgents.length),
       recordings: filteredAgents.reduce((acc, a) => acc + a.recordings, 0),
       winRate: Math.round(filteredAgents.reduce((acc, a) => acc + a.winRate, 0) / filteredAgents.length)
@@ -199,8 +199,8 @@ export default function ScorecardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Scorecard</h1>
-          <p className="mt-2 text-gray-600">Team performance metrics and individual agent rankings</p>
+          <h1 className="text-3xl font-bold text-gray-900">评分看板</h1>
+          <p className="mt-2 text-gray-600">团队绩效指标与个人排名</p>
         </div>
       </div>
 
@@ -208,14 +208,14 @@ export default function ScorecardPage() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">TEAM</span>
+            <span className="text-sm font-medium text-gray-700">团队</span>
             <div className="relative">
               <select
                 value={selectedTeam}
                 onChange={(e) => setSelectedTeam(e.target.value)}
                 className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
               >
-                <option value="all">All Teams</option>
+                <option value="all">所有团队</option>
                 {teams.map(team => (
                   <option key={team} value={team}>{team}</option>
                 ))}
@@ -227,7 +227,7 @@ export default function ScorecardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">TIMEFRAME</span>
+            <span className="text-sm font-medium text-gray-700">时间范围</span>
             <div className="flex gap-2">
               {(['custom', 'yesterday', '7d', '30d', '3m'] as const).map((tf) => (
                 <button
@@ -237,7 +237,7 @@ export default function ScorecardPage() {
                     timeFrame === tf ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                   }`}
                 >
-                  {tf === 'custom' ? 'Custom' : tf === 'yesterday' ? 'Yesterday' : tf === '7d' ? 'Last 7 Days' : tf === '30d' ? 'Last 30 Days' : 'Last 3 Months'}
+                  {tf === 'custom' ? '自定义' : tf === 'yesterday' ? '昨天' : tf === '7d' ? '近7天' : tf === '30d' ? '近30天' : '近3个月'}
                 </button>
               ))}
             </div>
@@ -257,23 +257,23 @@ export default function ScorecardPage() {
               <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${showOnlyActive ? 'transform translate-x-4' : ''}`}></div>
             </div>
             <div className="ml-3 text-sm font-medium text-gray-700">
-              Recordings Only
+              仅显示有录音
             </div>
           </label>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">SORT BY</span>
+            <span className="text-sm font-medium text-gray-700">排序方式</span>
             <div className="relative group">
             <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-              {sortBy === 'overall' ? 'Overall Score' : sortBy === 'process' ? 'Process Adherence' : sortBy === 'skills' ? 'Sales Skills' : 'Communication'}
+              {sortBy === 'overall' ? '综合评分' : sortBy === 'process' ? '流程遵循' : sortBy === 'skills' ? '销售技巧' : '沟通能力'}
               <ChevronDown className="h-4 w-4" />
             </button>
             <div className="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 group-hover:block">
               {[
-                { value: 'overall', label: 'Overall Score' },
-                { value: 'process', label: 'Process Adherence' },
-                { value: 'skills', label: 'Sales Skills' },
-                { value: 'communication', label: 'Communication' },
+                { value: 'overall', label: '综合评分' },
+                { value: 'process', label: '流程遵循' },
+                { value: 'skills', label: '销售技巧' },
+                { value: 'communication', label: '沟通能力' },
               ].map((option) => (
                 <button
                   key={option.value}
@@ -295,19 +295,19 @@ export default function ScorecardPage() {
           <div className="flex items-center gap-6">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold text-gray-900">Team {teamStats.name}</h2>
+                <h2 className="text-2xl font-bold text-gray-900">团队 {teamStats.name}</h2>
                 <p className={`text-4xl font-bold ${getScoreColor(teamStats.overallScore)}`}>
                   {teamStats.overallScore}
                 </p>
               </div>
               <div className="mt-2 text-sm text-gray-600 space-y-1">
-                <p>{teamStats.recordings} Recordings</p>
-                <p>{teamStats.winRate}% Win Rate</p>
+                <p>{teamStats.recordings} 条录音</p>
+                <p>{teamStats.winRate}% 赢单率</p>
               </div>
             </div>
           </div>
           <button className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-4 py-2 rounded-lg transition-colors">
-            View Recordings →
+            查看录音 →
           </button>
         </div>
         
@@ -321,7 +321,7 @@ export default function ScorecardPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-gray-900 font-semibold">{category.name}</p>
-                    <p className="text-xs text-gray-600 mt-3">Category Weight: {category.weight}%</p>
+                    <p className="text-xs text-gray-600 mt-3">权重: {category.weight}%</p>
                   </div>
                   <p className={`text-3xl font-bold ${getScoreColor(category.score)}`}>{category.score}</p>
                 </div>
@@ -335,8 +335,8 @@ export default function ScorecardPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-6 py-3 font-semibold text-sm text-gray-900">Subcategory</th>
-                  <th className="text-left px-6 py-3 font-semibold text-sm text-gray-900">Team</th>
+                  <th className="text-left px-6 py-3 font-semibold text-sm text-gray-900">子分类</th>
+                  <th className="text-left px-6 py-3 font-semibold text-sm text-gray-900">团队</th>
                   {sortedAgents.map((agent) => (
                     <th key={agent.id} className="text-left px-6 py-3 font-semibold text-sm text-gray-900">
                       {agent.name}
@@ -352,8 +352,8 @@ export default function ScorecardPage() {
                       {sub.score}
                     </td>
                     {sortedAgents.map((agent) => {
-                       const details = expandedCategory === 'Process Adherence' ? agent.processDetails :
-                                       expandedCategory === 'Sales Skills' ? agent.skillsDetails :
+                       const details = expandedCategory === '流程遵循度' ? agent.processDetails :
+                                       expandedCategory === '销售技巧' ? agent.skillsDetails :
                                        agent.communicationDetails
                        const score = details[idx]?.score || 0
                        return (
@@ -389,9 +389,9 @@ export default function ScorecardPage() {
                   <div>
                     <h4 className="font-bold text-gray-900 text-lg">{agent.name}</h4>
                     <div className="mt-1 space-y-0.5 text-xs font-medium text-gray-500">
-                      <p>{agent.recordings} Recordings</p>
-                      <p>{agent.winRate}% Win Rate</p>
-                    </div>
+                <p>{agent.recordings} 条录音</p>
+                <p>{agent.winRate}% 赢单率</p>
+              </div>
                   </div>
                 </div>
                 <div className={`flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-sm ${getScoreColor(agent.overallScore)}`}>
@@ -400,15 +400,15 @@ export default function ScorecardPage() {
               </div>
               <div className="space-y-2.5">
                 <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm">
-                  <span className="text-sm font-medium text-gray-700">Process</span>
+                  <span className="text-sm font-medium text-gray-700">流程</span>
                   <span className={`font-bold ${getScoreColor(agent.process)}`}>{agent.process}</span>
                 </div>
                 <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm">
-                  <span className="text-sm font-medium text-gray-700">Skills</span>
+                  <span className="text-sm font-medium text-gray-700">技巧</span>
                   <span className={`font-bold ${getScoreColor(agent.skills)}`}>{agent.skills}</span>
                 </div>
                 <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm">
-                  <span className="text-sm font-medium text-gray-700">Communication</span>
+                  <span className="text-sm font-medium text-gray-700">沟通</span>
                   <span className={`font-bold ${getScoreColor(agent.communication)}`}>{agent.communication}</span>
                 </div>
               </div>
@@ -429,11 +429,11 @@ export default function ScorecardPage() {
                   <h2 className="text-3xl font-bold">{selectedAgent.name}</h2>
                   <div className="flex items-center gap-4 mt-4">
                     <div>
-                      <p className="text-sm text-gray-400">Recordings</p>
+                      <p className="text-sm text-gray-400">录音数量</p>
                       <p className="text-lg font-semibold">{selectedAgent.recordings}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-400">Win Rate</p>
+                      <p className="text-sm text-gray-400">赢单率</p>
                       <p className="text-lg font-semibold">{selectedAgent.winRate}%</p>
                     </div>
                   </div>
@@ -453,17 +453,17 @@ export default function ScorecardPage() {
             <div className="p-8 space-y-8">
               {[
                 {
-                  title: 'Process Adherence',
+                  title: '流程遵循度',
                   score: selectedAgent.process,
                   details: selectedAgent.processDetails,
                 },
                 {
-                  title: 'Sales Skills',
+                  title: '销售技巧',
                   score: selectedAgent.skills,
                   details: selectedAgent.skillsDetails,
                 },
                 {
-                  title: 'Communication',
+                  title: '沟通能力',
                   score: selectedAgent.communication,
                   details: selectedAgent.communicationDetails,
                 },
@@ -475,15 +475,15 @@ export default function ScorecardPage() {
                       {dimension.score}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-600 mb-4">Category Weight: {categories[dimIdx].weight}%</p>
+                  <p className="text-sm text-gray-600 mb-4">权重: {categories[dimIdx].weight}%</p>
 
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="border-b-2 border-gray-300">
-                        <th className="text-left px-4 py-3 font-semibold text-gray-900">Subcategory</th>
-                        <th className="text-center px-4 py-3 font-semibold text-gray-900">Rep</th>
-                        <th className="text-center px-4 py-3 font-semibold text-gray-900">Team</th>
-                        <th className="text-center px-4 py-3 font-semibold text-gray-900">Diff</th>
+                        <th className="text-left px-4 py-3 font-semibold text-gray-900">子分类</th>
+                        <th className="text-center px-4 py-3 font-semibold text-gray-900">个人</th>
+                        <th className="text-center px-4 py-3 font-semibold text-gray-900">团队</th>
+                        <th className="text-center px-4 py-3 font-semibold text-gray-900">差值</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -540,7 +540,7 @@ export default function ScorecardPage() {
                 onClick={() => setSelectedAgent(null)}
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition-colors font-medium"
               >
-                Close
+                关闭
               </button>
               <button className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-gray-900 rounded-lg transition-colors font-medium">
                 View Recordings →
