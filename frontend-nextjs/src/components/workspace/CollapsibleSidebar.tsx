@@ -23,10 +23,6 @@ import { useWorkspaceStore } from '@/lib/stores/workspace-store'
 import { Button } from '@/components/ui/button'
 
 const navigation = [
-  // { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'My Tasks', href: '/dashboard/tasks', icon: Activity, badge: true },
-  { name: 'Team', href: '/dashboard/team', icon: Users },
-
   {
     name: 'Team Calls',
     icon: PhoneCall,
@@ -37,8 +33,7 @@ const navigation = [
       { name: 'Config', href: '/dashboard/team-calls/config', icon: Settings },
     ]
   },
-  { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
-  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
+  { name: 'Team', href: '/dashboard/team', icon: Users },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
