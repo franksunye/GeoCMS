@@ -11,7 +11,7 @@ type Tag = {
   code: string
   category: string
   dimension: string
-  type: 'positive' | 'neutral' | 'negative'
+  polarity: 'positive' | 'neutral' | 'negative'
   severity?: string
   scoreRange: string
   description: string
@@ -61,54 +61,54 @@ type AuditLog = {
 // Mock data - extracted from Call List actual data
 const mockTags: Tag[] = [
   // Sales - Sales.Process
-  { id: '1', name: 'Opening Complete', code: 'opening_complete', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-1', description: '完整介绍角色与目的', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '2', name: 'Needs Identification Basic', code: 'needs_identification_basic', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '基础需求识别', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '3', name: 'Needs Identification Deep', code: 'needs_identification_deep', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '深度需求探查（原因推测等）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '4', name: 'Solution Proposal Basic', code: 'solution_proposal_basic', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '提供基础方案方向', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '5', name: 'Solution Proposal Professional', code: 'solution_proposal_professional', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '解释检测技术、拆除可能性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '6', name: 'Schedule Attempt', code: 'schedule_attempt', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '尝试推进预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '7', name: 'Same Day Visit Attempt', code: 'same_day_visit_attempt', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动提出当天上门', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '8', name: 'Handover Process Explained', code: 'handover_process_explained', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '明确流程（检测→报价→施工）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '1', name: 'Opening Complete', code: 'opening_complete', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-1', description: '完整介绍角色与目的', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '2', name: 'Needs Identification Basic', code: 'needs_identification_basic', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '基础需求识别', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '3', name: 'Needs Identification Deep', code: 'needs_identification_deep', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '深度需求探查（原因推测等）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '4', name: 'Solution Proposal Basic', code: 'solution_proposal_basic', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '提供基础方案方向', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '5', name: 'Solution Proposal Professional', code: 'solution_proposal_professional', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '解释检测技术、拆除可能性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '6', name: 'Schedule Attempt', code: 'schedule_attempt', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '尝试推进预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '7', name: 'Same Day Visit Attempt', code: 'same_day_visit_attempt', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '主动提出当天上门', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '8', name: 'Handover Process Explained', code: 'handover_process_explained', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '明确流程（检测→报价→施工）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
   
   // Sales - Sales.Skills
-  { id: '9', name: 'Handle Objection Basic', code: 'skill_handle_objection_basic', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '常规异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '10', name: 'Handle Objection Price', code: 'skill_handle_objection_price', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '价格异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '11', name: 'Handle Objection Time', code: 'skill_handle_objection_time', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '时间类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '12', name: 'Handle Objection Scope', code: 'skill_handle_objection_scope', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对检测/拆除的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '13', name: 'Handle Objection Risk', code: 'skill_handle_objection_risk', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对风险的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '14', name: 'Handle Objection Trust', code: 'skill_handle_objection_trust', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '信任类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '15', name: 'Active Selling Proposition', code: 'active_selling_proposition', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动介绍服务价值', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '16', name: 'Objection Prevention Proactive', code: 'objection_prevention_proactive', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动预防异议（提前说明）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '17', name: 'Expectation Setting', code: 'expectation_setting', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '预期管理（时间/施工范围）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '18', name: 'Expertise Display', code: 'expertise_display', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '技术专业性展示', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '9', name: 'Handle Objection Basic', code: 'skill_handle_objection_basic', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '常规异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '10', name: 'Handle Objection Price', code: 'skill_handle_objection_price', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '价格异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '11', name: 'Handle Objection Time', code: 'skill_handle_objection_time', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '时间类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '12', name: 'Handle Objection Scope', code: 'skill_handle_objection_scope', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '对检测/拆除的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '13', name: 'Handle Objection Risk', code: 'skill_handle_objection_risk', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '对风险的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '14', name: 'Handle Objection Trust', code: 'skill_handle_objection_trust', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '信任类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '15', name: 'Active Selling Proposition', code: 'active_selling_proposition', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '主动介绍服务价值', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '16', name: 'Objection Prevention Proactive', code: 'objection_prevention_proactive', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '主动预防异议（提前说明）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '17', name: 'Expectation Setting', code: 'expectation_setting', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '预期管理（时间/施工范围）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '18', name: 'Expertise Display', code: 'expertise_display', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '技术专业性展示', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
   // Sales - Sales.Communication
-  { id: '19', name: 'Listening Good', code: 'listening_good', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '认真倾听（复述、回应）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '20', name: 'Empathy Response', code: 'empathy_response', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '共情、安抚客户情绪', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '21', name: 'Clarity of Explanation', code: 'clarity_of_explanation', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '解释清晰易懂', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '22', name: 'Tone Professional', code: 'tone_professional', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '专业语气', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '23', name: 'Attitude Positive', code: 'attitude_positive', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '态度积极', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '19', name: 'Listening Good', code: 'listening_good', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '认真倾听（复述、回应）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '20', name: 'Empathy Response', code: 'empathy_response', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '共情、安抚客户情绪', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '21', name: 'Clarity of Explanation', code: 'clarity_of_explanation', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '解释清晰易懂', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '22', name: 'Tone Professional', code: 'tone_professional', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '专业语气', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '23', name: 'Attitude Positive', code: 'attitude_positive', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '态度积极', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
   // Customer - Customer.Intent
-  { id: '24', name: 'Customer High Intent', code: 'customer_high_intent', category: 'Customer', dimension: 'Customer.Intent', type: 'positive', severity: '无', scoreRange: '1-5', description: '强烈需求（急、焦虑）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '25', name: 'Customer Solution Request', code: 'customer_solution_request', category: 'Customer', dimension: 'Customer.Intent', type: 'neutral', severity: '无', scoreRange: '1-5', description: '索要维修方案', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '26', name: 'Customer Pricing Request', code: 'customer_pricing_request', category: 'Customer', dimension: 'Customer.Intent', type: 'neutral', severity: '无', scoreRange: '1-5', description: '索要报价', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '27', name: 'Customer Schedule Request', code: 'customer_schedule_request', category: 'Customer', dimension: 'Customer.Intent', type: 'neutral', severity: '无', scoreRange: '1-5', description: '主动提议预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '24', name: 'Customer High Intent', code: 'customer_high_intent', category: 'Customer', dimension: 'Customer.Intent', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '强烈需求（急、焦虑）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '25', name: 'Customer Solution Request', code: 'customer_solution_request', category: 'Customer', dimension: 'Customer.Intent', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '索要维修方案', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '26', name: 'Customer Pricing Request', code: 'customer_pricing_request', category: 'Customer', dimension: 'Customer.Intent', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '索要报价', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '27', name: 'Customer Schedule Request', code: 'customer_schedule_request', category: 'Customer', dimension: 'Customer.Intent', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '主动提议预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
   // Customer - Customer.Attribute
-  { id: '28', name: 'Customer Role Owner', code: 'customer_role_owner', category: 'Customer', dimension: 'Customer.Attribute', type: 'neutral', severity: '无', scoreRange: '1-5', description: '房主身份', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '29', name: 'Customer Objection Price', code: 'customer_objection_price', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '价格异议', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '30', name: 'Customer Objection Time', code: 'customer_objection_time', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '时间冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '31', name: 'Customer Objection Trust', code: 'customer_objection_trust', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '不信任', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '32', name: 'Customer Objection Scope', code: 'customer_objection_scope', category: 'Customer', dimension: 'Customer.Attribute', type: 'negative', severity: '无', scoreRange: '1-5', description: '质疑必要性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '28', name: 'Customer Role Owner', code: 'customer_role_owner', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '房主身份', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '29', name: 'Customer Objection Price', code: 'customer_objection_price', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '价格异议', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '30', name: 'Customer Objection Time', code: 'customer_objection_time', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '时间冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '31', name: 'Customer Objection Trust', code: 'customer_objection_trust', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '不信任', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '32', name: 'Customer Objection Scope', code: 'customer_objection_scope', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '质疑必要性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
   // Service Issue
-  { id: '33', name: 'Schedule Delay Customer Reason', code: 'schedule_delay_customer_reason', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '因客户导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '34', name: 'Schedule Delay Agent Reason', code: 'schedule_delay_agent_reason', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '因工程师导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '35', name: 'Misalignment Price', code: 'misalignment_price', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '费用沟通不一致', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '36', name: 'Misalignment Scope', code: 'misalignment_scope', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '对施工范围理解偏差', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '37', name: 'Communication Breakdown', code: 'communication_breakdown', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '沟通中断/冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '38', name: 'Risk Unaddressed', code: 'risk_unaddressed', category: 'Service Issue', dimension: 'Service Issue', type: 'negative', severity: '1-3', scoreRange: '1-5', description: '风险被忽略未解释', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '33', name: 'Schedule Delay Customer Reason', code: 'schedule_delay_customer_reason', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '因客户导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '34', name: 'Schedule Delay Agent Reason', code: 'schedule_delay_agent_reason', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '因工程师导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '35', name: 'Misalignment Price', code: 'misalignment_price', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '费用沟通不一致', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '36', name: 'Misalignment Scope', code: 'misalignment_scope', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '对施工范围理解偏差', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '37', name: 'Communication Breakdown', code: 'communication_breakdown', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '沟通中断/冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+  { id: '38', name: 'Risk Unaddressed', code: 'risk_unaddressed', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '风险被忽略未解释', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 ]
 
 const mockRules: ScoringRule[] = [
@@ -263,7 +263,7 @@ export default function ConversationConfigPage() {
   const [filterState, setFilterState] = useState({
     category: '',
     dimension: '',
-    type: '' as '' | 'positive' | 'neutral' | 'negative'
+    polarity: '' as '' | 'positive' | 'neutral' | 'negative'
   })
 
   // Fetch Tags from SQLite
@@ -289,7 +289,7 @@ export default function ConversationConfigPage() {
     return tags.filter(tag => {
       if (filterState.category && tag.category !== filterState.category) return false
       if (filterState.dimension && tag.dimension !== filterState.dimension) return false
-      if (filterState.type && tag.type !== filterState.type) return false
+      if (filterState.polarity && tag.polarity !== filterState.polarity) return false
       return true
     })
   }, [tags, filterState])
@@ -299,7 +299,7 @@ export default function ConversationConfigPage() {
   const dimensions = useMemo(() => Array.from(new Set(tags.map(t => t.dimension))), [tags])
   
   // Tag form state
-  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', type: 'positive' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
+  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
   
   // Rule form state
   const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as const, scoreAdjustment: 0, weight: 1.0, active: true })
@@ -430,8 +430,8 @@ export default function ConversationConfigPage() {
               </select>
 
               <select
-                value={filterState.type}
-                onChange={(e) => setFilterState({ ...filterState, type: e.target.value as any })}
+                value={filterState.polarity}
+                onChange={(e) => setFilterState({ ...filterState, polarity: e.target.value as any })}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Types</option>
@@ -440,9 +440,9 @@ export default function ConversationConfigPage() {
                 <option value="negative">Negative</option>
               </select>
 
-              {(filterState.category || filterState.dimension || filterState.type) && (
+              {(filterState.category || filterState.dimension || filterState.polarity) && (
                 <button
-                  onClick={() => setFilterState({ category: '', dimension: '', type: '' })}
+                  onClick={() => setFilterState({ category: '', dimension: '', polarity: '' })}
                   className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
                 >
                   Reset Filters
@@ -459,7 +459,7 @@ export default function ConversationConfigPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Code</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category / Dimension</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Polarity</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Description</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
@@ -478,11 +478,11 @@ export default function ConversationConfigPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        tag.type === 'positive' ? 'bg-green-100 text-green-800' :
-                        tag.type === 'negative' ? 'bg-red-100 text-red-800' :
+                        tag.polarity === 'positive' ? 'bg-green-100 text-green-800' :
+                        tag.polarity === 'negative' ? 'bg-red-100 text-red-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {tag.type}
+                        {tag.polarity}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm">
@@ -853,10 +853,10 @@ export default function ConversationConfigPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Polarity</label>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedTag?.type || 'positive'}
+                    defaultValue={selectedTag?.polarity || 'positive'}
                   >
                     <option value="positive">Positive</option>
                     <option value="neutral">Neutral</option>

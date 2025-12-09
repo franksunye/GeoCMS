@@ -63,7 +63,8 @@ interface SyncJob {
 // Sync Jobs Configuration
 const SYNC_JOBS: SyncJob[] = [
   {
-    cardId: 1937, // AI Analysis Logs
+    // cardId: 1937, // AI Analysis Logs V1
+    cardId: 1942, // AI Analysis Logs V2
     tableName: 'ai_analysis_logs',
     mapping: {
       '_id': 'id',
@@ -76,37 +77,38 @@ const SYNC_JOBS: SyncJob[] = [
     }
   },
   {
-    cardId: 1938, // Transcripts
+    cardId: 1938, // audioURL & Transcripts
     tableName: 'transcripts',
     mapping: {
       '_id': 'id',
       'serviceAppointmentId': 'dealId',
       'userId': 'agentId',
       'result': 'content',
+      'sobotCallBack → recordUrl': 'audioUrl',
       'createTime': 'createdAt'
     }
   },
-  {
-    cardId: 1939, // Deals
-    tableName: 'deals',
-    mapping: {
-      '_id': 'id',
-      'supervisorId': 'agentId',
-      'outcome': 'outcome',
-      'createTime': 'createdAt'
-    }
-  },
-  {
-    cardId: 1940, // Agents
-    tableName: 'agents',
-    mapping: {
-      '_id': 'id',
-      'name': 'name',
-      'createTime': 'createdAt',
-      'orgId': 'teamId',
-      'avatar': 'avatarId' // Placeholder to trigger default value
-    }
-  }
+  // {
+  //   cardId: 1939, // Deals
+  //   tableName: 'deals',
+  //   mapping: {
+  //     '_id': 'id',
+  //     'supervisorId': 'agentId',
+  //     'outcome': 'outcome',
+  //     'createTime': 'createdAt'
+  //   }
+  // },
+  // {
+  //   cardId: 1940, // Agents
+  //   tableName: 'agents',
+  //   mapping: {
+  //     '_id': 'id',
+  //     'name': 'name',
+  //     'createTime': 'createdAt',
+  //     'orgId': 'teamId',
+  //     'avatar': 'avatarId' // Placeholder to trigger default value
+  //   }
+  // }
 ];
 
 
@@ -231,6 +233,12 @@ async function runSync() {
             // Specific check for transcripts
             if (job.tableName === 'transcripts' && !params['dealId']) {
                // console.warn('Skipping transcript missing dealId');
+               continue;
+            }
+
+            // Specific check for deals
+            if (job.tableName === 'deals' && !params['agentId']) {
+               console.warn('Skipping deal missing agentId (supervisorId)');
                continue;
             }
 

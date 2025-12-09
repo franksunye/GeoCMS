@@ -5,8 +5,21 @@ export type TranscriptEntry = {
   text: string
 }
 
+export type Signal = {
+  tag: string
+  name?: string
+  dimension: string
+  score: number
+  confidence: number
+  reasoning: string
+  context: string
+  timestamp: number
+  severity?: string
+  polarity?: string
+}
+
 export type CallRecord = {
-  id: number
+  id: string | number
   title: string
   customer_name: string
   timestamp: string
@@ -20,7 +33,12 @@ export type CallRecord = {
   events: string[]
   behaviors: string[]
   service_issues: Array<{ tag: string; severity: 'high' | 'medium' | 'low' }>
+  signals?: Signal[] // Rich signal data from database
   transcript: TranscriptEntry[]
+  audioUrl?: string
+  agentId?: string // Added for filtering
+  agentName?: string
+  agentAvatarId?: string
 }
 
 // Demo data
@@ -29,6 +47,7 @@ export const MOCK_CALLS: CallRecord[] = [
     id: 1,
     title: 'First phone call - On-site appointment',
     customer_name: 'Mr. Wang',
+    agentName: 'Sarah',
     timestamp: '2024-11-17T18:25:00Z',
     duration_minutes: 16,
     processScore: 65,
@@ -62,6 +81,7 @@ export const MOCK_CALLS: CallRecord[] = [
     id: 2,
     title: 'Follow-up call - Product demo scheduling',
     customer_name: 'Ms. Li',
+    agentName: 'John',
     timestamp: '2024-11-19T10:10:00Z',
     duration_minutes: 12,
     processScore: 80,
@@ -89,6 +109,7 @@ export const MOCK_CALLS: CallRecord[] = [
     id: 3,
     title: 'Support call - Ticket escalation',
     customer_name: 'Mr. Zhang',
+    agentName: 'Tom',
     timestamp: '2024-11-20T14:45:00Z',
     duration_minutes: 22,
     processScore: 45,

@@ -13,9 +13,10 @@ interface AISignal {
   category: string
   dimension: string
   polarity: string
-  severity: string
+  severity: string | null
   score: number // 1-5
-  context: string
+  confidence: number // 0-1
+  context_text: string
   timestamp: string // "00:01:34"
   reasoning: string
 }
@@ -26,6 +27,7 @@ interface AnalysisLog {
   agentId: string
   signals: string // JSON string
   createdAt: string
+  audioUrl?: string // Joined from transcripts
 }
 
 function runETL() {
@@ -49,7 +51,12 @@ function runETL() {
   db.prepare('DELETE FROM calls').run()
   
   // 4. Process logs
-  const logs = db.prepare('SELECT * FROM ai_analysis_logs').all() as AnalysisLog[]
+  // Join with transcripts to get audioUrl
+  const logs = db.prepare(`
+    SELECT l.*, t.audioUrl 
+    FROM ai_analysis_logs l
+    LEFT JOIN transcripts t ON l.transcriptId = t.id
+  `).all() as AnalysisLog[]
   console.log(`Found ${logs.length} analysis logs to process.`)
 
   const insertCall = db.prepare(`
@@ -58,8 +65,8 @@ function runETL() {
   `)
 
   const insertAssessment = db.prepare(`
-    INSERT INTO call_assessments (id, callId, tagId, score, reasoning, context_text, timestamp_sec)
-    VALUES (@id, @callId, @tagId, @score, @reasoning, @context, @timestamp_sec)
+    INSERT INTO call_assessments (id, callId, tagId, score, confidence, reasoning, context_text, timestamp_sec)
+    VALUES (@id, @callId, @tagId, @score, @confidence, @reasoning, @context_text, @timestamp_sec)
   `)
 
   let insertedCalls = 0
@@ -86,7 +93,7 @@ function runETL() {
             startedAt: log.createdAt,
             duration: 300, // Default mock duration 5 mins
             outcome: outcome,
-            audioUrl: '' // Empty for now
+            audioUrl: log.audioUrl || '' 
         });
         insertedCalls++;
       } catch (e) {
@@ -97,7 +104,22 @@ function runETL() {
       // B. Process Signals
       let signals: AISignal[] = []
       try {
-        signals = JSON.parse(log.signals)
+        let rawSignals = log.signals.trim()
+        // Remove markdown code blocks if present
+        if (rawSignals.startsWith('```json')) {
+            rawSignals = rawSignals.replace(/^```json/, '').replace(/```$/, '').trim()
+        } else if (rawSignals.startsWith('```')) {
+            rawSignals = rawSignals.replace(/^```/, '').replace(/```$/, '').trim()
+        }
+        
+        const parsed = JSON.parse(rawSignals)
+        // Handle new structure { signals: [...] }
+        if (parsed.signals && Array.isArray(parsed.signals)) {
+            signals = parsed.signals
+        } else if (Array.isArray(parsed)) {
+            // Fallback just in case
+            signals = parsed
+        }
       } catch (e) {
         console.error(`Failed to parse signals for log ${log.id}`, e)
         continue
@@ -132,8 +154,9 @@ function runETL() {
           callId: callId,
           tagId: tagId,
           score: normalizedScore,
+          confidence: signal.confidence || 0,
           reasoning: signal.reasoning || null,
-          context: signal.context || null,
+          context_text: signal.context_text || null,
           timestamp_sec: seconds
         })
 

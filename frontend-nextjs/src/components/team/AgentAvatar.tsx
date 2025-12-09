@@ -3,7 +3,9 @@ import { AGENTS } from '@/lib/constants/agents'
 import Image from 'next/image'
 
 interface AgentAvatarProps {
-  agentId: AgentId
+  agentId: string
+  name?: string
+  avatarUrl?: string
   size?: 'sm' | 'md' | 'lg' | 'xl'
   showStatus?: boolean
   status?: 'active' | 'idle' | 'scheduled' | 'waiting'
@@ -32,13 +34,29 @@ const sizePixels = {
 
 export default function AgentAvatar({
   agentId,
+  name,
+  avatarUrl,
   size = 'md',
   showStatus = false,
   status = 'idle'
 }: AgentAvatarProps) {
-  const agent = AGENTS[agentId] || AGENTS['default-avatar']
+  let avatarSrc = avatarUrl
+  let altText = name
 
-  if (!agent) return null
+  // Check if it matches a system agent
+  const systemAgent = AGENTS[agentId as AgentId]
+  
+  if (systemAgent && !avatarSrc) {
+    avatarSrc = systemAgent.avatar
+    altText = altText || systemAgent.name
+  }
+
+  // Fallback to generated avatar
+  if (!avatarSrc) {
+    const seed = name || agentId || 'default'
+    avatarSrc = `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=e5e7eb&backgroundType=gradientLinear`
+    altText = altText || 'Agent'
+  }
 
   const statusColors = {
     active: 'bg-green-500',
@@ -51,8 +69,8 @@ export default function AgentAvatar({
     <div className="relative inline-block">
       <div className={`${sizeClasses[size]} rounded-full overflow-hidden shadow-lg ring-2 ring-white bg-gray-100`}>
         <Image
-          src={agent.avatar}
-          alt={agent.name}
+          src={avatarSrc}
+          alt={altText}
           width={sizePixels[size]}
           height={sizePixels[size]}
           className="object-cover"
@@ -65,4 +83,3 @@ export default function AgentAvatar({
     </div>
   )
 }
-

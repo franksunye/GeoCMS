@@ -112,10 +112,10 @@ export function initDatabase() {
     )`,
     `CREATE TABLE IF NOT EXISTS ai_analysis_logs (
       id TEXT PRIMARY KEY,
-      callId TEXT NOT NULL,
+      dealId TEXT NOT NULL,
       signals TEXT NOT NULL, -- JSON array of signals
       createdAt TEXT NOT NULL,
-      FOREIGN KEY(callId) REFERENCES calls(id)
+      FOREIGN KEY(dealId) REFERENCES calls(id)
     )`
   ]
 
@@ -127,9 +127,9 @@ export function initDatabase() {
     const logColumns = db.prepare('PRAGMA table_info(ai_analysis_logs)').all() as any[]
     const logColumnNames = logColumns.map(c => c.name)
 
-    if (!logColumnNames.includes('callId')) {
+    if (!logColumnNames.includes('dealId')) {
        // If table exists but needs migration, we might need to recreate or alter.
-       // Since this is a dev env and we are re-simulating, let's just drop and recreate if it lacks callId
+       // Since this is a dev env and we are re-simulating, let's just drop and recreate if it lacks dealId
        // Or simpler: just add it if possible, but SQLite foreign keys on ALTER are tricky.
        // For now, let's assume we can just add the column or if the table is empty/unused we can drop it.
        // Given the user wants to "re-simulate", dropping it is probably fine.
@@ -137,10 +137,10 @@ export function initDatabase() {
        db.exec('DROP TABLE IF EXISTS ai_analysis_logs')
        db.exec(`CREATE TABLE IF NOT EXISTS ai_analysis_logs (
         id TEXT PRIMARY KEY,
-        callId TEXT NOT NULL,
+        dealId TEXT NOT NULL,
         signals TEXT NOT NULL, -- JSON array of signals
         createdAt TEXT NOT NULL,
-        FOREIGN KEY(callId) REFERENCES calls(id)
+        FOREIGN KEY(dealId) REFERENCES calls(id)
       )`)
     }
     // Migrate call_assessments

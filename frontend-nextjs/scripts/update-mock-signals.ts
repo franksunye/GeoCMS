@@ -51,10 +51,12 @@ db.transaction(() => {
             
             signals.push({
                 tag: tag.code,
+                category: tag.category,
                 dimension: tag.dimension,
-                polarity: tag.type || 'neutral',
+                polarity: tag.polarity || 'neutral',
                 severity: mapSeverity(tag.severity),
                 score: score,
+                confidence: parseFloat(Math.random().toFixed(2)),
                 context: `Mock context for ${tag.name}: 客户提到了相关内容...`,
                 timestamp: timestamp,
                 reasoning: `Mock reasoning: AI Detected ${tag.name} (${tag.category}) with score ${score}.`

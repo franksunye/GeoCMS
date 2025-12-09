@@ -33,11 +33,11 @@ const getDimensionBarColor = (score: number): string => {
 /**
  * Audio Player Component for Call Recording
  */
-function CallRecordingPlayer({ callId, duration }: { callId: number; duration: number }) {
+function CallRecordingPlayer({ callId, duration, audioUrl }: { callId: string | number; duration: number; audioUrl?: string }) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [volume, setVolume] = useState(100)
-
+  
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
@@ -171,10 +171,48 @@ export default function ConversationCallListPage() {
   const { data: calls, isLoading } = useQuery<CallRecord[]>({
     queryKey: ['calls'],
     queryFn: async () => {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-      return MOCK_CALLS
+      const res = await fetch('/api/team-calls/calls')
+      if (!res.ok) {
+        throw new Error('Failed to fetch calls')
+      }
+      return res.json()
     }
+  })
+
+  // Fetch agents for filter
+  const { data: agents } = useQuery<{ id: string, name: string }[]>({
+    queryKey: ['agents'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/team-calls/agents')
+        if (res.ok) {
+          return res.json()
+        }
+      } catch (e) {
+        console.error('Failed to fetch agents:', e)
+      }
+      return []
+    }
+  })
+
+  // Filter calls
+  const filteredCalls = calls?.filter(call => {
+    if (filterAgent !== 'all' && call.agentId !== filterAgent) return false
+    return true
+  })
+
+  // Sort calls
+  const sortedCalls = filteredCalls?.sort((a, b) => {
+    if (sortBy === 'recent') {
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    }
+    if (sortBy === 'score') {
+      return b.overallQualityScore - a.overallQualityScore
+    }
+    if (sortBy === 'duration') {
+      return b.duration_minutes - a.duration_minutes
+    }
+    return 0
   })
 
   if (isLoading) {
@@ -205,9 +243,11 @@ export default function ConversationCallListPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="all">All Team Members</option>
-                <option value="sarah_chen">Sarah Chen</option>
-                <option value="mike_johnson">Mike Johnson</option>
-                <option value="lisa_wang">Lisa Wang</option>
+                {agents?.map((agent) => (
+                  <option key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -226,7 +266,7 @@ export default function ConversationCallListPage() {
 
           <div className="bg-white shadow rounded-lg overflow-hidden">
             <div className="divide-y divide-gray-200">
-              {calls?.map((call) => (
+              {sortedCalls?.map((call) => (
                 <div
                   key={call.id}
                   className={`p-4 cursor-pointer hover:bg-gray-50 flex items-start gap-3 ${
@@ -235,7 +275,12 @@ export default function ConversationCallListPage() {
                   onClick={() => setSelectedCall(call)}
                 >
                   <div className="mt-1">
-                    <AgentAvatar agentId="call_analysis" size="sm" />
+                    <AgentAvatar 
+                      agentId={call.agentId || 'default-avatar'} 
+                      name={call.agentName}
+                      avatarUrl={call.agentAvatarId ? `https://api.dicebear.com/9.x/notionists/svg?seed=${call.agentAvatarId}&backgroundColor=e5e7eb&backgroundType=gradientLinear` : undefined}
+                      size="sm" 
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
@@ -385,7 +430,11 @@ export default function ConversationCallListPage() {
                 {activeTab === 'summary' && (
                   <div className="space-y-6">
                     {/* Call Recording Player */}
-                    <CallRecordingPlayer callId={selectedCall.id} duration={selectedCall.duration_minutes * 60} />
+                    <CallRecordingPlayer 
+                      callId={selectedCall.id} 
+                      duration={selectedCall.duration_minutes * 60} 
+                      audioUrl={selectedCall.audioUrl}
+                    />
 
                     {/* Call Overview */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -426,18 +475,13 @@ export default function ConversationCallListPage() {
                     </div>
 
                     {/* Tags Summary */}
-                    {(selectedCall.tags.length > 0 || selectedCall.events.length > 0) && (
+                    {(selectedCall.tags.length > 0) && (
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags & Events</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
                         <div className="flex flex-wrap gap-2">
                           {selectedCall.tags.map((tag) => (
                             <span key={tag} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
                               {tag}
-                            </span>
-                          ))}
-                          {selectedCall.events.map((event) => (
-                            <span key={event} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                              {event}
                             </span>
                           ))}
                         </div>
@@ -475,14 +519,16 @@ export default function ConversationCallListPage() {
                               ? 'bg-blue-600'
                               : 'bg-gray-600'
                           }`}>
-                            {entry.speaker === 'agent' ? 'A' : 'C'}
+                            {entry.speaker === 'agent' 
+                              ? (selectedCall.agentName ? selectedCall.agentName[0].toUpperCase() : 'A') 
+                              : 'C'}
                           </div>
 
                           {/* Message Content */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-semibold text-gray-900">
-                                {entry.speaker === 'agent' ? 'Agent' : 'Customer'}
+                                {entry.speaker === 'agent' ? (selectedCall.agentName || 'Agent') : 'Customer'}
                               </span>
                               <span className="text-xs text-gray-500">
                                 {Math.floor(entry.timestamp / 60)}:{(entry.timestamp % 60).toString().padStart(2, '0')}
@@ -557,7 +603,9 @@ export default function ConversationCallListPage() {
                         const items = buildSignalItems(selectedCall)
                         return items.map((item, idx) => {
                           const key = `${item.tag}-${idx}`
-                          const percent = item.score != null ? Math.round(item.score * 100) : null
+                          let percent = item.score != null ? Math.round(item.score * 100) : null
+                          if (percent !== null && isNaN(percent)) percent = null
+                          
                           return (
                             <div key={key} className="border border-gray-200 rounded-lg overflow-hidden">
                               <button
@@ -568,7 +616,7 @@ export default function ConversationCallListPage() {
                                   <Tag className="h-5 w-5 text-blue-600" />
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2">
-                                      <p className="font-semibold text-gray-900 truncate">{item.tag}</p>
+                                      <p className="font-semibold text-gray-900 truncate">{item.name || item.tag}</p>
                                       <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
                                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
                                       {item.severity !== 'none' && (
@@ -576,12 +624,18 @@ export default function ConversationCallListPage() {
                                       )}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">
-                                      {percent != null && <>Score {percent}</>}
-                                      {item.timestamp && <> · {new Date(item.timestamp).toLocaleString('en-US')}</>}
+                                      {item.timestamp ? new Date(item.timestamp).toLocaleString('en-US') : null}
                                     </p>
                                   </div>
                                 </div>
-                                <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${expandedTagKey === key ? 'rotate-180' : ''}`} />
+                                <div className="flex items-center gap-3">
+                                  {percent != null && (
+                                    <span className={`text-sm font-semibold ${getScoreColor(percent)}`}>
+                                      {percent}
+                                    </span>
+                                  )}
+                                  <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform ${expandedTagKey === key ? 'rotate-180' : ''}`} />
+                                </div>
                               </button>
 
                               {expandedTagKey === key && (
@@ -590,7 +644,7 @@ export default function ConversationCallListPage() {
                                     <div className={`border rounded-lg p-3 ${getScoreBgColor(percent)}`}>
                                       <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium text-gray-700">Score</span>
-                                        <span className={`text-lg font-bold ${getScoreColor(percent)}`}>{percent}%</span>
+                                        <span className={`text-lg font-bold ${getScoreColor(percent)}`}>{percent}</span>
                                       </div>
                                     </div>
                                   )}
@@ -652,6 +706,7 @@ export default function ConversationCallListPage() {
 
 type SignalItem = {
   tag: string
+  name?: string
   dimension: 'Process' | 'Skills' | 'Communication' | 'Customer Attribute'
   polarity: 'positive' | 'neutral' | 'negative'
   severity: 'high' | 'medium' | 'low' | 'none'
@@ -662,37 +717,30 @@ type SignalItem = {
 }
 
 function buildSignalItems(call: CallRecord): SignalItem[] {
-  const items: SignalItem[] = []
-
-  // Skills (formerly Client Intent/Events)
-  for (const e of call.events) {
-    items.push({ tag: e, dimension: 'Skills', polarity: 'neutral', severity: 'none' })
+  // Use rich signals from real DB
+  if (call.signals && call.signals.length > 0) {
+    return call.signals.map(s => {
+      // Map dimension
+      let dim: SignalItem['dimension'] = 'Skills'
+      if (s.dimension && s.dimension.includes('Process')) dim = 'Process'
+      else if (s.dimension && s.dimension.includes('Communication')) dim = 'Communication'
+      else if (s.dimension && s.dimension.includes('Customer')) dim = 'Customer Attribute'
+      
+      return {
+        tag: s.tag,
+        name: s.name,
+        dimension: dim,
+        polarity: (s.polarity || 'neutral') as any,
+        severity: (s.severity || 'none') as any,
+        score: s.score,
+        context: s.context,
+        timestamp: s.timestamp ? new Date(s.timestamp).toISOString() : null,
+        reasoning: s.reasoning
+      }
+    })
   }
 
-  // Communication (formerly Behavior)
-  for (const b of call.behaviors) {
-    if (b === 'listening_good') {
-      items.push({
-        tag: 'listening_good',
-        dimension: 'Communication',
-        polarity: 'positive',
-        severity: 'none',
-        score: 0.8,
-        context: '工程师在客户描述问题时使用“嗯”等回应，并在客户说完后才提问',
-        timestamp: null,
-        reasoning: '工程师在客户描述问题时给予了简短回应，没有明显打断，表现出倾听'
-      })
-    } else {
-      items.push({ tag: b, dimension: 'Communication', polarity: 'positive', severity: 'none' })
-    }
-  }
-
-  // Process (formerly Service Issue)
-  for (const s of call.service_issues) {
-    items.push({ tag: s.tag, dimension: 'Process', polarity: 'negative', severity: s.severity })
-  }
-
-  return items
+  return []
 }
 
 function getPolarityTint(p: 'positive' | 'neutral' | 'negative'): string {
@@ -708,12 +756,14 @@ function getPolarityText(p: 'positive' | 'neutral' | 'negative'): string {
 }
 
 function TagCard({ item }: { item: SignalItem }) {
-  const percent = item.score != null ? Math.round(item.score * 100) : null
+  let percent = item.score != null ? Math.round(item.score * 100) : null
+  if (percent !== null && isNaN(percent)) percent = null
+
   return (
     <div className={`p-4 flex items-start justify-between rounded-lg border ${getPolarityTint(item.polarity)}`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="font-medium text-gray-900 truncate">{item.tag}</p>
+          <p className="font-medium text-gray-900 truncate">{item.name || item.tag}</p>
           <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
           <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
           {item.severity !== 'none' && (
