@@ -39,6 +39,12 @@ function runETL() {
   allTags.forEach(t => tagMap.set(t.code, t.id))
   console.log(`Loaded ${tagMap.size} tags for lookup.`)
 
+  // 1.1 Prepare Signal Map (Code -> TargetTagCode)
+  const allSignals = db.prepare('SELECT code, targetTagCode FROM signals').all() as { code: string, targetTagCode: string }[]
+  const signalMap = new Map<string, string>()
+  allSignals.forEach(s => signalMap.set(s.code, s.targetTagCode))
+  console.log(`Loaded ${signalMap.size} signals for lookup.`)
+
   // 2. Prepare Deals Map (ID -> Outcome)
   const allDeals = db.prepare('SELECT id, outcome FROM deals').all() as { id: string, outcome: string }[]
   const dealMap = new Map<string, string>()
@@ -69,8 +75,14 @@ function runETL() {
     VALUES (@id, @callId, @tagId, @score, @confidence, @reasoning, @context_text, @timestamp_sec)
   `)
 
+  const insertCallSignal = db.prepare(`
+    INSERT INTO call_signals (id, callId, signalCode, detectedAt, confidence, context_text, metadata)
+    VALUES (@id, @callId, @signalCode, @detectedAt, @confidence, @context_text, @metadata)
+  `)
+
   let insertedCalls = 0
   let insertedAssessments = 0
+  let insertedSignals = 0
   let skippedSignals = 0
   const missingTagCodes = new Set<string>()
 
@@ -126,20 +138,70 @@ function runETL() {
         continue
       }
 
-      for (const signal of signals) {
-        const tagId = tagMap.get(signal.tag)
+      // Aggregation Map: TagID -> Assessment Data
+      const tagAssessments = new Map<string, {
+        score: number,
+        confidence: number,
+        reasoning: string[],
+        context_text: string[],
+        timestamp_sec: number
+      }>();
 
-        if (!tagId) {
-          missingTagCodes.add(signal.tag)
+      for (const signal of signals) {
+        // 1. Insert Raw Signal
+        const signalCode = signal.tag;
+        
+        // Try to insert into call_signals (even if config is missing, we record the raw event if possible)
+        // We need to know if it's a valid signal code? Not necessarily for raw storage, but FK constraint might fail.
+        // If FK constraint exists on call_signals.signalCode -> signals.code, we must only insert valid signals.
+        // Since we enabled foreign_keys = OFF at the top, we can insert anything?
+        // Wait, line 9: db.pragma('foreign_keys = OFF');
+        // So we can insert anything.
+        
+        try {
+            insertCallSignal.run({
+                id: `sig_${callId}_${insertedSignals}_${Date.now()}`,
+                callId: callId,
+                signalCode: signalCode,
+                detectedAt: signal.timestamp || '00:00:00',
+                confidence: signal.confidence || 0,
+                context_text: signal.context_text || '',
+                metadata: JSON.stringify({ original_score: signal.score, reasoning: signal.reasoning })
+            });
+            insertedSignals++;
+        } catch (e) {
+            // console.warn(`Failed to insert signal: ${e.message}`);
+        }
+
+        // 2. Resolve Tag
+        let targetTagCode = signalMap.get(signalCode);
+        let isDirectTag = false;
+
+        if (!targetTagCode) {
+            // Fallback: Check if it's already a tag code
+            if (tagMap.has(tagMap.get(signalCode) ? signalCode : '')) { // Check if code maps to an ID
+                 // Wait, tagMap keys are codes.
+                 if (tagMap.has(signalCode)) {
+                     targetTagCode = signalCode;
+                     isDirectTag = true;
+                 }
+            }
+        }
+
+        if (!targetTagCode) {
+          missingTagCodes.add(signalCode)
           skippedSignals++
           continue
         }
 
-        // Score Normalization: 5-point -> 100-point
-        // 1->20, 2->40, 3->60, 4->80, 5->100
-        const normalizedScore = Math.min(100, Math.max(0, Math.round(signal.score * 20)))
+        const tagId = tagMap.get(targetTagCode);
+        if (!tagId) continue;
 
-        // Timestamp Conversion: "HH:MM:SS" -> seconds
+        // 3. Aggregate Data
+        // Score Normalization: 5-point -> 100-point
+        const normalizedScore = Math.min(100, Math.max(0, Math.round(signal.score * 20)));
+        
+        // Timestamp Conversion
         let seconds = 0
         if (signal.timestamp) {
           const parts = signal.timestamp.split(':').map(Number)
@@ -150,18 +212,47 @@ function runETL() {
           }
         }
 
-        insertAssessment.run({
-          id: `assess_${callId}_${insertedAssessments}_${Date.now()}`,
-          callId: callId,
-          tagId: tagId,
-          score: normalizedScore,
-          confidence: signal.confidence || 0,
-          reasoning: signal.reasoning || null,
-          context_text: signal.context_text || null,
-          timestamp_sec: seconds
-        })
+        if (!tagAssessments.has(tagId)) {
+            tagAssessments.set(tagId, {
+                score: normalizedScore,
+                confidence: signal.confidence || 0,
+                reasoning: signal.reasoning ? [signal.reasoning] : [],
+                context_text: signal.context_text ? [signal.context_text] : [],
+                timestamp_sec: seconds
+            });
+        } else {
+            const current = tagAssessments.get(tagId)!;
+            // Max Score Aggregation
+            if (normalizedScore > current.score) {
+                current.score = normalizedScore;
+            }
+            // Max Confidence
+            if ((signal.confidence || 0) > current.confidence) {
+                current.confidence = signal.confidence || 0;
+            }
+            // Append info
+            if (signal.reasoning) current.reasoning.push(signal.reasoning);
+            if (signal.context_text) current.context_text.push(signal.context_text);
+            // Keep earliest timestamp? or latest? Let's keep earliest.
+            if (seconds < current.timestamp_sec) {
+                current.timestamp_sec = seconds;
+            }
+        }
+      }
 
-        insertedAssessments++
+      // 4. Insert Aggregated Assessments
+      for (const [tagId, data] of tagAssessments) {
+          insertAssessment.run({
+            id: `assess_${callId}_${tagId}_${Date.now()}`,
+            callId: callId,
+            tagId: tagId,
+            score: data.score,
+            confidence: data.confidence,
+            reasoning: data.reasoning.join(' | '),
+            context_text: data.context_text.join(' | '),
+            timestamp_sec: data.timestamp_sec
+          })
+          insertedAssessments++
       }
     }
   })
@@ -170,8 +261,8 @@ function runETL() {
     runTransaction()
     console.log(`ETL Completed Successfully.`)
     console.log(`- Inserted Calls: ${insertedCalls}`)
-    console.log(`- Inserted Assessments: ${insertedAssessments}`)
-    console.log(`- Skipped Signals (Missing Tags): ${skippedSignals}`)
+    console.log(`- Inserted Signals: ${insertedSignals}`)
+    console.log(`- Inserted Assessments (Tags): ${insertedAssessments}`)
     
     if (missingTagCodes.size > 0) {
       console.warn('Warning: The following tag codes were found in signals but not in the database:')

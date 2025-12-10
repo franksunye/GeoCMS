@@ -1,9 +1,23 @@
 'use client'
 
-import { Settings, Save, RotateCcw, Plus, Edit2, Trash2, Eye, MoreHorizontal, Clock, User, Copy, Filter, X } from 'lucide-react'
+import { Settings, Save, RotateCcw, Plus, Edit2, Trash2, Eye, MoreHorizontal, Clock, User, Copy, Filter, X, Activity } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 
-type Tab = 'tags' | 'rules' | 'scoring' | 'history'
+type Tab = 'signals' | 'tags' | 'rules' | 'scoring' | 'history'
+
+type Signal = {
+  id: string
+  code: string
+  name: string
+  category: string
+  dimension: string
+  targetTagCode: string
+  aggregationMethod: string
+  description: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
 
 type Tag = {
   id: string
@@ -11,7 +25,7 @@ type Tag = {
   code: string
   category: string
   dimension: string
-  polarity: 'positive' | 'neutral' | 'negative'
+  polarity: string
   severity?: string
   scoreRange: string
   description: string
@@ -58,230 +72,72 @@ type AuditLog = {
   details: string
 }
 
-// Mock data - extracted from Call List actual data
-const mockTags: Tag[] = [
-  // Sales - Sales.Process
-  { id: '1', name: 'Opening Complete', code: 'opening_complete', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-1', description: '完整介绍角色与目的', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '2', name: 'Needs Identification Basic', code: 'needs_identification_basic', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '基础需求识别', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '3', name: 'Needs Identification Deep', code: 'needs_identification_deep', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '深度需求探查（原因推测等）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '4', name: 'Solution Proposal Basic', code: 'solution_proposal_basic', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '提供基础方案方向', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '5', name: 'Solution Proposal Professional', code: 'solution_proposal_professional', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '解释检测技术、拆除可能性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '6', name: 'Schedule Attempt', code: 'schedule_attempt', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '尝试推进预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '7', name: 'Same Day Visit Attempt', code: 'same_day_visit_attempt', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '主动提出当天上门', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '8', name: 'Handover Process Explained', code: 'handover_process_explained', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '明确流程（检测→报价→施工）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  
-  // Sales - Sales.Skills
-  { id: '9', name: 'Handle Objection Basic', code: 'skill_handle_objection_basic', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '常规异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '10', name: 'Handle Objection Price', code: 'skill_handle_objection_price', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '价格异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '11', name: 'Handle Objection Time', code: 'skill_handle_objection_time', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '时间类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '12', name: 'Handle Objection Scope', code: 'skill_handle_objection_scope', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '对检测/拆除的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '13', name: 'Handle Objection Risk', code: 'skill_handle_objection_risk', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '对风险的异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '14', name: 'Handle Objection Trust', code: 'skill_handle_objection_trust', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '信任类异议处理', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '15', name: 'Active Selling Proposition', code: 'active_selling_proposition', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '主动介绍服务价值', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '16', name: 'Objection Prevention Proactive', code: 'objection_prevention_proactive', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '主动预防异议（提前说明）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '17', name: 'Expectation Setting', code: 'expectation_setting', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '预期管理（时间/施工范围）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '18', name: 'Expertise Display', code: 'expertise_display', category: 'Sales', dimension: 'Sales.Skills', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '技术专业性展示', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
-  // Sales - Sales.Communication
-  { id: '19', name: 'Listening Good', code: 'listening_good', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '认真倾听（复述、回应）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '20', name: 'Empathy Response', code: 'empathy_response', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '共情、安抚客户情绪', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '21', name: 'Clarity of Explanation', code: 'clarity_of_explanation', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '解释清晰易懂', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '22', name: 'Tone Professional', code: 'tone_professional', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '专业语气', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '23', name: 'Attitude Positive', code: 'attitude_positive', category: 'Sales', dimension: 'Sales.Communication', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '态度积极', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
-  // Customer - Customer.Intent
-  { id: '24', name: 'Customer High Intent', code: 'customer_high_intent', category: 'Customer', dimension: 'Customer.Intent', polarity: 'positive', severity: '无', scoreRange: '1-5', description: '强烈需求（急、焦虑）', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '25', name: 'Customer Solution Request', code: 'customer_solution_request', category: 'Customer', dimension: 'Customer.Intent', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '索要维修方案', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '26', name: 'Customer Pricing Request', code: 'customer_pricing_request', category: 'Customer', dimension: 'Customer.Intent', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '索要报价', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '27', name: 'Customer Schedule Request', code: 'customer_schedule_request', category: 'Customer', dimension: 'Customer.Intent', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '主动提议预约', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-
-  // Customer - Customer.Attribute
-  { id: '28', name: 'Customer Role Owner', code: 'customer_role_owner', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'neutral', severity: '无', scoreRange: '1-5', description: '房主身份', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '29', name: 'Customer Objection Price', code: 'customer_objection_price', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '价格异议', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '30', name: 'Customer Objection Time', code: 'customer_objection_time', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '时间冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '31', name: 'Customer Objection Trust', code: 'customer_objection_trust', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '不信任', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '32', name: 'Customer Objection Scope', code: 'customer_objection_scope', category: 'Customer', dimension: 'Customer.Attribute', polarity: 'negative', severity: '无', scoreRange: '1-5', description: '质疑必要性', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-
-  // Service Issue
-  { id: '33', name: 'Schedule Delay Customer Reason', code: 'schedule_delay_customer_reason', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '因客户导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '34', name: 'Schedule Delay Agent Reason', code: 'schedule_delay_agent_reason', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '因工程师导致延迟', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '35', name: 'Misalignment Price', code: 'misalignment_price', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '费用沟通不一致', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '36', name: 'Misalignment Scope', code: 'misalignment_scope', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '对施工范围理解偏差', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '37', name: 'Communication Breakdown', code: 'communication_breakdown', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '沟通中断/冲突', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-  { id: '38', name: 'Risk Unaddressed', code: 'risk_unaddressed', category: 'Service Issue', dimension: 'Service Issue', polarity: 'negative', severity: '1-3', scoreRange: '1-5', description: '风险被忽略未解释', active: true, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-]
-
-const mockRules: ScoringRule[] = [
-  {
-    id: '1',
-    name: 'Customer High Intent Signal',
-    appliesTo: 'Calls',
-    description: 'Strong signal of purchase intent - boost skills score significantly',
-    active: true,
-    ruleType: 'TagBased',
-    tagCode: 'customer_high_intent',
-    targetDimension: 'skills',
-    scoreAdjustment: 35,
-    weight: 1.5,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  {
-    id: '2',
-    name: 'Pricing Inquiry Check',
-    appliesTo: 'Calls',
-    description: 'Pricing inquiry may indicate concerns or objection - moderate skill challenge',
-    active: true,
-    ruleType: 'TagBased',
-    tagCode: 'customer_pricing_request',
-    targetDimension: 'skills',
-    scoreAdjustment: -15,
-    weight: 0.9,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  {
-    id: '3',
-    name: 'Solution Request Opportunity',
-    appliesTo: 'Calls',
-    description: 'Detailed solution request indicates engagement and interest',
-    active: true,
-    ruleType: 'TagBased',
-    tagCode: 'customer_solution_request',
-    targetDimension: 'skills',
-    scoreAdjustment: 25,
-    weight: 1.2,
-    createdAt: '2025-12-01',
-    updatedAt: '2025-12-01',
-  },
-  {
-    id: '4',
-    name: 'Good Listening Practice',
-    appliesTo: 'Calls',
-    description: 'Agent demonstrated excellent listening - increases communication quality',
-    active: true,
-    ruleType: 'TagBased',
-    tagCode: 'listening_good',
-    targetDimension: 'communication',
-    scoreAdjustment: 20,
-    weight: 1.1,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  {
-    id: '5',
-    name: 'Active Sales Engagement',
-    appliesTo: 'Calls',
-    description: 'Agent proactively presented value - positive skills indicator',
-    active: true,
-    ruleType: 'TagBased',
-    tagCode: 'active_selling_proposition',
-    targetDimension: 'skills',
-    scoreAdjustment: 22,
-    weight: 1.15,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  {
-    id: '6',
-    name: 'SLA Breach Alert',
-    appliesTo: 'Calls',
-    description: 'Service level agreement breach - significant process failure',
-    active: true,
-    ruleType: 'TagBased',
-    tagCode: 'sla_exceeded',
-    targetDimension: 'process',
-    scoreAdjustment: -40,
-    weight: 1.3,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-  {
-    id: '7',
-    name: 'Callback Delay Issue',
-    appliesTo: 'Calls',
-    description: 'Delayed callback impacts customer satisfaction and process score',
-    active: true,
-    ruleType: 'TagBased',
-    tagCode: 'callback_delay',
-    targetDimension: 'process',
-    scoreAdjustment: -25,
-    weight: 1.0,
-    createdAt: '2025-12-02',
-    updatedAt: '2025-12-02',
-  },
-]
-
-const mockAuditLogs: AuditLog[] = [
-  {
-    id: '1',
-    timestamp: '2025-12-03 14:22',
-    user: 'admin@example.com',
-    action: 'Create',
-    objectType: 'Tag',
-    objectName: 'Competitor Mention',
-    changes: 'New tag created',
-    details: 'Code: competitor_mention, Category: Skills',
-  },
-  {
-    id: '2',
-    timestamp: '2025-12-02 10:15',
-    user: 'config@example.com',
-    action: 'Edit',
-    objectType: 'Rule',
-    objectName: 'High Purchase Intent',
-    changes: 'Weight: 1.0 → 1.2',
-    details: 'Adjusted weight for better balance',
-  },
-]
-
-const mockScoreConfig: ScoreCalculationConfig = {
-  id: '1',
-  aggregationMethod: 'weighted-average',
-  processWeight: 30,
-  skillsWeight: 50,
-  communicationWeight: 20,
-  description: 'Default score calculation: balanced emphasis on skills and process',
-  createdAt: '2025-12-01',
-  updatedAt: '2025-12-03',
-}
 
 export default function ConversationConfigPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('tags')
-  const [tags, setTags] = useState<Tag[]>(mockTags)
-  const [rules, setRules] = useState<ScoringRule[]>(mockRules)
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(mockAuditLogs)
-  const [scoreConfig, setScoreConfig] = useState<ScoreCalculationConfig>(mockScoreConfig)
+  const [activeTab, setActiveTab] = useState<Tab>('signals')
+  const [signals, setSignals] = useState<Signal[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [rules, setRules] = useState<ScoringRule[]>([])
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [scoreConfig, setScoreConfig] = useState<ScoreCalculationConfig | null>(null)
   const [showTagModal, setShowTagModal] = useState(false)
   const [showRuleModal, setShowRuleModal] = useState(false)
+  const [showSignalModal, setShowSignalModal] = useState(false)
   const [showRulePreview, setShowRulePreview] = useState(false)
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null)
   const [selectedRule, setSelectedRule] = useState<ScoringRule | null>(null)
+  const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   
   // Filter State
   const [filterState, setFilterState] = useState({
     category: '',
     dimension: '',
-    polarity: '' as '' | 'positive' | 'neutral' | 'negative'
+    polarity: ''
   })
 
-  // Fetch Tags from SQLite
+  // Fetch Data from SQLite
   useEffect(() => {
-    const fetchTags = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/team-calls/config/tags')
-        if (res.ok) {
-          const data = await res.json()
+        const [tagsRes, signalsRes, rulesRes, scoreRes] = await Promise.all([
+          fetch('/api/team-calls/config/tags'),
+          fetch('/api/team-calls/config/signals'),
+          fetch('/api/team-calls/config/rules'),
+          fetch('/api/team-calls/config/score')
+        ])
+        
+        if (tagsRes.ok) {
+          const data = await tagsRes.json()
           setTags(data)
-        } else {
-           console.warn('Failed to fetch tags from API, keeping mock data')
+        }
+        
+        if (signalsRes.ok) {
+          const data = await signalsRes.json()
+          setSignals(data)
+        }
+
+        if (rulesRes.ok) {
+          const data = await rulesRes.json()
+          setRules(data)
+        }
+
+        if (scoreRes.ok) {
+          const data = await scoreRes.json()
+          setScoreConfig(data)
+          setScoreForm({
+            processWeight: data.processWeight,
+            skillsWeight: data.skillsWeight,
+            communicationWeight: data.communicationWeight
+          })
         }
       } catch (e) {
-        console.error('Error fetching tags:', e)
+        console.error('Error fetching config data:', e)
       }
     }
-    fetchTags()
+    fetchData()
   }, [])
 
   // Derived Filtered Tags
@@ -294,43 +150,253 @@ export default function ConversationConfigPage() {
     })
   }, [tags, filterState])
 
+  // Derived Filtered Signals
+  const filteredSignals = useMemo(() => {
+    return signals.filter(signal => {
+      if (filterState.category && signal.category !== filterState.category) return false
+      if (filterState.dimension && signal.dimension !== filterState.dimension) return false
+      return true
+    })
+  }, [signals, filterState])
+
   // Unique Options for Filters
-  const categories = useMemo(() => Array.from(new Set(tags.map(t => t.category))), [tags])
-  const dimensions = useMemo(() => Array.from(new Set(tags.map(t => t.dimension))), [tags])
+  const categories = useMemo(() => Array.from(new Set([...tags.map(t => t.category), ...signals.map(s => s.category)])), [tags, signals])
+  const dimensions = useMemo(() => Array.from(new Set([...tags.map(t => t.dimension), ...signals.map(s => s.dimension)])), [tags, signals])
+  
+  // Signal form state
+  const [signalForm, setSignalForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', targetTagCode: '', aggregationMethod: 'Count', description: '', active: true })
   
   // Tag form state
-  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'positive' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
+  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'Neutral' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
   
   // Rule form state
-  const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as const, scoreAdjustment: 0, weight: 1.0, active: true })
+  const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as 'process' | 'skills' | 'communication', scoreAdjustment: 0, weight: 1.0, active: true })
   
   // Score config form state
   const [scoreForm, setScoreForm] = useState({ processWeight: 30, skillsWeight: 50, communicationWeight: 20 })
 
 
 
-  const handleSaveTag = () => {
+  const handleSaveSignal = async () => {
     setIsSaving(true)
-    setTimeout(() => {
+    try {
+      const method = selectedSignal ? 'PUT' : 'POST'
+      const body = selectedSignal ? { ...signalForm, id: selectedSignal.id } : signalForm
+      
+      const res = await fetch('/api/team-calls/config/signals', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!res.ok) throw new Error('Failed to save signal')
+
+      // Refresh signals
+      const signalsRes = await fetch('/api/team-calls/config/signals')
+      if (signalsRes.ok) {
+        setSignals(await signalsRes.json())
+      }
+      
+      setShowSignalModal(false)
+      setSignalForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', targetTagCode: '', aggregationMethod: 'Count', description: '', active: true })
+    } catch (error) {
+      console.error('Error saving signal:', error)
+      alert('Failed to save signal')
+    } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleToggleSignal = async (signalId: string) => {
+    const signal = signals.find(s => s.id === signalId)
+    if (!signal) return
+
+    try {
+      const res = await fetch('/api/team-calls/config/signals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...signal, active: !signal.active })
+      })
+
+      if (!res.ok) throw new Error('Failed to update signal')
+
+      setSignals(signals.map((s: Signal) => s.id === signalId ? { ...s, active: !s.active } : s))
+    } catch (error) {
+      console.error('Error toggling signal:', error)
+    }
+  }
+
+  const handleDeleteSignal = async (signalId: string) => {
+    if (!confirm('Are you sure you want to delete this signal?')) return
+
+    try {
+      const res = await fetch(`/api/team-calls/config/signals?id=${signalId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete signal')
+
+      setSignals(signals.filter(s => s.id !== signalId))
+    } catch (error) {
+      console.error('Error deleting signal:', error)
+      alert('Failed to delete signal')
+    }
+  }
+
+  const handleSaveTag = async () => {
+    setIsSaving(true)
+    try {
+      const method = selectedTag ? 'PUT' : 'POST'
+      const body = selectedTag ? { ...tagForm, id: selectedTag.id } : tagForm
+      
+      const res = await fetch('/api/team-calls/config/tags', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!res.ok) throw new Error('Failed to save tag')
+
+      // Refresh tags
+      const tagsRes = await fetch('/api/team-calls/config/tags')
+      if (tagsRes.ok) {
+        setTags(await tagsRes.json())
+      }
+      
       setShowTagModal(false)
-    }, 1000)
-  }
-
-  const handleSaveRule = () => {
-    setIsSaving(true)
-    setTimeout(() => {
+      setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
+    } catch (error) {
+      console.error('Error saving tag:', error)
+      alert('Failed to save tag')
+    } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleSaveRule = async () => {
+    setIsSaving(true)
+    try {
+      const method = selectedRule ? 'PUT' : 'POST'
+      const body = selectedRule ? { ...ruleForm, id: selectedRule.id } : ruleForm
+      
+      const res = await fetch('/api/team-calls/config/rules', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!res.ok) throw new Error('Failed to save rule')
+
+      // Refresh rules
+      const rulesRes = await fetch('/api/team-calls/config/rules')
+      if (rulesRes.ok) {
+        setRules(await rulesRes.json())
+      }
+      
       setShowRuleModal(false)
-    }, 1000)
+      setRuleForm({ name: '', description: '', tagCode: '', targetDimension: 'skills', scoreAdjustment: 0, weight: 1.0, active: true })
+    } catch (error) {
+      console.error('Error saving rule:', error)
+      alert('Failed to save rule')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleToggleTag = (tagId: string) => {
-    setTags(tags.map((t: Tag) => t.id === tagId ? { ...t, active: !t.active } : t))
+  const handleSaveScoreConfig = async () => {
+    setIsSaving(true)
+    try {
+      const res = await fetch('/api/team-calls/config/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...scoreForm,
+          aggregationMethod: 'weighted-average',
+          description: 'Default Config'
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to save score config')
+      
+      alert('Score configuration saved successfully')
+    } catch (error) {
+      console.error('Error saving score config:', error)
+      alert('Failed to save score configuration')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleToggleRule = (ruleId: string) => {
-    setRules(rules.map((r: ScoringRule) => r.id === ruleId ? { ...r, active: !r.active } : r))
+  const handleToggleTag = async (tagId: string) => {
+    const tag = tags.find(t => t.id === tagId)
+    if (!tag) return
+
+    try {
+      const res = await fetch('/api/team-calls/config/tags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...tag, active: !tag.active })
+      })
+
+      if (!res.ok) throw new Error('Failed to update tag')
+
+      setTags(tags.map((t: Tag) => t.id === tagId ? { ...t, active: !t.active } : t))
+    } catch (error) {
+      console.error('Error toggling tag:', error)
+    }
+  }
+
+  const handleToggleRule = async (ruleId: string) => {
+    const rule = rules.find(r => r.id === ruleId)
+    if (!rule) return
+
+    try {
+      const res = await fetch('/api/team-calls/config/rules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...rule, active: !rule.active })
+      })
+
+      if (!res.ok) throw new Error('Failed to update rule')
+
+      setRules(rules.map((r: ScoringRule) => r.id === ruleId ? { ...r, active: !r.active } : r))
+    } catch (error) {
+      console.error('Error toggling rule:', error)
+    }
+  }
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!confirm('Are you sure you want to delete this tag?')) return
+
+    try {
+      const res = await fetch(`/api/team-calls/config/tags?id=${tagId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete tag')
+
+      setTags(tags.filter(t => t.id !== tagId))
+    } catch (error) {
+      console.error('Error deleting tag:', error)
+      alert('Failed to delete tag')
+    }
+  }
+
+  const handleDeleteRule = async (ruleId: string) => {
+    if (!confirm('Are you sure you want to delete this rule?')) return
+
+    try {
+      const res = await fetch(`/api/team-calls/config/rules?id=${ruleId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete rule')
+
+      setRules(rules.filter(r => r.id !== ruleId))
+    } catch (error) {
+      console.error('Error deleting rule:', error)
+      alert('Failed to delete rule')
+    }
   }
 
   return (
@@ -343,6 +409,16 @@ export default function ConversationConfigPage() {
       {/* Tabs */}
       <div className="bg-white shadow rounded-lg mb-6 border-b border-gray-200">
         <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('signals')}
+            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'signals'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Signal Definitions
+          </button>
           <button
             onClick={() => setActiveTab('tags')}
             className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
@@ -387,6 +463,139 @@ export default function ConversationConfigPage() {
       </div>
 
       {/* Tab Content */}
+      {activeTab === 'signals' && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Signal Definitions</h2>
+              <button
+                onClick={() => {
+                  setSelectedSignal(null)
+                  setSignalForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', targetTagCode: '', aggregationMethod: 'Count', description: '', active: true })
+                  setShowSignalModal(true)
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                Add Signal
+              </button>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4">
+              <select
+                value={filterState.category}
+                onChange={(e) => setFilterState({ ...filterState, category: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Categories</option>
+                {categories.sort().map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterState.dimension}
+                onChange={(e) => setFilterState({ ...filterState, dimension: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Dimensions</option>
+                {dimensions.sort().map(dim => (
+                  <option key={dim} value={dim}>{dim}</option>
+                ))}
+              </select>
+
+              {(filterState.category || filterState.dimension) && (
+                <button
+                  onClick={() => setFilterState({ category: '', dimension: '', polarity: '' })}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Reset Filters
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Signals Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Code</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category / Dimension</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Target Tag</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Description / Logic</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredSignals.map((signal) => (
+                  <tr key={signal.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{signal.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 font-mono text-xs">{signal.code}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{signal.category}</span>
+                        <span className="text-xs text-gray-500">{signal.dimension}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-mono text-xs text-blue-600">
+                      {signal.targetTagCode}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">{signal.description}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={signal.active}
+                          onChange={() => handleToggleSignal(signal.id)}
+                          className="h-4 w-4 text-blue-600 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{signal.active ? 'Active' : 'Inactive'}</span>
+                      </label>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedSignal(signal)
+                            setSignalForm({
+                              name: signal.name,
+                              code: signal.code,
+                              category: signal.category,
+                              dimension: signal.dimension,
+                              targetTagCode: signal.targetTagCode,
+                              aggregationMethod: signal.aggregationMethod,
+                              description: signal.description,
+                              active: signal.active
+                            })
+                            setShowSignalModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button 
+                          className="text-red-600 hover:text-red-700" 
+                          title="Delete"
+                          onClick={() => handleDeleteSignal(signal.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'tags' && (
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {/* Header */}
@@ -396,6 +605,7 @@ export default function ConversationConfigPage() {
               <button
                 onClick={() => {
                   setSelectedTag(null)
+                  setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
                   setShowTagModal(true)
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
@@ -413,7 +623,7 @@ export default function ConversationConfigPage() {
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Categories</option>
-                {Array.from(new Set(tags.map(t => t.category))).sort().map(cat => (
+                {categories.sort().map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </select>
@@ -424,20 +634,20 @@ export default function ConversationConfigPage() {
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Dimensions</option>
-                {Array.from(new Set(tags.filter(t => !filterState.category || t.category === filterState.category).map(t => t.dimension))).sort().map(dim => (
+                {dimensions.sort().map(dim => (
                   <option key={dim} value={dim}>{dim}</option>
                 ))}
               </select>
 
               <select
                 value={filterState.polarity}
-                onChange={(e) => setFilterState({ ...filterState, polarity: e.target.value as any })}
+                onChange={(e) => setFilterState({ ...filterState, polarity: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All Types</option>
-                <option value="positive">Positive</option>
-                <option value="neutral">Neutral</option>
-                <option value="negative">Negative</option>
+                <option value="">All Polarities</option>
+                {Array.from(new Set(tags.map(t => t.polarity))).sort().map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
               </select>
 
               {(filterState.category || filterState.dimension || filterState.polarity) && (
@@ -478,8 +688,8 @@ export default function ConversationConfigPage() {
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        tag.polarity === 'positive' ? 'bg-green-100 text-green-800' :
-                        tag.polarity === 'negative' ? 'bg-red-100 text-red-800' :
+                        tag.polarity === 'Positive' ? 'bg-green-100 text-green-800' :
+                        tag.polarity === 'Negative' ? 'bg-red-100 text-red-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                         {tag.polarity}
@@ -502,6 +712,17 @@ export default function ConversationConfigPage() {
                         <button
                           onClick={() => {
                             setSelectedTag(tag)
+                            setTagForm({
+                              name: tag.name,
+                              code: tag.code,
+                              category: tag.category,
+                              dimension: tag.dimension,
+                              polarity: tag.polarity as any,
+                              severity: tag.severity || '无',
+                              scoreRange: tag.scoreRange,
+                              description: tag.description,
+                              active: tag.active
+                            })
                             setShowTagModal(true)
                           }}
                           className="text-blue-600 hover:text-blue-700"
@@ -509,7 +730,11 @@ export default function ConversationConfigPage() {
                         >
                           <Edit2 className="h-4 w-4" />
                         </button>
-                        <button className="text-red-600 hover:text-red-700" title="Delete">
+                        <button 
+                          className="text-red-600 hover:text-red-700" 
+                          title="Delete"
+                          onClick={() => handleDeleteTag(tag.id)}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -530,6 +755,7 @@ export default function ConversationConfigPage() {
             <button
               onClick={() => {
                 setSelectedRule(null)
+                setRuleForm({ name: '', description: '', tagCode: '', targetDimension: 'skills', scoreAdjustment: 0, weight: 1.0, active: true })
                 setShowRuleModal(true)
               }}
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
@@ -587,6 +813,15 @@ export default function ConversationConfigPage() {
                         <button
                           onClick={() => {
                             setSelectedRule(rule)
+                            setRuleForm({
+                              name: rule.name,
+                              description: rule.description,
+                              tagCode: rule.tagCode,
+                              targetDimension: rule.targetDimension,
+                              scoreAdjustment: rule.scoreAdjustment,
+                              weight: rule.weight,
+                              active: rule.active
+                            })
                             setShowRuleModal(true)
                           }}
                           className="text-blue-600 hover:text-blue-700"
@@ -604,8 +839,12 @@ export default function ConversationConfigPage() {
                         >
                           <Eye className="h-4 w-4" />
                         </button>
-                        <button className="text-gray-600 hover:text-gray-700" title="More">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <button 
+                          onClick={() => handleDeleteRule(rule.id)}
+                          className="text-red-600 hover:text-red-700" 
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -731,8 +970,12 @@ export default function ConversationConfigPage() {
               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                 Reset to Default
               </button>
-              <button className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
-                Save Configuration
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                onClick={handleSaveScoreConfig}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Configuration'}
               </button>
             </div>
           </div>
@@ -801,6 +1044,123 @@ export default function ConversationConfigPage() {
         </div>
       )}
 
+      {/* Signal Modal */}
+      {showSignalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {selectedSignal ? 'Edit Signal' : 'Add New Signal'}
+              </h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Signal Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g., Competitor Mention"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.name}
+                  onChange={(e) => setSignalForm({ ...signalForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Signal Code</label>
+                <input
+                  type="text"
+                  placeholder="e.g., competitor_mention"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.code}
+                  onChange={(e) => setSignalForm({ ...signalForm, code: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={signalForm.category}
+                    onChange={(e) => setSignalForm({ ...signalForm, category: e.target.value })}
+                  >
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    <option value="New Category">New Category...</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Dimension</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={signalForm.dimension}
+                    onChange={(e) => setSignalForm({ ...signalForm, dimension: e.target.value })}
+                  >
+                    {dimensions.map(dim => <option key={dim} value={dim}>{dim}</option>)}
+                    <option value="New Dimension">New Dimension...</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Target Tag Code (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g., linked_tag_code"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.targetTagCode}
+                  onChange={(e) => setSignalForm({ ...signalForm, targetTagCode: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Aggregation Method</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.aggregationMethod}
+                  onChange={(e) => setSignalForm({ ...signalForm, aggregationMethod: e.target.value })}
+                >
+                  <option value="Count">Count Occurrences</option>
+                  <option value="Existence">Check Existence</option>
+                  <option value="Sentiment">Sentiment Analysis</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description / Logic</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  value={signalForm.description}
+                  onChange={(e) => setSignalForm({ ...signalForm, description: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="signal-active"
+                  type="checkbox"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  checked={signalForm.active}
+                  onChange={(e) => setSignalForm({ ...signalForm, active: e.target.checked })}
+                />
+                <label htmlFor="signal-active" className="ml-2 block text-sm text-gray-900">
+                  Active
+                </label>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowSignalModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveSignal}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSaving ? 'Saving...' : 'Save Signal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tag Modal */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -817,7 +1177,8 @@ export default function ConversationConfigPage() {
                   type="text"
                   placeholder="e.g., Price Objection"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  defaultValue={selectedTag?.name || ''}
+                  value={tagForm.name}
+                  onChange={(e) => setTagForm({ ...tagForm, name: e.target.value })}
                 />
               </div>
               <div>
@@ -826,7 +1187,8 @@ export default function ConversationConfigPage() {
                   type="text"
                   placeholder="e.g., price_objection"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-xs"
-                  defaultValue={selectedTag?.code || ''}
+                  value={tagForm.code}
+                  onChange={(e) => setTagForm({ ...tagForm, code: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -834,7 +1196,8 @@ export default function ConversationConfigPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedTag?.category || 'Sales'}
+                    value={tagForm.category}
+                    onChange={(e) => setTagForm({ ...tagForm, category: e.target.value })}
                   >
                     <option value="Sales">Sales</option>
                     <option value="Customer">Customer</option>
@@ -847,7 +1210,8 @@ export default function ConversationConfigPage() {
                     type="text"
                     placeholder="e.g., Sales.Process"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedTag?.dimension || ''}
+                    value={tagForm.dimension}
+                    onChange={(e) => setTagForm({ ...tagForm, dimension: e.target.value })}
                   />
                 </div>
               </div>
@@ -856,11 +1220,12 @@ export default function ConversationConfigPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Polarity</label>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedTag?.polarity || 'positive'}
+                    value={tagForm.polarity}
+                    onChange={(e) => setTagForm({ ...tagForm, polarity: e.target.value as any })}
                   >
-                    <option value="positive">Positive</option>
-                    <option value="neutral">Neutral</option>
-                    <option value="negative">Negative</option>
+                    <option value="Positive">Positive</option>
+                    <option value="Negative">Negative</option>
+                    <option value="Neutral">Neutral</option>
                   </select>
                 </div>
                 <div>
@@ -869,7 +1234,8 @@ export default function ConversationConfigPage() {
                     type="text"
                     placeholder="e.g., 1-5"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedTag?.scoreRange || '1-5'}
+                    value={tagForm.scoreRange}
+                    onChange={(e) => setTagForm({ ...tagForm, scoreRange: e.target.value })}
                   />
                 </div>
               </div>
@@ -879,11 +1245,17 @@ export default function ConversationConfigPage() {
                   rows={3}
                   placeholder="Tag definition and usage guidelines..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  defaultValue={selectedTag?.description || ''}
+                  value={tagForm.description}
+                  onChange={(e) => setTagForm({ ...tagForm, description: e.target.value })}
                 />
               </div>
               <label className="flex items-center gap-2">
-                <input type="checkbox" defaultChecked className="h-4 w-4 text-blue-600 rounded" />
+                <input 
+                  type="checkbox" 
+                  checked={tagForm.active}
+                  onChange={(e) => setTagForm({ ...tagForm, active: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 rounded" 
+                />
                 <span className="text-sm text-gray-700">Active</span>
               </label>
             </div>
@@ -922,7 +1294,8 @@ export default function ConversationConfigPage() {
                   type="text"
                   placeholder="e.g., High Purchase Intent"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  defaultValue={selectedRule?.name || ''}
+                  value={ruleForm.name}
+                  onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
                 />
               </div>
               <div>
@@ -931,13 +1304,18 @@ export default function ConversationConfigPage() {
                   rows={2}
                   placeholder="What does this rule do?"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  defaultValue={selectedRule?.description || ''}
+                  value={ruleForm.description}
+                  onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tag to Monitor</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    value={ruleForm.tagCode}
+                    onChange={(e) => setRuleForm({ ...ruleForm, tagCode: e.target.value })}
+                  >
                     <option value="">Select a tag...</option>
                     {tags.map(t => (
                       <option key={t.id} value={t.code}>{t.name}</option>
@@ -946,7 +1324,11 @@ export default function ConversationConfigPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Affects Dimension</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    value={ruleForm.targetDimension}
+                    onChange={(e) => setRuleForm({ ...ruleForm, targetDimension: e.target.value as any })}
+                  >
                     <option value="process">⚙️ Process Score</option>
                     <option value="skills">🎯 Skills Score</option>
                     <option value="communication">🗣️ Communication Score</option>
@@ -961,7 +1343,8 @@ export default function ConversationConfigPage() {
                     min={-100}
                     max={100}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedRule?.scoreAdjustment || 0}
+                    value={ruleForm.scoreAdjustment}
+                    onChange={(e) => setRuleForm({ ...ruleForm, scoreAdjustment: parseInt(e.target.value) })}
                   />
                 </div>
                 <div>
@@ -972,12 +1355,18 @@ export default function ConversationConfigPage() {
                     min={0.5}
                     max={2.0}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    defaultValue={selectedRule?.weight || 1.0}
+                    value={ruleForm.weight}
+                    onChange={(e) => setRuleForm({ ...ruleForm, weight: parseFloat(e.target.value) })}
                   />
                 </div>
               </div>
               <label className="flex items-center gap-2">
-                <input type="checkbox" defaultChecked className="h-4 w-4 text-blue-600 rounded" />
+                <input 
+                  type="checkbox" 
+                  checked={ruleForm.active}
+                  onChange={(e) => setRuleForm({ ...ruleForm, active: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 rounded" 
+                />
                 <span className="text-sm text-gray-700">Active</span>
               </label>
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">

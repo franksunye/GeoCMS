@@ -77,7 +77,7 @@ export default function QuartileBarChart({ quartileAnalysis }: QuartileBarChartP
           <LabelList 
             dataKey="赢单率" 
             position="right" 
-            formatter={(value: number) => `${value}%`}
+            formatter={(value: any) => `${value}%`}
             style={{ fill: '#374151', fontSize: '12px' }}
           />
           {/* 为每个柱子设置单独的颜色 */}

@@ -18,12 +18,25 @@ export function initDatabase() {
     `CREATE TABLE IF NOT EXISTS tags (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
-      code TEXT NOT NULL,
+      code TEXT NOT NULL UNIQUE,
       category TEXT NOT NULL,
       dimension TEXT NOT NULL,
-      type TEXT NOT NULL,
+      polarity TEXT NOT NULL,
       severity TEXT,
       scoreRange TEXT NOT NULL,
+      description TEXT NOT NULL,
+      active INTEGER DEFAULT 1,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS signals (
+      id TEXT PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      dimension TEXT NOT NULL,
+      targetTagCode TEXT NOT NULL,
+      aggregationMethod TEXT NOT NULL,
       description TEXT NOT NULL,
       active INTEGER DEFAULT 1,
       createdAt TEXT NOT NULL,
@@ -92,6 +105,17 @@ export function initDatabase() {
       reasoning TEXT,
       FOREIGN KEY(callId) REFERENCES calls(id),
       FOREIGN KEY(tagId) REFERENCES tags(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS call_signals (
+      id TEXT PRIMARY KEY,
+      callId TEXT NOT NULL,
+      signalCode TEXT NOT NULL,
+      detectedAt TEXT NOT NULL,
+      confidence REAL DEFAULT 0,
+      context_text TEXT,
+      metadata TEXT,
+      FOREIGN KEY(callId) REFERENCES calls(id),
+      FOREIGN KEY(signalCode) REFERENCES signals(code)
     )`,
     // Raw Source Tables (for ETL)
     `CREATE TABLE IF NOT EXISTS deals (

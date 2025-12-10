@@ -41,7 +41,7 @@ export default function AgentAvatar({
   status = 'idle'
 }: AgentAvatarProps) {
   let avatarSrc = avatarUrl
-  let altText = name
+  let altText = name || agentId || 'Agent'
 
   // Check if it matches a system agent
   const systemAgent = AGENTS[agentId as AgentId]

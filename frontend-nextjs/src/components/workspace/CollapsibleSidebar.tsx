@@ -22,7 +22,15 @@ import {
 import { useWorkspaceStore } from '@/lib/stores/workspace-store'
 import { Button } from '@/components/ui/button'
 
-const navigation = [
+interface NavItem {
+  name: string
+  href?: string
+  icon: any
+  children?: NavItem[]
+  badge?: boolean
+}
+
+const navigation: NavItem[] = [
   {
     name: 'Team Calls',
     icon: PhoneCall,
