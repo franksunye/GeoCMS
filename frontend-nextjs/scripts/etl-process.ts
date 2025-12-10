@@ -85,6 +85,7 @@ function runETL() {
       }
 
       const outcome = dealMap.get(callId) || 'unknown';
+      // console.log(`Processing call ${callId}, outcome: ${outcome}`); 
       
       try {
         insertCall.run({

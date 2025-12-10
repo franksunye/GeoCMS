@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { ChevronDown, TrendingUp } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import { AgentId } from '@/types'
+import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
 
 type TimeFrame = 'custom' | 'yesterday' | '7d' | '30d' | '3m'
 type SortBy = 'overall' | 'process' | 'skills' | 'communication'
@@ -34,19 +35,6 @@ interface Agent {
   processDetails: SubcategoryScore[]
   skillsDetails: SubcategoryScore[]
   communicationDetails: SubcategoryScore[]
-}
-
-// Helper function to get score color
-const getScoreColor = (score: number): string => {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
-  return 'text-red-600'
-}
-
-const getScoreBgColor = (score: number): string => {
-  if (score >= 80) return 'bg-green-50'
-  if (score >= 60) return 'bg-yellow-50'
-  return 'bg-red-50'
 }
 
 export default function ScorecardPage() {

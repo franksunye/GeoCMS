@@ -88,27 +88,27 @@ const SYNC_JOBS: SyncJob[] = [
       'createTime': 'createdAt'
     }
   },
-  // {
-  //   cardId: 1939, // Deals
-  //   tableName: 'deals',
-  //   mapping: {
-  //     '_id': 'id',
-  //     'supervisorId': 'agentId',
-  //     'outcome': 'outcome',
-  //     'createTime': 'createdAt'
-  //   }
-  // },
-  // {
-  //   cardId: 1940, // Agents
-  //   tableName: 'agents',
-  //   mapping: {
-  //     '_id': 'id',
-  //     'name': 'name',
-  //     'createTime': 'createdAt',
-  //     'orgId': 'teamId',
-  //     'avatar': 'avatarId' // Placeholder to trigger default value
-  //   }
-  // }
+  {
+    cardId: 1939, // Deals
+    tableName: 'deals',
+    mapping: {
+      '_id': 'id',
+      'supervisorId': 'agentId',
+      'outcome': 'outcome',
+      'createTime': 'createdAt'
+    }
+  },
+  {
+    cardId: 1940, // Agents
+    tableName: 'agents',
+    mapping: {
+      '_id': 'id',
+      'name': 'name',
+      'createTime': 'createdAt',
+      'orgId': 'teamId',
+      'avatar': 'avatarId' // Placeholder to trigger default value
+    }
+  }
 ];
 
 

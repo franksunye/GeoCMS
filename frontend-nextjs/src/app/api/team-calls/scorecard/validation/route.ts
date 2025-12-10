@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN calls c ON c.agentId = a.id
       WHERE c.startedAt >= ?
       GROUP BY a.id
-      HAVING totalCalls >= 3
+      HAVING totalCalls >= 1
     `).all(cutoffIso) as any[]
 
     // 2. 获取评分配置和标签数据

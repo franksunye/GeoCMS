@@ -6,7 +6,7 @@ import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDo
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
-import { getScoreColor, getScoreBgColor, getScoreBadgeClass } from '@/lib/score-thresholds'
+import { getScoreColor, getScoreBgColor, getScoreBadgeClass, getScoreBarColor } from '@/lib/score-thresholds'
 import { MOCK_CALLS, type CallRecord } from './mock-data'
 
 /**
@@ -22,12 +22,6 @@ const getDimensionLabel = (dimension: 'process' | 'skills' | 'communication'): s
   if (dimension === 'process') return 'Process'
   if (dimension === 'skills') return 'Skills'
   return 'Communication'
-}
-
-const getDimensionBarColor = (score: number): string => {
-  if (score >= 80) return 'bg-green-500'
-  if (score >= 60) return 'bg-yellow-500'
-  return 'bg-red-500'
 }
 
 /**
@@ -325,7 +319,7 @@ export default function ConversationCallListPage() {
                         <span className="text-xs font-medium text-gray-700 w-12">Process</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${getDimensionBarColor(call.processScore)}`}
+                            className={`h-full ${getScoreBarColor(call.processScore)}`}
                             style={{ width: `${call.processScore}%` }}
                           />
                         </div>
@@ -337,7 +331,7 @@ export default function ConversationCallListPage() {
                         <span className="text-xs font-medium text-gray-700 w-12">Skills</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${getDimensionBarColor(call.skillsScore)}`}
+                            className={`h-full ${getScoreBarColor(call.skillsScore)}`}
                             style={{ width: `${call.skillsScore}%` }}
                           />
                         </div>
@@ -349,7 +343,7 @@ export default function ConversationCallListPage() {
                         <span className="text-xs font-medium text-gray-700 w-12">Comm</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
-                            className={`h-full ${getDimensionBarColor(call.communicationScore)}`}
+                            className={`h-full ${getScoreBarColor(call.communicationScore)}`}
                             style={{ width: `${call.communicationScore}%` }}
                           />
                         </div>

@@ -8,6 +8,7 @@ const navigation = [
   { name: '评分看板', href: '/dashboard/team-calls/scorecard' },
   { name: '通话列表', href: '/dashboard/team-calls/call-list' },
   { name: '分析报表', href: '/dashboard/team-calls/analytics' },
+  { name: '分数明细', href: '/dashboard/team-calls/score-details' },
   { name: '配置中心', href: '/dashboard/team-calls/config' },
   { name: '团队管理', href: '/dashboard/team' },
   { name: '系统设置', href: '/dashboard/settings' },
