@@ -1,0 +1,292 @@
+import db from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
+
+// --- Types ---
+export type TranscriptEntry = {
+    BeginTime?: number;
+    SpeakerId?: string | number;
+    Content?: string;
+    Text?: string;
+}
+
+export type AnalysisResult = {
+    rawOutput: string;
+    parsedOutput: any;
+    preparedPrompt: string;
+    replacements: any[];
+    isMock: boolean;
+    networkError: string | null;
+    executionTime: number;
+    parseError?: string | null;
+}
+
+// --- Configuration ---
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-34b4db2c01b4476da1c56c2396b35203';
+const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
+
+// --- Helper Functions ---
+
+// Format transcript JSON to readable string with truncation
+export function formatTranscript(content: string | null): string {
+    if (!content) return '';
+    try {
+        const parsed = JSON.parse(content);
+        if (!Array.isArray(parsed)) return content;
+
+        const fullText = parsed.map((item: TranscriptEntry) => {
+            const time = new Date(item.BeginTime || 0).toISOString().substr(14, 5);
+            return `[${time}] ${item.SpeakerId === 0 ? 'Agent' : 'Customer'}: ${item.Content || item.Text}`;
+        }).join('\n');
+
+        // Truncate if too long (max 30,000 chars to avoid timeouts)
+        const MAX_LENGTH = 30000;
+        if (fullText.length > MAX_LENGTH) {
+            const keepStart = 20000;
+            const keepEnd = 5000;
+            return fullText.substring(0, keepStart) +
+                `\n\n... [Transcript Truncated (${fullText.length - MAX_LENGTH} chars omitted) for Performance] ...\n\n` +
+                fullText.substring(fullText.length - keepEnd);
+        }
+
+        return fullText;
+    } catch (e) {
+        return content;
+    }
+}
+
+// Get signals list for variable replacement
+function getSignalsList(): string {
+    const signals = db.prepare('SELECT code, name, category, dimension, description FROM signals WHERE active = 1').all() as any[];
+    if (signals.length === 0) {
+        const tags = db.prepare('SELECT code, name, category, dimension, description FROM tags WHERE active = 1').all() as any[];
+        return JSON.stringify(tags, null, 2);
+    }
+    return JSON.stringify(signals, null, 2);
+}
+
+// Get tags list for variable replacement
+function getTagsList(): string {
+    const tags = db.prepare('SELECT code, name, category, dimension, scoreRange, description FROM tags WHERE active = 1').all() as any[];
+    return JSON.stringify(tags, null, 2);
+}
+
+// Get scoring rules for variable replacement
+function getScoringRules(): string {
+    const rules = db.prepare('SELECT name, tagCode, targetDimension, scoreAdjustment, weight, description FROM scoring_rules WHERE active = 1').all() as any[];
+    return JSON.stringify(rules, null, 2);
+}
+
+function generateMockResponse(transcript: string): string {
+    return JSON.stringify({
+        signals: [
+            {
+                code: "opening_complete",
+                name: "开场完成",
+                category: "Sales",
+                dimension: "Process",
+                polarity: "positive",
+                score: 5,
+                confidence: 0.95,
+                timestamp_sec: 2,
+                context_text: "您好，我是Geocms的销售代表Michael",
+                reasoning: "Mock: 销售人员清晰地介绍了自己的姓名和公司。"
+            }
+        ],
+        summary: {
+            overall_assessment: "Mock: 这是一次模拟的分析结果。"
+        }
+    }, null, 2);
+}
+
+// Replace variables in prompt content
+export function replaceVariables(
+    content: string,
+    variables: Record<string, string>
+): { result: string; replacements: Array<{ variable: string; found: boolean }> } {
+    const replacements: Array<{ variable: string; found: boolean }> = [];
+    let result = content;
+
+    const variablePatterns = [
+        { pattern: /\{\{transcript\}\}/g, key: 'transcript' },
+        { pattern: /\{\{signals\}\}/g, key: 'signals' },
+        { pattern: /\{\{tags\}\}/g, key: 'tags' },
+        { pattern: /\{\{call_metadata\}\}/g, key: 'call_metadata' },
+        { pattern: /\{\{scoring_rules\}\}/g, key: 'scoring_rules' }
+    ];
+
+    for (const { pattern, key } of variablePatterns) {
+        const found = pattern.test(content);
+        replacements.push({ variable: key, found });
+
+        if (found && variables[key]) {
+            result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), variables[key]);
+        }
+    }
+
+    return { result, replacements };
+}
+
+// Call DeepSeek API
+export async function callDeepSeek(prompt: string, isPing: boolean = false): Promise<string> {
+    if (!DEEPSEEK_API_KEY) {
+        throw new Error('DEEPSEEK_API_KEY is not configured');
+    }
+
+    const messages = [
+        { role: "system", content: "You are a helpful AI assistant specialized in analyzing sales calls. You MUST return valid JSON. Do not return markdown blocks. Strictly follow the field names in the prompt." },
+        { role: "user", content: prompt }
+    ];
+
+    if (isPing) {
+        messages[1].content = "Reply with 'Pong'";
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120s timeout
+
+    try {
+        const response = await fetch(DEEPSEEK_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "deepseek-chat",
+                messages: messages,
+                temperature: isPing ? 0.1 : 0.7,
+                max_tokens: isPing ? 10 : 4000,
+                stream: false
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(`DeepSeek API Error: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
+        }
+
+        const data = await response.json();
+        return data.choices[0].message.content;
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        throw error;
+    }
+}
+
+// --- Main Service Logic ---
+
+/**
+ * Analyzes a call using the provided prompt content.
+ * Handles data fetching, variable replacement, AI execution, and result parsing.
+ */
+export async function analyzeCall(callId: string, promptContent: string, isPing: boolean = false): Promise<AnalysisResult> {
+    const startTime = Date.now();
+    let isMock = false;
+    let networkError = null;
+    let rawOutput = '';
+    let parsedOutput: any = null;
+    let parseError: string | null = null;
+
+    // 1. Get Call Data
+    const call = db.prepare(`
+        SELECT 
+            c.id, c.agentId, c.startedAt, c.duration, c.outcome,
+            a.name as agentName,
+            (SELECT content FROM transcripts t WHERE t.dealId = c.id ORDER BY t.createdAt DESC LIMIT 1) as transcriptContent
+        FROM calls c
+        LEFT JOIN agents a ON c.agentId = a.id
+        WHERE c.id = ?
+    `).get(callId) as any;
+
+    if (!call) {
+        throw new Error(`Call not found: ${callId}`);
+    }
+
+    // 2. Prepare Variables
+    const variables: Record<string, string> = {
+        transcript: formatTranscript(call.transcriptContent),
+        signals: getSignalsList(),
+        tags: getTagsList(),
+        call_metadata: JSON.stringify({
+            callId: call.id,
+            agentName: call.agentName,
+            startedAt: call.startedAt,
+            duration: call.duration,
+            outcome: call.outcome
+        }, null, 2),
+        scoring_rules: getScoringRules()
+    };
+
+    // 3. Replace Variables
+    const { result: preparedPrompt, replacements } = replaceVariables(promptContent, variables);
+
+    // 4. Ping Mode Check (Fast Exit)
+    if (isPing) {
+        try {
+            const text = await callDeepSeek("", true);
+            return {
+                rawOutput: text, // 'Pong'
+                parsedOutput: null,
+                preparedPrompt, // Return preview
+                replacements,
+                isMock: false,
+                networkError: null,
+                executionTime: Date.now() - startTime
+            };
+        } catch (e: any) {
+            throw new Error(`Ping Failed: ${e.message}`);
+        }
+    }
+
+    // 5. Execute AI
+    try {
+        rawOutput = await callDeepSeek(preparedPrompt);
+    } catch (apiError: any) {
+        console.error('DeepSeek/AI Failed (falling back to mock):', apiError.message);
+        networkError = apiError.message;
+        isMock = true;
+        rawOutput = generateMockResponse(call.transcriptContent);
+    }
+
+    // 6. Parse Output
+    try {
+        let cleanJson = rawOutput;
+        if (cleanJson.includes('```json')) {
+            cleanJson = cleanJson.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        } else if (cleanJson.includes('```')) {
+            cleanJson = cleanJson.replace(/```\n?/g, '').trim();
+        }
+        parsedOutput = JSON.parse(cleanJson);
+
+        // Normalize Structure
+        if (parsedOutput.signal_events && !parsedOutput.signals) {
+            parsedOutput.signals = parsedOutput.signal_events;
+            delete parsedOutput.signal_events;
+        }
+
+        // Normalize Signals
+        if (Array.isArray(parsedOutput.signals)) {
+            parsedOutput.signals = parsedOutput.signals.map((s: any) => ({
+                ...s,
+                name: s.name || s.signal_name,
+                code: s.code || s.signal_code,
+                score: typeof s.score === 'number' ? s.score : 0
+            }));
+        }
+    } catch (e: any) {
+        parseError = `JSON parse error: ${e.message}`;
+    }
+
+    return {
+        rawOutput,
+        parsedOutput,
+        preparedPrompt,
+        replacements,
+        isMock,
+        networkError,
+        parseError,
+        executionTime: Date.now() - startTime
+    };
+}

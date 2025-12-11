@@ -39,6 +39,7 @@ const navigation: NavItem[] = [
       { name: 'Analytics', href: '/dashboard/team-calls/analytics', icon: BarChart3 },
       { name: 'Scorecard', href: '/dashboard/team-calls/scorecard', icon: BarChart3 },
       { name: 'AI Audit', href: '/dashboard/team-calls/ai-audit', icon: Activity },
+      { name: 'AI Prompts', href: '/dashboard/team-calls/prompts', icon: PenTool },
       { name: 'Config', href: '/dashboard/team-calls/config', icon: Settings },
     ]
   },

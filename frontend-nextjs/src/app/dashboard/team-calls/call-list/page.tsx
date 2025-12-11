@@ -19,9 +19,9 @@ const getDimensionIcon = (dimension: 'process' | 'skills' | 'communication'): st
 }
 
 const getDimensionLabel = (dimension: 'process' | 'skills' | 'communication'): string => {
-  if (dimension === 'process') return 'Process'
-  if (dimension === 'skills') return 'Skills'
-  return 'Communication'
+  if (dimension === 'process') return '流程规范'
+  if (dimension === 'skills') return '销售技巧'
+  return '沟通能力'
 }
 
 /**
@@ -55,13 +55,13 @@ function CallRecordingPlayer({ callId, duration, audioUrl }: { callId: string | 
     <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-100">
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Call Recording</h3>
+          <h3 className="text-lg font-semibold text-gray-900">通话录音</h3>
           <p className="text-xs text-gray-600 mt-1">
-            Total Duration: {formatTime(duration)}
+            总时长: {formatTime(duration)}
           </p>
         </div>
         <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-          Available
+          可播放
         </span>
       </div>
 
@@ -118,7 +118,7 @@ function CallRecordingPlayer({ callId, duration, audioUrl }: { callId: string | 
 
         {/* Playback Speed */}
         <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
-          <span className="text-xs font-medium text-gray-700">Speed:</span>
+          <span className="text-xs font-medium text-gray-700">倍速:</span>
           <div className="flex gap-1">
             {[0.75, 1, 1.25, 1.5].map((speed) => (
               <button
@@ -135,20 +135,20 @@ function CallRecordingPlayer({ callId, duration, audioUrl }: { callId: string | 
       {/* Recording Info */}
       <div className="mt-4 pt-4 border-t border-blue-200 grid grid-cols-2 gap-3 text-xs">
         <div>
-          <span className="text-gray-600">Format:</span>
+          <span className="text-gray-600">格式:</span>
           <p className="font-medium text-gray-900">MP3</p>
         </div>
         <div>
-          <span className="text-gray-600">Size:</span>
+          <span className="text-gray-600">大小:</span>
           <p className="font-medium text-gray-900">12.5 MB</p>
         </div>
         <div>
-          <span className="text-gray-600">Bitrate:</span>
+          <span className="text-gray-600">码率:</span>
           <p className="font-medium text-gray-900">128 kbps</p>
         </div>
         <div>
-          <span className="text-gray-600">Channels:</span>
-          <p className="font-medium text-gray-900">Stereo</p>
+          <span className="text-gray-600">声道:</span>
+          <p className="font-medium text-gray-900">立体声</p>
         </div>
       </div>
     </div>
@@ -220,8 +220,8 @@ export default function ConversationCallListPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Team Calls</h1>
-        <p className="mt-2 text-gray-600">Sales team call performance, pipeline impact, and coaching opportunities</p>
+        <h1 className="text-3xl font-bold text-gray-900">团队通话列表</h1>
+        <p className="mt-2 text-gray-600">销售团队通话表现、商机影响及辅导机会</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -230,13 +230,13 @@ export default function ConversationCallListPage() {
           {/* Filter Bar */}
           <div className="bg-white shadow rounded-lg p-4 mb-4 space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2">Filter by Agent</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">成员筛选</label>
               <select
                 value={filterAgent}
                 onChange={(e) => setFilterAgent(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="all">All Team Members</option>
+                <option value="all">所有成员</option>
                 {agents?.map((agent) => (
                   <option key={agent.id} value={agent.id}>
                     {agent.name}
@@ -245,15 +245,15 @@ export default function ConversationCallListPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2">Sort by</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-2">排序方式</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'duration')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="recent">Most Recent</option>
-                <option value="score">Highest Score</option>
-                <option value="duration">Longest Duration</option>
+                <option value="recent">最新通话</option>
+                <option value="score">最高评分</option>
+                <option value="duration">时长最长</option>
               </select>
             </div>
           </div>
@@ -286,28 +286,28 @@ export default function ConversationCallListPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-600">
-                      {call.customer_name} · {call.duration_minutes} mins
+                      {call.customer_name} · {call.duration_minutes} 分钟
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getScoreBadgeClass(call.overallQualityScore)}`}
                       >
-                        Quality Score {call.overallQualityScore}
+                        质量分 {call.overallQualityScore}
                       </span>
                       {/* Sales KPI Indicators */}
                       {call.events?.includes('customer_solution_request') && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                          Solution Request
+                          客户请求方案
                         </span>
                       )}
                       {call.events?.includes('customer_schedule_request') && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                          Demo Scheduled
+                          已预约演示
                         </span>
                       )}
                       {call.service_issues?.some(s => s.severity === 'high') && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                          ⚠ Process Issue
+                          ⚠ 流程违规
                         </span>
                       )}
                     </div>
@@ -316,7 +316,7 @@ export default function ConversationCallListPage() {
                     <div className="mt-2 space-y-1.5">
                       {/* Process */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">Process</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">流程</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${getScoreBarColor(call.processScore)}`}
@@ -328,7 +328,7 @@ export default function ConversationCallListPage() {
                       
                       {/* Skills */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">Skills</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">技巧</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${getScoreBarColor(call.skillsScore)}`}
@@ -340,7 +340,7 @@ export default function ConversationCallListPage() {
                       
                       {/* Communication */}
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">Comm</span>
+                        <span className="text-xs font-medium text-gray-700 w-12">沟通</span>
                         <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className={`h-full ${getScoreBarColor(call.communicationScore)}`}
@@ -398,10 +398,10 @@ export default function ConversationCallListPage() {
               <div className="border-b border-gray-200 bg-gray-50">
                 <div className="flex overflow-x-auto">
                   {[
-                    { id: 'summary', label: 'Summary', icon: PhoneCall },
-                    { id: 'transcript', label: 'Transcript', icon: PhoneCall },
-                    { id: 'analysis', label: 'Analysis', icon: Gauge },
-                    { id: 'metadata', label: 'Metadata', icon: Tag },
+                    { id: 'summary', label: '通话摘要', icon: PhoneCall },
+                    { id: 'transcript', label: '逐字稿', icon: PhoneCall },
+                    { id: 'analysis', label: '深度分析', icon: Gauge },
+                    { id: 'metadata', label: '元数据', icon: Tag },
                   ].map(({ id, label, icon: Icon }) => (
                     <button
                       key={id}
@@ -433,26 +433,26 @@ export default function ConversationCallListPage() {
                     {/* Call Overview */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p className="text-xs text-gray-600 mb-1">Customer</p>
+                        <p className="text-xs text-gray-600 mb-1">客户名称</p>
                         <p className="text-lg font-semibold text-gray-900">{selectedCall.customer_name}</p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p className="text-xs text-gray-600 mb-1">Call Duration</p>
-                        <p className="text-lg font-semibold text-gray-900">{selectedCall.duration_minutes} minutes</p>
+                        <p className="text-xs text-gray-600 mb-1">通话时长</p>
+                        <p className="text-lg font-semibold text-gray-900">{selectedCall.duration_minutes} 分钟</p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p className="text-xs text-gray-600 mb-1">Business Grade</p>
+                        <p className="text-xs text-gray-600 mb-1">商机等级</p>
                         <p className="text-lg font-semibold text-gray-900">{selectedCall.business_grade}</p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p className="text-xs text-gray-600 mb-1">Call Date</p>
+                        <p className="text-xs text-gray-600 mb-1">通话日期</p>
                         <p className="text-lg font-semibold text-gray-900">{new Date(selectedCall.timestamp).toLocaleDateString()}</p>
                       </div>
                     </div>
 
                     {/* Quality Scores Overview */}
                     <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallQualityScore)}`}>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Quality Score Overview</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">质量评分概览</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
                           { label: 'Process', value: selectedCall.processScore },
@@ -488,8 +488,8 @@ export default function ConversationCallListPage() {
                     {/* Transcript Header */}
                     <div className="flex items-center justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Call Transcript</h3>
-                        <p className="text-sm text-gray-600 mt-1">{selectedCall.transcript.length} messages · {selectedCall.duration_minutes} minutes</p>
+                        <h3 className="text-lg font-semibold text-gray-900">通话逐字稿</h3>
+                        <p className="text-sm text-gray-600 mt-1">{selectedCall.transcript.length} 条对话 · {selectedCall.duration_minutes} 分钟</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <MessageCircle className="h-5 w-5 text-blue-600" />
@@ -522,7 +522,7 @@ export default function ConversationCallListPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-sm font-semibold text-gray-900">
-                                {entry.speaker === 'agent' ? (selectedCall.agentName || 'Agent') : 'Customer'}
+                                {entry.speaker === 'agent' ? (selectedCall.agentName || '坐席') : '客户'}
                               </span>
                               <span className="text-xs text-gray-500">
                                 {Math.floor(entry.timestamp / 60)}:{(entry.timestamp % 60).toString().padStart(2, '0')}
@@ -537,23 +537,23 @@ export default function ConversationCallListPage() {
                     {/* Transcript Stats */}
                     <div className="mt-6 pt-4 border-t border-gray-200 grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-gray-600">Total Messages</p>
+                        <p className="text-xs text-gray-600">总对话数</p>
                         <p className="text-lg font-semibold text-blue-600">{selectedCall.transcript.length}</p>
                       </div>
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-gray-600">Agent Messages</p>
+                        <p className="text-xs text-gray-600">坐席对话</p>
                         <p className="text-lg font-semibold text-blue-600">
                           {selectedCall.transcript.filter(e => e.speaker === 'agent').length}
                         </p>
                       </div>
                       <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-600">Customer Messages</p>
+                        <p className="text-xs text-gray-600">客户对话</p>
                         <p className="text-lg font-semibold text-gray-600">
                           {selectedCall.transcript.filter(e => e.speaker === 'customer').length}
                         </p>
                       </div>
                       <div className="text-center p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-600">Avg Duration</p>
+                        <p className="text-xs text-gray-600">平均单句时长</p>
                         <p className="text-lg font-semibold text-gray-600">
                           {Math.round(selectedCall.duration_minutes * 60 / selectedCall.transcript.length)}s
                         </p>
@@ -566,7 +566,7 @@ export default function ConversationCallListPage() {
                     {/* Scoring */}
                     <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallQualityScore)}`}>
                       <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-900">Scoring</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">评分详情</h3>
                         <div className="flex items-center gap-2">
                           <div className={`text-4xl font-bold ${getScoreColor(selectedCall.overallQualityScore)}`}>
                             {selectedCall.overallQualityScore}
@@ -735,10 +735,10 @@ export default function ConversationCallListPage() {
             <div className="bg-white shadow rounded-lg p-12 text-center">
               <PhoneCall className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">
-                Select a Call
+                请选择通话
               </h3>
               <p className="mt-1 text-sm text-gray-500">
-                Choose a call from the left list to view details
+                从左侧列表选择一个通话以查看详情
               </p>
             </div>
           )}

@@ -144,6 +144,35 @@ export function initDatabase() {
       signals TEXT NOT NULL, -- JSON array of signals
       createdAt TEXT NOT NULL,
       FOREIGN KEY(dealId) REFERENCES calls(id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS prompts (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      version TEXT,
+      content TEXT NOT NULL,
+      description TEXT,
+      prompt_type TEXT DEFAULT 'quality_check',
+      variables TEXT,
+      output_schema TEXT,
+      is_default BOOLEAN DEFAULT 0,
+      active INTEGER DEFAULT 1,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS prompt_execution_logs (
+      id TEXT PRIMARY KEY,
+      promptId TEXT NOT NULL,
+      callId TEXT NOT NULL,
+      input_variables TEXT,
+      raw_output TEXT,
+      parsed_output TEXT,
+      execution_time_ms INTEGER,
+      status TEXT NOT NULL,
+      error_message TEXT,
+      is_dry_run INTEGER DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY(promptId) REFERENCES prompts(id),
+      FOREIGN KEY(callId) REFERENCES calls(id)
     )`
   ]
 
@@ -151,25 +180,43 @@ export function initDatabase() {
 
   // Migration: Add new columns if they don't exist
   try {
+    // Migrate prompts table - add new columns if they don't exist
+    const promptColumns = db.prepare('PRAGMA table_info(prompts)').all() as any[]
+    const promptColumnNames = promptColumns.map(c => c.name)
+
+    if (promptColumns.length > 0) {
+      if (!promptColumnNames.includes('prompt_type')) {
+        console.log('Migrating: Adding prompt_type column to prompts')
+        db.exec("ALTER TABLE prompts ADD COLUMN prompt_type TEXT DEFAULT 'quality_check'")
+      }
+      if (!promptColumnNames.includes('variables')) {
+        console.log('Migrating: Adding variables column to prompts')
+        db.exec('ALTER TABLE prompts ADD COLUMN variables TEXT')
+      }
+      if (!promptColumnNames.includes('output_schema')) {
+        console.log('Migrating: Adding output_schema column to prompts')
+        db.exec('ALTER TABLE prompts ADD COLUMN output_schema TEXT')
+      }
+    }
+
+    // Create indexes for prompt_execution_logs
+    db.exec('CREATE INDEX IF NOT EXISTS idx_prompt_logs_promptId ON prompt_execution_logs(promptId)')
+    db.exec('CREATE INDEX IF NOT EXISTS idx_prompt_logs_callId ON prompt_execution_logs(callId)')
+
     // Migrate ai_analysis_logs
     const logColumns = db.prepare('PRAGMA table_info(ai_analysis_logs)').all() as any[]
     const logColumnNames = logColumns.map(c => c.name)
 
     if (!logColumnNames.includes('dealId')) {
-      // If table exists but needs migration, we might need to recreate or alter.
-      // Since this is a dev env and we are re-simulating, let's just drop and recreate if it lacks dealId
-      // Or simpler: just add it if possible, but SQLite foreign keys on ALTER are tricky.
-      // For now, let's assume we can just add the column or if the table is empty/unused we can drop it.
-      // Given the user wants to "re-simulate", dropping it is probably fine.
       console.log('Migrating: Recreating ai_analysis_logs table to match new schema')
       db.exec('DROP TABLE IF EXISTS ai_analysis_logs')
-      db.exec(`CREATE TABLE IF NOT EXISTS ai_analysis_logs (
-        id TEXT PRIMARY KEY,
-        dealId TEXT NOT NULL,
-        signals TEXT NOT NULL, -- JSON array of signals
+      db.exec(`CREATE TABLE IF NOT EXISTS ai_analysis_logs(
+      id TEXT PRIMARY KEY,
+      dealId TEXT NOT NULL,
+      signals TEXT NOT NULL, --JSON array of signals
         createdAt TEXT NOT NULL,
-        FOREIGN KEY(dealId) REFERENCES calls(id)
-      )`)
+      FOREIGN KEY(dealId) REFERENCES calls(id)
+    )`)
     }
     // Migrate call_assessments
     const caColumns = db.prepare('PRAGMA table_info(call_assessments)').all() as any[]
@@ -204,20 +251,20 @@ export function initDatabase() {
     if (csColumns.length > 0 && (!csColumnNames.includes('category') || !csColumnNames.includes('reasoning') || !csColumnNames.includes('timestamp_sec'))) {
       console.log('Migrating: Recreating call_signals table with new schema')
       db.exec('DROP TABLE IF EXISTS call_signals')
-      db.exec(`CREATE TABLE IF NOT EXISTS call_signals (
-        id TEXT PRIMARY KEY,
-        callId TEXT NOT NULL,
-        signalCode TEXT NOT NULL,
-        category TEXT,
-        dimension TEXT,
-        polarity TEXT,
-        timestamp_sec REAL,
-        confidence REAL DEFAULT 0,
-        context_text TEXT,
-        reasoning TEXT,
-        createdAt TEXT NOT NULL,
-        FOREIGN KEY(callId) REFERENCES calls(id)
-      )`)
+      db.exec(`CREATE TABLE IF NOT EXISTS call_signals(
+      id TEXT PRIMARY KEY,
+      callId TEXT NOT NULL,
+      signalCode TEXT NOT NULL,
+      category TEXT,
+      dimension TEXT,
+      polarity TEXT,
+      timestamp_sec REAL,
+      confidence REAL DEFAULT 0,
+      context_text TEXT,
+      reasoning TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY(callId) REFERENCES calls(id)
+    )`)
     }
 
     // Create indexes for call_signals if not exist
@@ -247,6 +294,143 @@ export function initDatabase() {
 
   // Check if data exists, if not seed it
   const tagCount = db.prepare('SELECT count(*) as count FROM tags').get() as { count: number }
+
+  // Check/Seed Prompts
+  const promptCount = db.prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='prompts'").get() as { count: number }
+  if (promptCount.count > 0) {
+    const pCount = db.prepare('SELECT count(*) as count FROM prompts').get() as { count: number }
+    if (pCount.count === 0) {
+      console.log('Seeding default prompts...')
+
+      const defaultPromptContent = `你是一位专业的销售通话质检分析师。请仔细分析以下通话记录，识别销售行为信号并进行质量评估。
+
+## 通话记录
+{{transcript}}
+
+## 信号检测任务
+请从通话中识别以下类型的信号（Signal）：
+
+### A. 销售方信号 (Sales)
+**流程维度 (Process)**:
+- opening_complete: 开场完成（自我介绍+说明目的）
+- needs_identification_basic: 基础需求识别
+- needs_identification_deep: 深度需求识别
+- solution_proposal_basic: 基础方案提议
+- solution_proposal_professional: 专业方案提议
+- schedule_attempt: 尝试安排时间
+- same_day_visit_attempt: 尝试当天上门
+- handover_process_explained: 解释交接流程
+
+**技能维度 (Skills)**:
+- skill_handle_objection_basic: 处理基础异议
+- skill_handle_objection_price: 处理价格异议
+- skill_handle_objection_time: 处理时间异议
+- skill_handle_objection_scope: 处理范围异议
+- skill_handle_objection_risk: 处理风险异议
+- skill_handle_objection_trust: 处理信任异议
+- active_selling_proposition: 主动销售主张
+- objection_prevention_proactive: 主动异议预防
+- expectation_setting: 期望值设定
+- expertise_display: 专业知识展示
+
+**沟通维度 (Communication)**:
+- listening_good: 良好倾听
+- empathy_response: 共情回应
+- clarity_of_explanation: 清晰解释
+- tone_professional: 专业语气
+- attitude_positive: 积极态度
+
+### B. 客户方信号 (Customer)
+**意向维度 (Intent)**:
+- customer_high_intent: 高意向
+- customer_solution_request: 解决方案请求
+- customer_pricing_request: 价格询问
+- customer_schedule_request: 时间安排请求
+
+**约束维度 (Constraint)**:
+- customer_role_owner: 客户是业主/决策者
+- customer_objection_price: 价格异议
+- customer_objection_time: 时间异议
+- customer_objection_trust: 信任异议
+- customer_objection_scope: 范围异议
+
+### C. 服务问题 (Service Issue)
+- schedule_delay_customer_reason: 客户原因导致的排期延迟
+- schedule_delay_agent_reason: 客服原因导致的排期延迟
+- misalignment_price: 价格不一致
+- misalignment_scope: 范围不一致
+- communication_breakdown: 沟通中断
+- risk_unaddressed: 风险未解决
+
+## 输出要求
+请以 JSON 格式输出，包含以下结构：
+
+\`\`\`json
+{
+  "signals": [
+    {
+      "code": "信号代码",
+      "name": "信号名称",
+      "category": "Sales|Customer|Service Issue",
+      "dimension": "Process|Skills|Communication|Intent|Constraint|Service Issue",
+      "polarity": "positive|negative|neutral",
+      "score": 1-5,
+      "confidence": 0.0-1.0,
+      "timestamp_sec": 出现时间（秒）,
+      "context_text": "相关原文引用",
+      "reasoning": "评分理由"
+    }
+  ],
+  "summary": {
+    "total_signals": 信号总数,
+    "process_score": 1-100,
+    "skills_score": 1-100,
+    "communication_score": 1-100,
+    "overall_assessment": "整体评价文字"
+  }
+}
+\`\`\`
+
+## 评分标准
+- 1分: 差 - 执行质量很差或表现微弱
+- 2分: 较差 - 执行质量较差或表现不足
+- 3分: 合格 - 执行质量合格或表现中等
+- 4分: 良好 - 执行质量良好或表现较强
+- 5分: 优秀 - 执行质量优秀或表现非常强
+
+请严格按照 JSON 格式输出，不要包含其他解释文字。`
+
+      const defaultVariables = JSON.stringify([
+        { name: 'transcript', description: '通话文本记录', required: true }
+      ])
+
+      const defaultOutputSchema = JSON.stringify({
+        type: 'object',
+        properties: {
+          signals: { type: 'array', description: '检测到的信号列表' },
+          summary: { type: 'object', description: '分析摘要' }
+        }
+      })
+
+      db.prepare(`
+            INSERT INTO prompts(id, name, version, content, description, prompt_type, variables, output_schema, is_default, active, createdAt, updatedAt)
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+        'default_prompt_v1',
+        '标准销售质检分析',
+        '1.0',
+        defaultPromptContent,
+        '标准销售通话质量检测提示词，识别销售行为信号并进行质量评估。支持流程、技能、沟通三个维度的综合分析。',
+        'quality_check',
+        defaultVariables,
+        defaultOutputSchema,
+        1,
+        1,
+        new Date().toISOString(),
+        new Date().toISOString()
+      )
+    }
+  }
 
   if (tagCount.count === 0) {
     console.log('Seeding database with mock data...')
@@ -308,9 +492,9 @@ function seedDatabase() {
   ]
 
   const insertTag = db.prepare(`
-    INSERT INTO tags (id, name, code, category, is_mandatory, dimension, type, severity, scoreRange, description, active, createdAt, updatedAt)
-    VALUES (@id, @name, @code, @category, @is_mandatory, @dimension, @type, @severity, @scoreRange, @description, @active, @createdAt, @updatedAt)
-  `)
+    INSERT INTO tags(id, name, code, category, is_mandatory, dimension, type, severity, scoreRange, description, active, createdAt, updatedAt)
+    VALUES(@id, @name, @code, @category, @is_mandatory, @dimension, @type, @severity, @scoreRange, @description, @active, @createdAt, @updatedAt)
+      `)
 
   const insertTransaction = db.transaction((data) => {
     for (const item of data) insertTag.run(item)
@@ -325,11 +509,11 @@ function seedDatabase() {
   ]
 
   // Insert Rules (simplified)
-  const insertRule = db.prepare(`INSERT INTO scoring_rules (id, name, appliesTo, description, active, ruleType, tagCode, targetDimension, scoreAdjustment, weight, createdAt, updatedAt) VALUES (@id, @name, @appliesTo, @description, @active, @ruleType, @tagCode, @targetDimension, @scoreAdjustment, @weight, @createdAt, @updatedAt)`)
+  const insertRule = db.prepare(`INSERT INTO scoring_rules(id, name, appliesTo, description, active, ruleType, tagCode, targetDimension, scoreAdjustment, weight, createdAt, updatedAt) VALUES(@id, @name, @appliesTo, @description, @active, @ruleType, @tagCode, @targetDimension, @scoreAdjustment, @weight, @createdAt, @updatedAt)`)
   db.transaction((data) => { for (const item of data) insertRule.run(item) })(rules)
 
   // Insert Score Config
-  db.prepare(`INSERT INTO score_config (id, aggregationMethod, processWeight, skillsWeight, communicationWeight, description, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run('1', 'weighted-average', 30, 50, 20, 'Default', '2025-12-01', '2025-12-03')
+  db.prepare(`INSERT INTO score_config(id, aggregationMethod, processWeight, skillsWeight, communicationWeight, description, createdAt, updatedAt) VALUES(?, ?, ?, ?, ?, ?, ?, ?)`).run('1', 'weighted-average', 30, 50, 20, 'Default', '2025-12-01', '2025-12-03')
 
 
   // --- NEW RELATIONAL SEED DATA ---
@@ -343,14 +527,14 @@ function seedDatabase() {
     { id: '5', name: 'Sam Waltman', avatarId: 'call_analysis', teamId: '9055771909563658940', createdAt: '2025-01-01' },
   ]
 
-  const insertAgent = db.prepare(`INSERT INTO agents (id, name, avatarId, createdAt) VALUES (@id, @name, @avatarId, @createdAt)`)
+  const insertAgent = db.prepare(`INSERT INTO agents(id, name, avatarId, createdAt) VALUES(@id, @name, @avatarId, @createdAt)`)
   const insertAgentTx = db.transaction((data) => { for (const item of data) insertAgent.run(item) })
   insertAgentTx(agents)
 
   // 2. Calls & Assessments
   // We will generate ~20 calls per agent
-  const insertCall = db.prepare(`INSERT INTO calls (id, agentId, startedAt, duration, outcome, audioUrl) VALUES (@id, @agentId, @startedAt, @duration, @outcome, @audioUrl)`)
-  const insertAssessment = db.prepare(`INSERT INTO call_assessments (id, callId, tagId, score, reasoning) VALUES (@id, @callId, @tagId, @score, @reasoning)`)
+  const insertCall = db.prepare(`INSERT INTO calls(id, agentId, startedAt, duration, outcome, audioUrl) VALUES(@id, @agentId, @startedAt, @duration, @outcome, @audioUrl)`)
+  const insertAssessment = db.prepare(`INSERT INTO call_assessments(id, callId, tagId, score, reasoning) VALUES(@id, @callId, @tagId, @score, @reasoning)`)
 
   const generateCalls = db.transaction(() => {
     let callIdCounter = 1
@@ -362,7 +546,7 @@ function seedDatabase() {
       const performance = 0.9 - (index * 0.15)
 
       for (let i = 0; i < 50; i++) {
-        const callId = `call_${callIdCounter++}`
+        const callId = `call_${callIdCounter++} `
         const isWin = Math.random() < performance // Win rate correlated with performance
 
         insertCall.run({

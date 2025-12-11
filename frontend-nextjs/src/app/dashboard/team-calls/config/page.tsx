@@ -76,6 +76,8 @@ type AuditLog = {
 
 
 
+
+
 export default function ConversationConfigPage() {
   const [activeTab, setActiveTab] = useState<Tab>('signals')
   const [signals, setSignals] = useState<Signal[]>([])
@@ -83,13 +85,16 @@ export default function ConversationConfigPage() {
   const [rules, setRules] = useState<ScoringRule[]>([])
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
   const [scoreConfig, setScoreConfig] = useState<ScoreCalculationConfig | null>(null)
+  
   const [showTagModal, setShowTagModal] = useState(false)
   const [showRuleModal, setShowRuleModal] = useState(false)
   const [showSignalModal, setShowSignalModal] = useState(false)
   const [showRulePreview, setShowRulePreview] = useState(false)
+  
   const [selectedTag, setSelectedTag] = useState<Tag | null>(null)
   const [selectedRule, setSelectedRule] = useState<ScoringRule | null>(null)
   const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null)
+  
   const [isSaving, setIsSaving] = useState(false)
   
   // Filter State
@@ -134,6 +139,8 @@ export default function ConversationConfigPage() {
             communicationWeight: data.communicationWeight
           })
         }
+
+
       } catch (e) {
         console.error('Error fetching config data:', e)
       }
@@ -188,6 +195,8 @@ export default function ConversationConfigPage() {
   // Rule form state
   const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as 'process' | 'skills' | 'communication', scoreAdjustment: 0, weight: 1.0, active: true })
   
+
+
   // Score config form state
   const [scoreForm, setScoreForm] = useState({ processWeight: 30, skillsWeight: 50, communicationWeight: 20 })
 
@@ -415,6 +424,8 @@ export default function ConversationConfigPage() {
     }
   }
 
+
+
   return (
     <div>
       <div className="mb-8">
@@ -465,6 +476,7 @@ export default function ConversationConfigPage() {
           >
             评分计算
           </button>
+
           <button
             onClick={() => setActiveTab('history')}
             className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
@@ -1486,6 +1498,104 @@ export default function ConversationConfigPage() {
           </div>
         </div>
       )}
+
+      {/* Prompts Tab Content */}
+      {activeTab === 'prompts' && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">提示词管理</h2>
+            <button
+              onClick={() => {
+                setSelectedPrompt(null)
+                setPromptForm({ name: '', version: '1.0', content: '', description: '', is_default: false, active: true })
+                setShowPromptModal(true)
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+            >
+              <Plus className="h-4 w-4" />
+              创建提示词
+            </button>
+          </div>
+
+          {/* Prompts Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">名称</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">版本</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">状态</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">默认</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">描述</th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">最后更新</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {prompts.map((prompt) => (
+                  <tr key={prompt.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{prompt.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 font-mono">{prompt.version || '1.0'}</td>
+                    <td className="px-6 py-4 text-sm">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${prompt.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                            {prompt.active ? 'Active' : 'Archived'}
+                        </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                        {prompt.is_default && (
+                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Default
+                             </span>
+                        )}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{prompt.description}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{new Date(prompt.updatedAt).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedPrompt(prompt)
+                            setPromptForm({
+                              name: prompt.name,
+                              version: prompt.version,
+                              content: prompt.content,
+                              description: prompt.description,
+                              is_default: prompt.is_default,
+                              active: prompt.active
+                            })
+                            setShowPromptModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button 
+                          className="text-red-600 hover:text-red-700" 
+                          title="Delete"
+                          onClick={() => handleDeletePrompt(prompt.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {prompts.length === 0 && (
+                    <tr>
+                        <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                            暂无提示词，请点击右上角创建。
+                        </td>
+                    </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+
     </div>
   )
 }

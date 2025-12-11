@@ -1,96 +1,375 @@
+/**
+ * ETL Core Module
+ * 
+ * 核心 ETL 逻辑，用于处理 AI 分析结果并写入数据库。
+ * 这是唯一的 ETL 逻辑维护点，供 API 和脚本共同使用。
+ * 
+ * 数据流:
+ * ai_analysis_logs.signals (JSON) 
+ *   → signal_events → call_signals 表
+ *   → tags → call_assessments 表
+ */
 
 import db from './db'
 
-export interface RawAISignal {
-  tag: string // This corresponds to the 'code' in our tags table
+// ============================================
+// Type Definitions
+// ============================================
+
+/**
+ * Signal Event - 事件级信号
+ * 记录通话中的具体事件："发生了什么"
+ */
+export interface SignalEvent {
+  signal_name: string
   category: string
   dimension: string
+  polarity: string
+  severity: string | null
+  context_text: string
+  timestamp_sec: number
+  confidence: number
+  reasoning: string
+}
+
+/**
+ * Context Event - 上下文事件
+ * Tag 评估中引用的具体文本片段
+ */
+export interface ContextEvent {
+  timestamp_sec: number
+  context_text: string
+  confidence: number
+}
+
+/**
+ * Tag Event - 通话级标签
+ * 信号的聚合与质量评估："做得好不好"
+ */
+export interface TagEvent {
+  tag: string
+  category: string
+  dimension: string
+  polarity: string
+  severity: string | null
   score: number // 1-5 scale
+  reasoning: string
+  context_events: ContextEvent[]
+}
+
+/**
+ * AI Analysis Result - AI 分析结果
+ * 新格式，包含 signal_events 和 tags
+ */
+export interface AIAnalysisResult {
+  signal_events: SignalEvent[]
+  tags: TagEvent[]
+}
+
+/**
+ * ETL Input - ETL 处理输入
+ */
+export interface ETLInput {
+  callId: string
+  agentId?: string
+  outcome?: string
+  createdAt?: string
+  audioUrl?: string
+  analysisResult: AIAnalysisResult
+}
+
+/**
+ * ETL Result - ETL 处理结果
+ */
+export interface ETLResult {
+  success: boolean
+  callId: string
+  insertedSignals: number
+  insertedAssessments: number
+  missingTagCodes: string[]
+  errors: string[]
+}
+
+// ============================================
+// Core ETL Functions
+// ============================================
+
+/**
+ * 解析 AI 分析 JSON 字符串
+ * 处理可能包含 markdown 代码块的情况
+ */
+export function parseAnalysisJson(rawJson: string): AIAnalysisResult | null {
+  try {
+    let cleaned = rawJson.trim()
+
+    // Remove markdown code blocks if present
+    if (cleaned.startsWith('```json')) {
+      cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '').trim()
+    } else if (cleaned.startsWith('```')) {
+      cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim()
+    }
+
+    return JSON.parse(cleaned) as AIAnalysisResult
+  } catch (error) {
+    console.error('Failed to parse analysis JSON:', error)
+    return null
+  }
+}
+
+/**
+ * 获取 Tag ID 映射表
+ * code -> id
+ */
+export function getTagMap(): Map<string, string> {
+  const allTags = db.prepare('SELECT id, code FROM tags').all() as { id: string, code: string }[]
+  const tagMap = new Map<string, string>()
+  allTags.forEach(t => tagMap.set(t.code, t.id))
+  return tagMap
+}
+
+/**
+ * 处理单个通话的 AI 分析结果
+ * 
+ * @param input ETL 输入数据
+ * @param options 选项
+ *   - createCall: 是否创建 call 记录（默认 false）
+ *   - clearExisting: 是否清除已有的 signals 和 assessments（默认 true）
+ */
+export function processCallAnalysis(
+  input: ETLInput,
+  options: { createCall?: boolean; clearExisting?: boolean } = {}
+): ETLResult {
+  const { callId, agentId, outcome, createdAt, audioUrl, analysisResult } = input
+  const { createCall = false, clearExisting = true } = options
+
+  const result: ETLResult = {
+    success: false,
+    callId,
+    insertedSignals: 0,
+    insertedAssessments: 0,
+    missingTagCodes: [],
+    errors: []
+  }
+
+  // Get tag mapping
+  const tagMap = getTagMap()
+
+  // Prepare statements
+  const insertCall = db.prepare(`
+    INSERT OR IGNORE INTO calls (id, agentId, startedAt, duration, outcome, audioUrl)
+    VALUES (@id, @agentId, @startedAt, @duration, @outcome, @audioUrl)
+  `)
+
+  const deleteSignals = db.prepare('DELETE FROM call_signals WHERE callId = ?')
+  const deleteAssessments = db.prepare('DELETE FROM call_assessments WHERE callId = ?')
+
+  const insertCallSignal = db.prepare(`
+    INSERT INTO call_signals (id, callId, signalCode, category, dimension, polarity, timestamp_sec, confidence, context_text, reasoning, createdAt)
+    VALUES (@id, @callId, @signalCode, @category, @dimension, @polarity, @timestamp_sec, @confidence, @context_text, @reasoning, @createdAt)
+  `)
+
+  const insertAssessment = db.prepare(`
+    INSERT INTO call_assessments (id, callId, tagId, score, confidence, reasoning, context_text, timestamp_sec, context_events)
+    VALUES (@id, @callId, @tagId, @score, @confidence, @reasoning, @context_text, @timestamp_sec, @context_events)
+  `)
+
+  // Execute transaction
+  const runTransaction = db.transaction(() => {
+    const now = createdAt || new Date().toISOString()
+
+    // 1. Create call record if requested
+    if (createCall) {
+      insertCall.run({
+        id: callId,
+        agentId: agentId || 'unknown',
+        startedAt: now,
+        duration: 300, // Default duration
+        outcome: outcome || 'unknown',
+        audioUrl: audioUrl || ''
+      })
+    }
+
+    // 2. Clear existing data if requested
+    if (clearExisting) {
+      deleteSignals.run(callId)
+      deleteAssessments.run(callId)
+    }
+
+    // 3. Process Signal Events -> call_signals
+    if (analysisResult.signal_events && Array.isArray(analysisResult.signal_events)) {
+      for (const signal of analysisResult.signal_events) {
+        try {
+          insertCallSignal.run({
+            id: `sig_${callId}_${result.insertedSignals}_${Date.now()}`,
+            callId: callId,
+            signalCode: signal.signal_name,
+            category: signal.category || null,
+            dimension: signal.dimension || null,
+            polarity: signal.polarity || null,
+            timestamp_sec: signal.timestamp_sec || null,
+            confidence: signal.confidence || 0,
+            context_text: signal.context_text || null,
+            reasoning: signal.reasoning || null,
+            createdAt: now
+          })
+          result.insertedSignals++
+        } catch (e) {
+          result.errors.push(`Failed to insert signal ${signal.signal_name}: ${e}`)
+        }
+      }
+    }
+
+    // 4. Process Tags -> call_assessments
+    if (analysisResult.tags && Array.isArray(analysisResult.tags)) {
+      for (const tag of analysisResult.tags) {
+        const tagId = tagMap.get(tag.tag)
+
+        if (!tagId) {
+          if (!result.missingTagCodes.includes(tag.tag)) {
+            result.missingTagCodes.push(tag.tag)
+          }
+          continue
+        }
+
+        // Convert score 1-5 to 0-100
+        const normalizedScore = Math.min(100, Math.max(0, Math.round(tag.score * 20)))
+
+        // Get earliest timestamp from context_events
+        let timestamp_sec: number | null = null
+        if (tag.context_events && tag.context_events.length > 0) {
+          timestamp_sec = Math.min(...tag.context_events.map(e => e.timestamp_sec))
+        }
+
+        // Get max confidence from context_events
+        let confidence = 0
+        if (tag.context_events && tag.context_events.length > 0) {
+          confidence = Math.max(...tag.context_events.map(e => e.confidence))
+        }
+
+        // Combine context_text from all events
+        let context_text: string | null = null
+        if (tag.context_events && tag.context_events.length > 0) {
+          context_text = tag.context_events.map(e => e.context_text).join(' | ')
+        }
+
+        try {
+          insertAssessment.run({
+            id: `assess_${callId}_${tagId}_${Date.now()}`,
+            callId: callId,
+            tagId: tagId,
+            score: normalizedScore,
+            confidence: confidence,
+            reasoning: tag.reasoning || null,
+            context_text: context_text,
+            timestamp_sec: timestamp_sec,
+            context_events: JSON.stringify(tag.context_events || [])
+          })
+          result.insertedAssessments++
+        } catch (e) {
+          result.errors.push(`Failed to insert assessment for tag ${tag.tag}: ${e}`)
+        }
+      }
+    }
+  })
+
+  try {
+    runTransaction()
+    result.success = true
+
+    console.log(`ETL Complete for Call ${callId}:`)
+    console.log(`  - Inserted Signals: ${result.insertedSignals}`)
+    console.log(`  - Inserted Assessments: ${result.insertedAssessments}`)
+
+    if (result.missingTagCodes.length > 0) {
+      console.warn(`  - Missing Tags: ${result.missingTagCodes.join(', ')}`)
+    }
+    if (result.errors.length > 0) {
+      console.warn(`  - Errors: ${result.errors.length}`)
+    }
+
+  } catch (error) {
+    result.errors.push(`Transaction failed: ${error}`)
+    console.error('ETL Transaction Failed:', error)
+  }
+
+  return result
+}
+
+/**
+ * 批量处理多个通话
+ */
+export function processBatchAnalysis(
+  inputs: ETLInput[],
+  options: { createCall?: boolean; clearExisting?: boolean } = {}
+): { results: ETLResult[]; summary: { total: number; success: number; failed: number } } {
+  const results: ETLResult[] = []
+  let successCount = 0
+  let failedCount = 0
+
+  for (const input of inputs) {
+    const result = processCallAnalysis(input, options)
+    results.push(result)
+    if (result.success) {
+      successCount++
+    } else {
+      failedCount++
+    }
+  }
+
+  return {
+    results,
+    summary: {
+      total: inputs.length,
+      success: successCount,
+      failed: failedCount
+    }
+  }
+}
+
+// ============================================
+// Legacy Support (for backward compatibility)
+// ============================================
+
+/**
+ * @deprecated Use processCallAnalysis instead
+ * Legacy interface for old format
+ */
+export interface RawAISignal {
+  tag: string
+  category: string
+  dimension: string
+  score: number
   reasoning?: string
   context?: string
 }
 
-export interface AIAnalysisResult {
-  callId: string
-  audioUrl?: string
-  signals: RawAISignal[]
-}
+/**
+ * @deprecated Use processCallAnalysis instead
+ * Legacy function for backward compatibility
+ */
+export function processAIAnalysis(result: { callId: string; audioUrl?: string; signals: RawAISignal[] }) {
+  console.warn('processAIAnalysis is deprecated. Use processCallAnalysis instead.')
 
-export function processAIAnalysis(result: AIAnalysisResult) {
-  const { callId, audioUrl, signals } = result
+  // Convert old format to new format
+  const tags: TagEvent[] = result.signals.map(s => ({
+    tag: s.tag,
+    category: s.category,
+    dimension: s.dimension,
+    polarity: 'positive',
+    severity: null,
+    score: s.score,
+    reasoning: s.reasoning || '',
+    context_events: s.context ? [{ timestamp_sec: 0, context_text: s.context, confidence: 1 }] : []
+  }))
 
-  console.log(`Starting ETL for Call ID: ${callId}`)
-
-  // 1. Update Call Audio URL if provided
-  if (audioUrl) {
-    const updateCall = db.prepare('UPDATE calls SET audioUrl = ? WHERE id = ?')
-    const info = updateCall.run(audioUrl, callId)
-    if (info.changes === 0) {
-      console.warn(`Warning: Call ID ${callId} not found. Audio URL not updated.`)
-      // In a real scenario, we might want to create the call record here if it doesn't exist,
-      // but usually the call record exists from the CRM sync before analysis.
-    } else {
-      console.log(`Updated Audio URL for Call ${callId}`)
+  const input: ETLInput = {
+    callId: result.callId,
+    audioUrl: result.audioUrl,
+    analysisResult: {
+      signal_events: [],
+      tags
     }
   }
 
-  // 2. Prepare for Signal Processing
-  // Cache tags for lookup: code -> id
-  const allTags = db.prepare('SELECT id, code FROM tags').all() as { id: string, code: string }[]
-  const tagMap = new Map<string, string>()
-  allTags.forEach(t => tagMap.set(t.code, t.id))
-
-  // Prepare statements
-  // We will delete existing assessments for this call to ensure a clean slate for the new analysis
-  const deleteAssessments = db.prepare('DELETE FROM call_assessments WHERE callId = ?')
-  const insertAssessment = db.prepare(`
-    INSERT INTO call_assessments (id, callId, tagId, score, reasoning, context_text)
-    VALUES (@id, @callId, @tagId, @score, @reasoning, @context)
-  `)
-
-  // 3. Execute Transaction
-  const runTransaction = db.transaction(() => {
-    // Clear old assessments
-    deleteAssessments.run(callId)
-
-    let insertedCount = 0
-    const missingTags: string[] = []
-
-    for (const signal of signals) {
-      const tagId = tagMap.get(signal.tag)
-
-      if (!tagId) {
-        missingTags.push(signal.tag)
-        continue
-      }
-
-      // Convert Score: 5-point scale -> 100-point scale
-      // Assuming 1=20, 2=40, 3=60, 4=80, 5=100
-      const normalizedScore = Math.min(100, Math.max(0, signal.score * 20))
-
-      insertAssessment.run({
-        id: `${callId}_assess_${Date.now()}_${insertedCount}`, // Simple unique ID generation
-        callId: callId,
-        tagId: tagId,
-        score: normalizedScore,
-        reasoning: signal.reasoning || null,
-        context: signal.context || null
-      })
-      insertedCount++
-    }
-
-    return { insertedCount, missingTags }
-  })
-
-  try {
-    const result = runTransaction()
-    console.log(`ETL Complete. Inserted ${result.insertedCount} assessments.`)
-    if (result.missingTags.length > 0) {
-      console.warn(`Warning: The following tags were not found in the database: ${result.missingTags.join(', ')}`)
-    }
-    return { success: true, ...result }
-  } catch (error) {
-    console.error('ETL Failed:', error)
-    throw error
-  }
+  return processCallAnalysis(input, { clearExisting: true })
 }
