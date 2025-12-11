@@ -612,9 +612,16 @@ export default function ConversationCallListPage() {
                                     <div className="flex items-center gap-2">
                                       <p className="font-semibold text-gray-900 truncate">{item.name || item.tag}</p>
                                       <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
-                                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
+                                      {item.is_mandatory && (
+                                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-600 text-white">
+                                          MISSING
+                                        </span>
+                                      )}
+                                      {!item.is_mandatory && (
+                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.polarity === 'positive' ? 'bg-green-100 text-green-800' : item.polarity === 'negative' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>{item.polarity}</span>
+                                      )}
                                       {item.severity !== 'none' && (
-                                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.severity === 'high' ? 'bg-red-100 text-red-800' : item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{item.severity}</span>
+                                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${item.severity === 'high' ? 'bg-red-100 text-red-800' : item.severity === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>{item.severity}</span>
                                       )}
                                     </div>
                                     <p className="text-xs text-gray-500 mt-1">
@@ -708,6 +715,7 @@ type SignalItem = {
   context?: string
   timestamp?: string | null
   reasoning?: string
+  is_mandatory?: boolean
 }
 
 function buildSignalItems(call: CallRecord): SignalItem[] {
@@ -729,7 +737,8 @@ function buildSignalItems(call: CallRecord): SignalItem[] {
         score: s.score,
         context: s.context,
         timestamp: s.timestamp ? new Date(s.timestamp).toISOString() : null,
-        reasoning: s.reasoning
+        reasoning: s.reasoning,
+        is_mandatory: s.is_mandatory
       }
     })
   }

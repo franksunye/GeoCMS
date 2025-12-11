@@ -91,6 +91,7 @@ export async function GET(request: NextRequest) {
       const buildDetails = (refTags: any[]) => {
         return refTags.map(tag => ({
           name: tag.name,
+          is_mandatory: Boolean(tag.is_mandatory),
           score: Math.round(agentScores.get(tag.id) || 0)
         }))
       }

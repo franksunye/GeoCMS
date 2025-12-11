@@ -12,6 +12,7 @@ type SortBy = 'overall' | 'process' | 'skills' | 'communication'
 interface SubcategoryScore {
   name: string
   score: number
+  is_mandatory?: boolean
 }
 
 interface CategoryMetric {
@@ -496,7 +497,16 @@ export default function ScorecardPage() {
                         const diff = Math.round(detail.score) - teamAvg;
                         return (
                           <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">{detail.name}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">
+                              <div className="flex items-center gap-2">
+                                {detail.name}
+                                {detail.is_mandatory && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                    必选
+                                  </span>
+                                )}
+                              </div>
+                            </td>
                             <td className={`px-4 py-3 text-center text-sm font-bold ${getScoreColor(detail.score)}`}>
                               {Math.round(detail.score)}
                             </td>

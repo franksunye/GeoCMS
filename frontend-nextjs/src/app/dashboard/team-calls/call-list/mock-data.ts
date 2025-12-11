@@ -16,6 +16,7 @@ export type Signal = {
   timestamp: number
   severity?: string
   polarity?: string
+  is_mandatory?: boolean
 }
 
 export type CallRecord = {

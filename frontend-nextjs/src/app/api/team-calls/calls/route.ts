@@ -59,7 +59,7 @@ export async function GET() {
     })
 
     // 2.5 Get Mandatory Tags
-    const mandatoryTags = db.prepare('SELECT code, dimension FROM tags WHERE is_mandatory = 1 AND active = 1').all() as any[]
+    const mandatoryTags = db.prepare('SELECT code, name, dimension FROM tags WHERE is_mandatory = 1 AND active = 1').all() as any[]
 
     // Group mandatory tags by dimension for easier lookup
     // Since dimensions can be 'Process' or 'Sales.Process', we may just keep a flat list filtering inside the loop or pre-process here.
@@ -132,41 +132,42 @@ export async function GET() {
           severity: a.severity ? a.severity.toLowerCase() : 'low'
         }))
 
-      // Signals (Raw Signal Events from call_signals table)
-      const rawSignals = db.prepare(`
-        SELECT 
-          signalCode,
-          category,
-          dimension,
-          polarity,
-          timestamp_sec,
-          confidence,
-          context_text,
-          reasoning
-        FROM call_signals
-        WHERE callId = ?
-        ORDER BY timestamp_sec ASC
-      `).all(call.id) as any[]
+      // Signals: Use Assessments + Missing Mandatory (Scored View)
+      const assessmentSignals = callAssessments.map((a: any) => ({
+        tag: a.tagCode,
+        name: a.tagName,
+        dimension: a.dimension,
+        score: a.score,
+        confidence: a.confidence,
+        reasoning: a.reasoning,
+        context: a.context_text,
+        timestamp: a.timestamp_sec ? new Date(call.startedAt).getTime() + (a.timestamp_sec * 1000) : null,
+        severity: a.severity || 'none',
+        polarity: a.polarity ? a.polarity.toLowerCase() : 'neutral',
+        is_mandatory: false
+      }))
 
-      const signals = rawSignals.map((s: any) => {
-        let timestamp = null
-        if (s.timestamp_sec != null && call.startedAt) {
-          timestamp = new Date(call.startedAt).getTime() + (s.timestamp_sec * 1000)
+      const missingSignals = []
+      for (const mTag of mandatoryTags) {
+        const isAssessed = callAssessments.some((a: any) => a.tagCode === mTag.code)
+        if (!isAssessed) {
+          missingSignals.push({
+            tag: mTag.code,
+            name: mTag.name,
+            dimension: mTag.dimension,
+            score: 0,
+            confidence: 1.0,
+            reasoning: 'Missing Mandatory Action (必选动作缺失)',
+            context: 'Not detected in call',
+            timestamp: null,
+            severity: 'high',
+            polarity: 'negative',
+            is_mandatory: true
+          })
         }
+      }
 
-        return {
-          tag: s.signalCode,
-          name: s.signalCode, // We could join with signals config table to get name
-          dimension: s.dimension || 'General',
-          score: null, // Raw signals don't have scores, only tags do
-          confidence: s.confidence,
-          reasoning: s.reasoning,
-          context: s.context_text,
-          timestamp: timestamp,
-          severity: 'none',
-          polarity: s.polarity ? s.polarity.toLowerCase() : 'neutral'
-        }
-      })
+      const signals = [...assessmentSignals, ...missingSignals]
 
       // Parse Transcript
       let transcript: any[] = []
