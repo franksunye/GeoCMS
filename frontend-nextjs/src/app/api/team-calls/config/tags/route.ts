@@ -8,7 +8,8 @@ export async function GET() {
     // Convert active from 1/0 to boolean
     const formattedTags = tags.map((tag: any) => ({
       ...tag,
-      active: Boolean(tag.active)
+      active: Boolean(tag.active),
+      is_mandatory: Boolean(tag.is_mandatory)
     }))
     return NextResponse.json(formattedTags)
   } catch (error) {
@@ -20,32 +21,33 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, code, category, dimension, polarity, severity, scoreRange, description } = body
-    
+    const { name, code, category, dimension, polarity, severity, scoreRange, description, is_mandatory } = body
+
     // Simple validation
     if (!name || !code || !category || !dimension || !polarity) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     const id = randomUUID()
-    
+
     const stmt = db.prepare(`
-      INSERT INTO tags (id, name, code, category, dimension, polarity, severity, scoreRange, description, active, createdAt, updatedAt)
-      VALUES (@id, @name, @code, @category, @dimension, @polarity, @severity, @scoreRange, @description, 1, datetime('now'), datetime('now'))
+      INSERT INTO tags (id, name, code, category, dimension, is_mandatory, polarity, severity, scoreRange, description, active, createdAt, updatedAt)
+      VALUES (@id, @name, @code, @category, @dimension, @is_mandatory, @polarity, @severity, @scoreRange, @description, 1, datetime('now'), datetime('now'))
     `)
-    
+
     stmt.run({
       id,
       name,
       code,
       category,
       dimension,
+      is_mandatory: is_mandatory ? 1 : 0,
       polarity,
       severity: severity || '无',
       scoreRange: scoreRange || '1-5',
       description: description || ''
     })
-    
+
     return NextResponse.json({ success: true, id, message: 'Tag created successfully' })
   } catch (error: any) {
     console.error('Database Error:', error)
@@ -60,7 +62,7 @@ export async function PUT(request: Request) {
   try {
     const body = await request.json()
     const { id, name, code, category, dimension, polarity, severity, scoreRange, description, active } = body
-    
+
     if (!id) {
       return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 })
     }
@@ -79,7 +81,7 @@ export async function PUT(request: Request) {
           updatedAt = datetime('now')
       WHERE id = @id
     `)
-    
+
     const result = stmt.run({
       id,
       name,
@@ -96,7 +98,7 @@ export async function PUT(request: Request) {
     if (result.changes === 0) {
       return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
     }
-    
+
     return NextResponse.json({ success: true, message: 'Tag updated successfully' })
   } catch (error: any) {
     console.error('Database Error:', error)
@@ -111,7 +113,7 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    
+
     if (!id) {
       return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 })
     }
@@ -122,7 +124,7 @@ export async function DELETE(request: Request) {
     if (result.changes === 0) {
       return NextResponse.json({ error: 'Tag not found' }, { status: 404 })
     }
-    
+
     return NextResponse.json({ success: true, message: 'Tag deleted successfully' })
   } catch (error) {
     console.error('Database Error:', error)

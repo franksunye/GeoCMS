@@ -25,6 +25,7 @@ type Tag = {
   code: string
   category: string
   dimension: string
+  is_mandatory: boolean
   polarity: string
   severity?: string
   scoreRange: string
@@ -161,13 +162,28 @@ export default function ConversationConfigPage() {
 
   // Unique Options for Filters
   const categories = useMemo(() => Array.from(new Set([...tags.map(t => t.category), ...signals.map(s => s.category)])), [tags, signals])
-  const dimensions = useMemo(() => Array.from(new Set([...tags.map(t => t.dimension), ...signals.map(s => s.dimension)])), [tags, signals])
+  
+  // Cascading filter: dimensions are filtered based on selected category
+  const dimensions = useMemo(() => {
+    const allItems = [...tags, ...signals]
+    const filteredItems = filterState.category 
+      ? allItems.filter(item => item.category === filterState.category)
+      : allItems
+    return Array.from(new Set(filteredItems.map(item => item.dimension)))
+  }, [tags, signals, filterState.category])
+
+  // Reset dimension when category changes and current dimension is not in the new list
+  useEffect(() => {
+    if (filterState.dimension && !dimensions.includes(filterState.dimension)) {
+      setFilterState(prev => ({ ...prev, dimension: '' }))
+    }
+  }, [dimensions, filterState.dimension])
   
   // Signal form state
   const [signalForm, setSignalForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', targetTagCode: '', aggregationMethod: 'Count', description: '', active: true })
   
   // Tag form state
-  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'Neutral' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
+  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', is_mandatory: false, polarity: 'Neutral' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
   
   // Rule form state
   const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as 'process' | 'skills' | 'communication', scoreAdjustment: 0, weight: 1.0, active: true })
@@ -227,7 +243,7 @@ export default function ConversationConfigPage() {
   }
 
   const handleDeleteSignal = async (signalId: string) => {
-    if (!confirm('Are you sure you want to delete this signal?')) return
+    if (!confirm('确定要删除这个信号吗？')) return
 
     try {
       const res = await fetch(`/api/team-calls/config/signals?id=${signalId}`, {
@@ -264,7 +280,7 @@ export default function ConversationConfigPage() {
       }
       
       setShowTagModal(false)
-      setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
+      setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', is_mandatory: false, polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
     } catch (error) {
       console.error('Error saving tag:', error)
       alert('Failed to save tag')
@@ -366,7 +382,7 @@ export default function ConversationConfigPage() {
   }
 
   const handleDeleteTag = async (tagId: string) => {
-    if (!confirm('Are you sure you want to delete this tag?')) return
+    if (!confirm('确定要删除这个标签吗？')) return
 
     try {
       const res = await fetch(`/api/team-calls/config/tags?id=${tagId}`, {
@@ -383,7 +399,7 @@ export default function ConversationConfigPage() {
   }
 
   const handleDeleteRule = async (ruleId: string) => {
-    if (!confirm('Are you sure you want to delete this rule?')) return
+    if (!confirm('确定要删除这个规则吗？')) return
 
     try {
       const res = await fetch(`/api/team-calls/config/rules?id=${ruleId}`, {
@@ -402,8 +418,8 @@ export default function ConversationConfigPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Conversation Configuration</h1>
-        <p className="mt-2 text-gray-600">Manage tags, scoring rules, and system configuration</p>
+        <h1 className="text-3xl font-bold text-gray-900">通话配置</h1>
+        <p className="mt-2 text-gray-600">管理信号、标签、评分规则和系统配置</p>
       </div>
 
       {/* Tabs */}
@@ -417,7 +433,7 @@ export default function ConversationConfigPage() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Signal Definitions
+            信号定义
           </button>
           <button
             onClick={() => setActiveTab('tags')}
@@ -427,7 +443,7 @@ export default function ConversationConfigPage() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Tag Taxonomy
+            标签分类
           </button>
           <button
             onClick={() => setActiveTab('rules')}
@@ -437,7 +453,7 @@ export default function ConversationConfigPage() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Scoring Rules
+            评分规则
           </button>
           <button
             onClick={() => setActiveTab('scoring')}
@@ -447,7 +463,7 @@ export default function ConversationConfigPage() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            Score Calculation
+            评分计算
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -457,7 +473,7 @@ export default function ConversationConfigPage() {
                 : 'border-transparent text-gray-600 hover:text-gray-900'
             }`}
           >
-            History & Audit
+            历史记录
           </button>
         </div>
       </div>
@@ -468,7 +484,7 @@ export default function ConversationConfigPage() {
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Signal Definitions</h2>
+              <h2 className="text-lg font-semibold text-gray-900">信号定义</h2>
               <button
                 onClick={() => {
                   setSelectedSignal(null)
@@ -478,7 +494,7 @@ export default function ConversationConfigPage() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
               >
                 <Plus className="h-4 w-4" />
-                Add Signal
+                添加信号
               </button>
             </div>
             
@@ -489,7 +505,7 @@ export default function ConversationConfigPage() {
                 onChange={(e) => setFilterState({ ...filterState, category: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All Categories</option>
+                <option value="">所有分类</option>
                 {categories.sort().map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
@@ -500,7 +516,7 @@ export default function ConversationConfigPage() {
                 onChange={(e) => setFilterState({ ...filterState, dimension: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All Dimensions</option>
+                <option value="">所有维度</option>
                 {dimensions.sort().map(dim => (
                   <option key={dim} value={dim}>{dim}</option>
                 ))}
@@ -511,7 +527,7 @@ export default function ConversationConfigPage() {
                   onClick={() => setFilterState({ category: '', dimension: '', polarity: '' })}
                   className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
                 >
-                  Reset Filters
+                  重置筛选
                 </button>
               )}
             </div>
@@ -522,13 +538,13 @@ export default function ConversationConfigPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category / Dimension</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Target Tag</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Description / Logic</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">名称</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">代码</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">分类 / 维度</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">目标标签</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">描述 / 逻辑</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">状态</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -554,7 +570,7 @@ export default function ConversationConfigPage() {
                           onChange={() => handleToggleSignal(signal.id)}
                           className="h-4 w-4 text-blue-600 rounded"
                         />
-                        <span className="ml-2 text-sm text-gray-700">{signal.active ? 'Active' : 'Inactive'}</span>
+                        <span className="ml-2 text-sm text-gray-700">{signal.active ? '启用' : '禁用'}</span>
                       </label>
                     </td>
                     <td className="px-6 py-4 text-sm">
@@ -601,17 +617,17 @@ export default function ConversationConfigPage() {
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Tag Management</h2>
+              <h2 className="text-lg font-semibold text-gray-900">标签管理</h2>
               <button
                 onClick={() => {
                   setSelectedTag(null)
-                  setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
+                  setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', is_mandatory: false, polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
                   setShowTagModal(true)
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
               >
                 <Plus className="h-4 w-4" />
-                Add Tag
+                添加标签
               </button>
             </div>
             
@@ -622,7 +638,7 @@ export default function ConversationConfigPage() {
                 onChange={(e) => setFilterState({ ...filterState, category: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All Categories</option>
+                <option value="">所有分类</option>
                 {categories.sort().map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
@@ -633,7 +649,7 @@ export default function ConversationConfigPage() {
                 onChange={(e) => setFilterState({ ...filterState, dimension: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All Dimensions</option>
+                <option value="">所有维度</option>
                 {dimensions.sort().map(dim => (
                   <option key={dim} value={dim}>{dim}</option>
                 ))}
@@ -644,7 +660,7 @@ export default function ConversationConfigPage() {
                 onChange={(e) => setFilterState({ ...filterState, polarity: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">All Polarities</option>
+                <option value="">所有极性</option>
                 {Array.from(new Set(tags.map(t => t.polarity))).sort().map(p => (
                   <option key={p} value={p}>{p}</option>
                 ))}
@@ -655,7 +671,7 @@ export default function ConversationConfigPage() {
                   onClick={() => setFilterState({ category: '', dimension: '', polarity: '' })}
                   className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
                 >
-                  Reset Filters
+                  重置筛选
                 </button>
               )}
             </div>
@@ -666,13 +682,14 @@ export default function ConversationConfigPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Code</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Category / Dimension</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Polarity</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">名称</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">代码</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">分类 / 维度</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">必选</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">极性</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">状态</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">描述</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -685,6 +702,17 @@ export default function ConversationConfigPage() {
                         <span className="font-medium text-gray-900">{tag.category}</span>
                         <span className="text-xs text-gray-500">{tag.dimension}</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {tag.is_mandatory ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                           必选
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                           可选
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -703,7 +731,7 @@ export default function ConversationConfigPage() {
                           onChange={() => handleToggleTag(tag.id)}
                           className="h-4 w-4 text-blue-600 rounded"
                         />
-                        <span className="ml-2 text-sm text-gray-700">{tag.active ? 'Active' : 'Inactive'}</span>
+                        <span className="ml-2 text-sm text-gray-700">{tag.active ? '启用' : '禁用'}</span>
                       </label>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600 truncate max-w-xs">{tag.description}</td>
@@ -717,6 +745,7 @@ export default function ConversationConfigPage() {
                               code: tag.code,
                               category: tag.category,
                               dimension: tag.dimension,
+                              is_mandatory: tag.is_mandatory,
                               polarity: tag.polarity as any,
                               severity: tag.severity || '无',
                               scoreRange: tag.scoreRange,
@@ -751,7 +780,7 @@ export default function ConversationConfigPage() {
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Scoring Rules</h2>
+            <h2 className="text-lg font-semibold text-gray-900">评分规则</h2>
             <button
               onClick={() => {
                 setSelectedRule(null)
@@ -761,7 +790,7 @@ export default function ConversationConfigPage() {
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
             >
               <Plus className="h-4 w-4" />
-              Add Rule
+              添加规则
             </button>
           </div>
 
@@ -770,13 +799,13 @@ export default function ConversationConfigPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Rule Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Tag</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Target Dimension</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Adjustment</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Weight</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">规则名称</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">标签</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">目标维度</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">调整分值</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">权重</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">状态</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -786,9 +815,9 @@ export default function ConversationConfigPage() {
                     <td className="px-6 py-4 text-sm text-gray-600 font-mono text-xs">{rule.tagCode}</td>
                     <td className="px-6 py-4 text-sm">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {rule.targetDimension === 'process' && '⚙️ Process'}
-                        {rule.targetDimension === 'skills' && '🎯 Skills'}
-                        {rule.targetDimension === 'communication' && '🗣️ Communication'}
+                        {rule.targetDimension === 'process' && '⚙️ 流程'}
+                        {rule.targetDimension === 'skills' && '🎯 技能'}
+                        {rule.targetDimension === 'communication' && '🗣️ 沟通'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm font-mono text-gray-900">
@@ -805,7 +834,7 @@ export default function ConversationConfigPage() {
                           onChange={() => handleToggleRule(rule.id)}
                           className="h-4 w-4 text-blue-600 rounded"
                         />
-                        <span className="ml-2 text-sm text-gray-700">{rule.active ? 'Active' : 'Inactive'}</span>
+                        <span className="ml-2 text-sm text-gray-700">{rule.active ? '启用' : '禁用'}</span>
                       </label>
                     </td>
                     <td className="px-6 py-4 text-sm">
@@ -860,18 +889,18 @@ export default function ConversationConfigPage() {
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Score Calculation Configuration</h2>
-            <p className="text-sm text-gray-600 mt-1">Define how the overall quality score is calculated from the three dimensions</p>
+            <h2 className="text-lg font-semibold text-gray-900">评分计算配置</h2>
+            <p className="text-sm text-gray-600 mt-1">定义如何从三个维度计算整体质量评分</p>
           </div>
 
           <div className="px-6 py-6 space-y-6">
             {/* Aggregation Method */}
             <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Aggregation Method</h3>
+              <h3 className="font-semibold text-gray-900 mb-3">聚合方法</h3>
               <div className="space-y-2">
                 <label className="flex items-center gap-3">
                   <input type="radio" name="method" value="weighted-average" defaultChecked className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700"><strong>Weighted Average</strong> (Recommended)</span>
+                  <span className="text-sm text-gray-700"><strong>加权平均</strong>（推荐）</span>
                 </label>
                 <p className="text-xs text-gray-500 ml-7">overallScore = (process × weight) + (skills × weight) + (communication × weight)</p>
               </div>
@@ -879,14 +908,14 @@ export default function ConversationConfigPage() {
 
             {/* Weight Configuration */}
             <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-4">Score Weights</h3>
-              <p className="text-xs text-gray-500 mb-4">Adjust how each dimension contributes to the overall score (total must equal 100%)</p>
+              <h3 className="font-semibold text-gray-900 mb-4">评分权重</h3>
+              <p className="text-xs text-gray-500 mb-4">调整每个维度对整体评分的贡献（总和必须等于100%）</p>
               
               <div className="space-y-5">
                 {/* Process Weight */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">⚙️ Process Score Weight</label>
+                    <label className="text-sm font-medium text-gray-700">⚙️ 流程评分权重</label>
                     <span className="text-sm font-semibold text-gray-900">{scoreForm.processWeight}%</span>
                   </div>
                   <input
@@ -910,7 +939,7 @@ export default function ConversationConfigPage() {
                 {/* Skills Weight */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">🎯 Skills Score Weight</label>
+                    <label className="text-sm font-medium text-gray-700">🎯 技能评分权重</label>
                     <span className="text-sm font-semibold text-gray-900">{scoreForm.skillsWeight}%</span>
                   </div>
                   <input
@@ -934,7 +963,7 @@ export default function ConversationConfigPage() {
                 {/* Communication Weight */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">🗣️ Communication Score Weight</label>
+                    <label className="text-sm font-medium text-gray-700">🗣️ 沟通评分权重</label>
                     <span className="text-sm font-semibold text-gray-900">{scoreForm.communicationWeight}%</span>
                   </div>
                   <input
@@ -949,7 +978,7 @@ export default function ConversationConfigPage() {
 
                 {/* Total Display */}
                 <div className="bg-gray-50 rounded p-3 border border-gray-200">
-                  <p className="text-xs text-gray-600 font-medium">Total Weight</p>
+                  <p className="text-xs text-gray-600 font-medium">总权重</p>
                   <p className={`text-lg font-bold ${scoreForm.processWeight + scoreForm.skillsWeight + scoreForm.communicationWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
                     {scoreForm.processWeight + scoreForm.skillsWeight + scoreForm.communicationWeight}%
                   </p>
@@ -959,7 +988,7 @@ export default function ConversationConfigPage() {
 
             {/* Formula Preview */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-semibold text-blue-900 mb-2">Formula Preview</h4>
+              <h4 className="font-semibold text-blue-900 mb-2">公式预览</h4>
               <code className="text-sm text-blue-800 font-mono block p-3 bg-white rounded border border-blue-100">
                 overallScore = (process × {(scoreForm.processWeight / 100).toFixed(2)}) + (skills × {(scoreForm.skillsWeight / 100).toFixed(2)}) + (communication × {(scoreForm.communicationWeight / 100).toFixed(2)})
               </code>
@@ -968,14 +997,14 @@ export default function ConversationConfigPage() {
             {/* Actions */}
             <div className="flex gap-2 justify-end pt-4 border-t border-gray-200">
               <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                Reset to Default
+                重置为默认值
               </button>
               <button
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                 onClick={handleSaveScoreConfig}
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : 'Save Configuration'}
+                {isSaving ? '保存中...' : '保存配置'}
               </button>
             </div>
           </div>
@@ -986,7 +1015,7 @@ export default function ConversationConfigPage() {
         <div className="bg-white shadow rounded-lg overflow-hidden">
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Audit Log & Version History</h2>
+            <h2 className="text-lg font-semibold text-gray-900">审计日志与版本历史</h2>
           </div>
 
           {/* Audit Log Table */}
@@ -994,12 +1023,12 @@ export default function ConversationConfigPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Timestamp</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">User</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Action</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Object</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Changes</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Details</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">时间</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">用户</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">对象</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">变更</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">详情</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -1050,25 +1079,25 @@ export default function ConversationConfigPage() {
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                {selectedSignal ? 'Edit Signal' : 'Add New Signal'}
+                {selectedSignal ? '编辑信号' : '添加新信号'}
               </h3>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Signal Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">信号名称</label>
                 <input
                   type="text"
-                  placeholder="e.g., Competitor Mention"
+                  placeholder="例如：竞争对手提及"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={signalForm.name}
                   onChange={(e) => setSignalForm({ ...signalForm, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Signal Code</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">信号代码</label>
                 <input
                   type="text"
-                  placeholder="e.g., competitor_mention"
+                  placeholder="例如：competitor_mention"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={signalForm.code}
                   onChange={(e) => setSignalForm({ ...signalForm, code: e.target.value })}
@@ -1076,52 +1105,52 @@ export default function ConversationConfigPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分类</label>
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={signalForm.category}
                     onChange={(e) => setSignalForm({ ...signalForm, category: e.target.value })}
                   >
                     {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                    <option value="New Category">New Category...</option>
+                    <option value="New Category">新分类...</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dimension</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">维度</label>
                   <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={signalForm.dimension}
                     onChange={(e) => setSignalForm({ ...signalForm, dimension: e.target.value })}
                   >
                     {dimensions.map(dim => <option key={dim} value={dim}>{dim}</option>)}
-                    <option value="New Dimension">New Dimension...</option>
+                    <option value="New Dimension">新维度...</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Target Tag Code (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">目标标签代码（可选）</label>
                 <input
                   type="text"
-                  placeholder="e.g., linked_tag_code"
+                  placeholder="例如：linked_tag_code"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={signalForm.targetTagCode}
                   onChange={(e) => setSignalForm({ ...signalForm, targetTagCode: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Aggregation Method</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">聚合方法</label>
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={signalForm.aggregationMethod}
                   onChange={(e) => setSignalForm({ ...signalForm, aggregationMethod: e.target.value })}
                 >
-                  <option value="Count">Count Occurrences</option>
-                  <option value="Existence">Check Existence</option>
-                  <option value="Sentiment">Sentiment Analysis</option>
+                  <option value="Count">计数统计</option>
+                  <option value="Existence">存在检测</option>
+                  <option value="Sentiment">情感分析</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description / Logic</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">描述 / 逻辑</label>
                 <textarea
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
@@ -1138,7 +1167,7 @@ export default function ConversationConfigPage() {
                   onChange={(e) => setSignalForm({ ...signalForm, active: e.target.checked })}
                 />
                 <label htmlFor="signal-active" className="ml-2 block text-sm text-gray-900">
-                  Active
+                  启用
                 </label>
               </div>
             </div>
@@ -1147,14 +1176,14 @@ export default function ConversationConfigPage() {
                 onClick={() => setShowSignalModal(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={handleSaveSignal}
                 disabled={isSaving}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {isSaving ? 'Saving...' : 'Save Signal'}
+                {isSaving ? '保存中...' : '保存信号'}
               </button>
             </div>
           </div>
@@ -1167,48 +1196,66 @@ export default function ConversationConfigPage() {
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
             <div className="px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
-                {selectedTag ? 'Edit Tag' : 'Add New Tag'}
+                {selectedTag ? '编辑标签' : '添加新标签'}
               </h3>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tag Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">标签名称</label>
                 <input
                   type="text"
-                  placeholder="e.g., Price Objection"
+                  placeholder="例如：价格异议"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={tagForm.name}
                   onChange={(e) => setTagForm({ ...tagForm, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Code / Key</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">代码 / 键值</label>
                 <input
                   type="text"
-                  placeholder="e.g., price_objection"
+                  placeholder="例如：price_objection"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-xs"
                   value={tagForm.code}
                   onChange={(e) => setTagForm({ ...tagForm, code: e.target.value })}
                 />
               </div>
+              <div className="bg-red-50 p-3 rounded-md border border-red-100">
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    checked={tagForm.is_mandatory}
+                    onChange={(e) => setTagForm({ ...tagForm, is_mandatory: e.target.checked })}
+                    className="h-4 w-4 text-red-600 rounded focus:ring-red-500" 
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-red-900 block">设为必选动作</span>
+                    <span className="text-xs text-red-700 block mt-0.5">
+                        若未触发此标签，该维度评分将被拉低（计入分母但分子为0）。
+                        <br/>
+                        若未勾选（默认），则为"加分项"，未触发时不影响平均分。
+                    </span>
+                  </div>
+                </label>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分类</label>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={tagForm.category}
                     onChange={(e) => setTagForm({ ...tagForm, category: e.target.value })}
                   >
-                    <option value="Sales">Sales</option>
-                    <option value="Customer">Customer</option>
-                    <option value="Service Issue">Service Issue</option>
+                    <option value="Sales">销售</option>
+                    <option value="Customer">客户</option>
+                    <option value="Service Issue">服务问题</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Dimension</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">维度</label>
                   <input
                     type="text"
-                    placeholder="e.g., Sales.Process"
+                    placeholder="例如：Sales.Process"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={tagForm.dimension}
                     onChange={(e) => setTagForm({ ...tagForm, dimension: e.target.value })}
@@ -1217,22 +1264,22 @@ export default function ConversationConfigPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Polarity</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">极性</label>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={tagForm.polarity}
                     onChange={(e) => setTagForm({ ...tagForm, polarity: e.target.value as any })}
                   >
-                    <option value="Positive">Positive</option>
-                    <option value="Negative">Negative</option>
-                    <option value="Neutral">Neutral</option>
+                    <option value="Positive">正向</option>
+                    <option value="Negative">负向</option>
+                    <option value="Neutral">中性</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Score Range</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分数范围</label>
                   <input
                     type="text"
-                    placeholder="e.g., 1-5"
+                    placeholder="例如：1-5"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                     value={tagForm.scoreRange}
                     onChange={(e) => setTagForm({ ...tagForm, scoreRange: e.target.value })}
@@ -1240,10 +1287,10 @@ export default function ConversationConfigPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
                 <textarea
                   rows={3}
-                  placeholder="Tag definition and usage guidelines..."
+                  placeholder="标签定义和使用指南..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   value={tagForm.description}
                   onChange={(e) => setTagForm({ ...tagForm, description: e.target.value })}
@@ -1256,7 +1303,7 @@ export default function ConversationConfigPage() {
                   onChange={(e) => setTagForm({ ...tagForm, active: e.target.checked })}
                   className="h-4 w-4 text-blue-600 rounded" 
                 />
-                <span className="text-sm text-gray-700">Active</span>
+                <span className="text-sm text-gray-700">启用</span>
               </label>
             </div>
             <div className="px-6 py-4 border-t border-gray-200 flex gap-2 justify-end">
@@ -1264,14 +1311,14 @@ export default function ConversationConfigPage() {
                 onClick={() => setShowTagModal(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={handleSaveTag}
                 disabled={isSaving}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {isSaving ? 'Saving...' : 'Save Tag'}
+                {isSaving ? '保存中...' : '保存标签'}
               </button>
             </div>
           </div>
@@ -1284,25 +1331,25 @@ export default function ConversationConfigPage() {
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
               <h3 className="text-lg font-semibold text-gray-900">
-                {selectedRule ? 'Edit Scoring Rule' : 'Add New Scoring Rule'}
+                {selectedRule ? '编辑评分规则' : '添加新评分规则'}
               </h3>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">规则名称</label>
                 <input
                   type="text"
-                  placeholder="e.g., High Purchase Intent"
+                  placeholder="例如：高购买意向"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   value={ruleForm.name}
                   onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
                 <textarea
                   rows={2}
-                  placeholder="What does this rule do?"
+                  placeholder="这个规则的作用是什么？"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                   value={ruleForm.description}
                   onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })}
@@ -1310,34 +1357,34 @@ export default function ConversationConfigPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tag to Monitor</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">监控标签</label>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                     value={ruleForm.tagCode}
                     onChange={(e) => setRuleForm({ ...ruleForm, tagCode: e.target.value })}
                   >
-                    <option value="">Select a tag...</option>
+                    <option value="">选择一个标签...</option>
                     {tags.map(t => (
                       <option key={t.id} value={t.code}>{t.name}</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Affects Dimension</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">影响维度</label>
                   <select 
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
                     value={ruleForm.targetDimension}
                     onChange={(e) => setRuleForm({ ...ruleForm, targetDimension: e.target.value as any })}
                   >
-                    <option value="process">⚙️ Process Score</option>
-                    <option value="skills">🎯 Skills Score</option>
-                    <option value="communication">🗣️ Communication Score</option>
+                    <option value="process">⚙️ 流程分</option>
+                    <option value="skills">🎯 技能分</option>
+                    <option value="communication">🗣️ 沟通分</option>
                   </select>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Score Adjustment (-100 to +100)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分数调整 (-100 到 +100)</label>
                   <input
                     type="number"
                     min={-100}
@@ -1348,7 +1395,7 @@ export default function ConversationConfigPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Weight (0.5-2.0)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">权重 (0.5-2.0)</label>
                   <input
                     type="number"
                     step={0.1}
@@ -1367,11 +1414,11 @@ export default function ConversationConfigPage() {
                   onChange={(e) => setRuleForm({ ...ruleForm, active: e.target.checked })}
                   className="h-4 w-4 text-blue-600 rounded" 
                 />
-                <span className="text-sm text-gray-700">Active</span>
+                <span className="text-sm text-gray-700">启用</span>
               </label>
               <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <p className="text-xs text-blue-800">
-                  <strong>📌 Logic:</strong> When tag is detected, apply score adjustment to the target dimension with the specified weight.
+                  <strong>📌 逻辑：</strong>当检测到标签时，将分数调整应用到目标维度，并使用指定的权重。
                 </p>
               </div>
             </div>
@@ -1380,14 +1427,14 @@ export default function ConversationConfigPage() {
                 onClick={() => setShowRuleModal(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                Cancel
+                取消
               </button>
               <button
                 onClick={handleSaveRule}
                 disabled={isSaving}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
               >
-                {isSaving ? 'Saving...' : 'Save Rule'}
+                {isSaving ? '保存中...' : '保存规则'}
               </button>
             </div>
           </div>
@@ -1399,31 +1446,31 @@ export default function ConversationConfigPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Rule Details: {selectedRule.name}</h3>
+              <h3 className="text-lg font-semibold text-gray-900">规则详情：{selectedRule.name}</h3>
               <p className="text-sm text-gray-600 mt-1">{selectedRule.description}</p>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <h4 className="font-semibold text-gray-900 mb-2">Trigger</h4>
-                <p className="text-sm text-gray-700">When tag <code className="bg-blue-50 px-2 py-1 rounded text-xs font-mono">{selectedRule.tagCode}</code> is detected</p>
+                <h4 className="font-semibold text-gray-900 mb-2">触发条件</h4>
+                <p className="text-sm text-gray-700">当标签 <code className="bg-blue-50 px-2 py-1 rounded text-xs font-mono">{selectedRule.tagCode}</code> 被检测到时</p>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-                  <p className="text-xs text-purple-600 font-medium uppercase">Target</p>
+                  <p className="text-xs text-purple-600 font-medium uppercase">目标</p>
                   <p className="text-lg font-bold text-purple-900 mt-1">
-                    {selectedRule.targetDimension === 'process' && '⚙️ Process'}
-                    {selectedRule.targetDimension === 'skills' && '🎯 Skills'}
-                    {selectedRule.targetDimension === 'communication' && '🗣️ Communication'}
+                    {selectedRule.targetDimension === 'process' && '⚙️ 流程'}
+                    {selectedRule.targetDimension === 'skills' && '🎯 技能'}
+                    {selectedRule.targetDimension === 'communication' && '🗣️ 沟通'}
                   </p>
                 </div>
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <p className="text-xs text-blue-600 font-medium uppercase">Impact</p>
+                  <p className="text-xs text-blue-600 font-medium uppercase">影响</p>
                   <p className={`text-lg font-bold mt-1 ${selectedRule.scoreAdjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {selectedRule.scoreAdjustment > 0 ? '+' : ''}{selectedRule.scoreAdjustment} pts
+                    {selectedRule.scoreAdjustment > 0 ? '+' : ''}{selectedRule.scoreAdjustment} 分
                   </p>
                 </div>
                 <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-                  <p className="text-xs text-orange-600 font-medium uppercase">Weight</p>
+                  <p className="text-xs text-orange-600 font-medium uppercase">权重</p>
                   <p className="text-lg font-bold text-orange-900 mt-1">{selectedRule.weight}x</p>
                 </div>
               </div>
@@ -1433,7 +1480,7 @@ export default function ConversationConfigPage() {
                 onClick={() => setShowRulePreview(false)}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                Close
+                关闭
               </button>
             </div>
           </div>
