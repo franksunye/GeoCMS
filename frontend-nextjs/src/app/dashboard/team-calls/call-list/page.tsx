@@ -597,7 +597,7 @@ export default function ConversationCallListPage() {
                         const items = buildSignalItems(selectedCall)
                         return items.map((item, idx) => {
                           const key = `${item.tag}-${idx}`
-                          let percent = item.score != null ? Math.round(item.score * 100) : null
+                          let percent = item.score != null ? Math.round(item.score) : null
                           if (percent !== null && isNaN(percent)) percent = null
                           
                           return (
@@ -809,7 +809,7 @@ function getPolarityText(p: 'positive' | 'neutral' | 'negative'): string {
 }
 
 function TagCard({ item }: { item: SignalItem }) {
-  let percent = item.score != null ? Math.round(item.score * 100) : null
+  let percent = item.score != null ? Math.round(item.score) : null
   if (percent !== null && isNaN(percent)) percent = null
 
   return (
