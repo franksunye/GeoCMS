@@ -12,6 +12,7 @@ interface Tag {
   name: string
   category: string
   dimension: string
+  is_mandatory?: number | boolean
 }
 
 interface Call {
@@ -202,7 +203,14 @@ export default function ScoreDetailsPage() {
                   {data.tags.map(tag => (
                     <tr key={tag.id} className="hover:bg-gray-50">
                       <td className="p-3 border sticky left-0 bg-white font-medium z-10">
-                        <div>{tag.name}</div>
+                        <div className="flex items-center gap-2">
+                          {tag.name}
+                          {(tag.is_mandatory === 1 || tag.is_mandatory === true) && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 border border-red-200">
+                              必选
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-gray-400 font-mono">{tag.code}</div>
                       </td>
                       {data.calls.map(call => {
@@ -213,6 +221,10 @@ export default function ScoreDetailsPage() {
                               {assessment ? (
                                 <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs ${getScoreColor(assessment.score)} ${getScoreBgColor(assessment.score)}`}>
                                   {assessment.score}
+                                </span>
+                              ) : (tag.is_mandatory === 1 || tag.is_mandatory === true) ? (
+                                <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white">
+                                  MISSING
                                 </span>
                               ) : (
                                 <span className="text-gray-300">-</span>
