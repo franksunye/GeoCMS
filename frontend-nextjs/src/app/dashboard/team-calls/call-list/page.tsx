@@ -650,33 +650,76 @@ export default function ConversationCallListPage() {
                                     </div>
                                   )}
 
-                                  {item.context && (
-                                    <div>
-                                      <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4 text-blue-600" />
-                                        Context
-                                      </h5>
-                                      <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
-                                        <p className="whitespace-pre-wrap">{item.context}</p>
-                                      </div>
+                                  {/* Occurrences List */}
+                                  {item.occurrences && item.occurrences.length > 0 ? (
+                                    <div className="space-y-4">
+                                      {item.occurrences.map((occ, idx) => (
+                                         <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
+                                            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
+                                              <span className="text-xs font-mono text-gray-500">
+                                                Instance #{idx + 1}
+                                              </span>
+                                              <span className="text-xs text-gray-500">
+                                                {occ.timestamp ? new Date(occ.timestamp).toLocaleTimeString() : '—'}
+                                              </span>
+                                            </div>
+                                            
+                                            {occ.context && (
+                                              <div className="mb-2">
+                                                 <h6 className="text-xs font-semibold text-blue-700 flex items-center gap-1 mb-1">
+                                                   <MessageSquare className="h-3 w-3" /> Context
+                                                 </h6>
+                                                 <p className="text-sm text-gray-700 whitespace-pre-wrap pl-2 border-l-2 border-blue-100 italic">
+                                                   "{occ.context}"
+                                                 </p>
+                                              </div>
+                                            )}
+                                            
+                                            {occ.reasoning && (
+                                              <div>
+                                                 <h6 className="text-xs font-semibold text-purple-700 flex items-center gap-1 mb-1">
+                                                   <Brain className="h-3 w-3" /> Reasoning
+                                                 </h6>
+                                                 <p className="text-xs text-gray-600 pl-2">
+                                                   {occ.reasoning}
+                                                 </p>
+                                              </div>
+                                            )}
+                                         </div>
+                                      ))}
                                     </div>
-                                  )}
+                                  ) : (
+                                    // Fallback for missing or single (legacy)
+                                    <>
+                                      {item.context && (
+                                        <div>
+                                          <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                                            <MessageSquare className="h-4 w-4 text-blue-600" />
+                                            Context
+                                          </h5>
+                                          <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
+                                            <p className="whitespace-pre-wrap">{item.context}</p>
+                                          </div>
+                                        </div>
+                                      )}
 
-                                  {item.reasoning && (
-                                    <div>
-                                      <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                        <Brain className="h-4 w-4 text-purple-600" />
-                                        Reasoning
-                                      </h5>
-                                      <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
-                                        <p className="whitespace-pre-wrap">{item.reasoning}</p>
+                                      {item.reasoning && (
+                                        <div>
+                                          <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                                            <Brain className="h-4 w-4 text-purple-600" />
+                                            Reasoning
+                                          </h5>
+                                          <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
+                                            <p className="whitespace-pre-wrap">{item.reasoning}</p>
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+                                        {item.timestamp ? `Generated: ${new Date(item.timestamp).toLocaleString('en-US')}` : 'Generated: —'}
                                       </div>
-                                    </div>
+                                    </>
                                   )}
-
-                                  <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
-                                    {item.timestamp ? `Generated: ${new Date(item.timestamp).toLocaleString('en-US')}` : 'Generated: —'}
-                                  </div>
                                 </div>
                               )}
                             </div>
@@ -716,6 +759,12 @@ type SignalItem = {
   timestamp?: string | null
   reasoning?: string
   is_mandatory?: boolean
+  occurrences?: {
+    timestamp: any
+    context: string
+    reasoning: string
+    confidence: number
+  }[]
 }
 
 function buildSignalItems(call: CallRecord): SignalItem[] {
@@ -738,7 +787,8 @@ function buildSignalItems(call: CallRecord): SignalItem[] {
         context: s.context,
         timestamp: s.timestamp ? new Date(s.timestamp).toISOString() : null,
         reasoning: s.reasoning,
-        is_mandatory: s.is_mandatory
+        is_mandatory: s.is_mandatory,
+        occurrences: s.occurrences
       }
     })
   }

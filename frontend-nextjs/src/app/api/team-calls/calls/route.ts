@@ -133,19 +133,56 @@ export async function GET() {
         }))
 
       // Signals: Use Assessments + Missing Mandatory (Scored View)
-      const assessmentSignals = callAssessments.map((a: any) => ({
-        tag: a.tagCode,
-        name: a.tagName,
-        dimension: a.dimension,
-        score: a.score,
-        confidence: a.confidence,
-        reasoning: a.reasoning,
-        context: a.context_text,
-        timestamp: a.timestamp_sec ? new Date(call.startedAt).getTime() + (a.timestamp_sec * 1000) : null,
-        severity: a.severity || 'none',
-        polarity: a.polarity ? a.polarity.toLowerCase() : 'neutral',
-        is_mandatory: false
-      }))
+      // 1. Fetch Raw Signals first
+      const rawSignals = db.prepare(`
+               SELECT 
+                 signalCode,
+                 category,
+                 dimension,
+                 polarity,
+                 timestamp_sec,
+                 confidence,
+                 context_text,
+                 reasoning
+               FROM call_signals
+               WHERE callId = ?
+               ORDER BY timestamp_sec ASC
+             `).all(call.id) as any[]
+
+      const assessmentSignals = callAssessments.map((a: any) => {
+        // Find all occurrences for this tag
+        const instances = rawSignals.filter((r: any) => r.signalCode === a.tagCode).map((r: any) => ({
+          timestamp: r.timestamp_sec ? new Date(call.startedAt).getTime() + (r.timestamp_sec * 1000) : null,
+          context: r.context_text,
+          reasoning: r.reasoning,
+          confidence: r.confidence
+        }))
+
+        // If no raw signals found (shouldn't happen if assessment exists, but just in case), use assessment data
+        if (instances.length === 0) {
+          instances.push({
+            timestamp: a.timestamp_sec ? new Date(call.startedAt).getTime() + (a.timestamp_sec * 1000) : null,
+            context: a.context_text,
+            reasoning: a.reasoning,
+            confidence: a.confidence
+          })
+        }
+
+        return {
+          tag: a.tagCode,
+          name: a.tagName,
+          dimension: a.dimension,
+          score: a.score,
+          confidence: a.confidence,
+          reasoning: a.reasoning,
+          context: a.context_text,
+          timestamp: a.timestamp_sec ? new Date(call.startedAt).getTime() + (a.timestamp_sec * 1000) : null,
+          severity: a.severity || 'none',
+          polarity: a.polarity ? a.polarity.toLowerCase() : 'neutral',
+          is_mandatory: false,
+          occurrences: instances
+        }
+      })
 
       const missingSignals = []
       for (const mTag of mandatoryTags) {

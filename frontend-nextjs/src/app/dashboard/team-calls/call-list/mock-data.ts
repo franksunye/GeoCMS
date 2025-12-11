@@ -14,9 +14,14 @@ export type Signal = {
   reasoning: string
   context: string
   timestamp: number
-  severity?: string
   polarity?: string
   is_mandatory?: boolean
+  occurrences?: {
+    timestamp: number | null
+    context: string
+    reasoning: string
+    confidence: number
+  }[]
 }
 
 export type CallRecord = {
