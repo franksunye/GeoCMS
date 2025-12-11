@@ -59,10 +59,10 @@ export async function GET(request: NextRequest) {
       communication: scoreConfig?.communicationWeight || 20
     }
 
-    const allTags = db.prepare('SELECT * FROM tags WHERE active = 1 ORDER BY name ASC').all() as any[]
-    const processRefTags = allTags.filter(t => t.dimension === 'Sales.Process')
-    const skillsRefTags = allTags.filter(t => t.dimension === 'Sales.Skills')
-    const commRefTags = allTags.filter(t => t.dimension === 'Sales.Communication')
+    const allTags = db.prepare('SELECT * FROM tags WHERE active = 1 AND category = ? ORDER BY name ASC').all('Sales') as any[]
+    const processRefTags = allTags.filter(t => t.dimension === 'Process' || t.dimension === 'Sales.Process')
+    const skillsRefTags = allTags.filter(t => t.dimension === 'Skills' || t.dimension === 'Sales.Skills')
+    const commRefTags = allTags.filter(t => t.dimension === 'Communication' || t.dimension === 'Sales.Communication')
 
     // 3. OPTIMIZED: 为每个agent计算分数 (Batch Fetch)
     // Fetch all tag scores for all agents in one query instead of N queries
@@ -81,39 +81,40 @@ export async function GET(request: NextRequest) {
     // Group by agentId for O(1) access
     const agentScoresMap = new Map<string, Map<string, number>>()
     allAgentTagScores.forEach(row => {
-        if (!agentScoresMap.has(row.agentId)) {
-            agentScoresMap.set(row.agentId, new Map())
-        }
-        agentScoresMap.get(row.agentId)!.set(row.tagId, row.score)
+      if (!agentScoresMap.has(row.agentId)) {
+        agentScoresMap.set(row.agentId, new Map())
+      }
+      agentScoresMap.get(row.agentId)!.set(row.tagId, row.score)
     })
 
     const agentStats = agents.map(agent => {
       const scoreMap = agentScoresMap.get(agent.id) || new Map()
 
-      const buildDetails = (refTags: any[]) => {
-        return refTags.map(tag => ({
-          name: tag.name,
-          score: Math.round(scoreMap.get(tag.id) || 0)
-        }))
+      // Update: Use Hybrid Scoring Logic (consistent with agents/route.ts)
+      const calculateAverage = (refTags: any[]) => {
+        let totalScore = 0
+        let denominator = 0
+
+        for (const tag of refTags) {
+          const score = scoreMap.get(tag.id)
+          if (score !== undefined && score !== null) {
+            totalScore += score
+            denominator++
+          } else if (tag.is_mandatory) {
+            denominator++ // Count as 0
+          }
+        }
+        return denominator > 0 ? Math.round(totalScore / denominator) : 0
       }
 
-      const processDetails = buildDetails(processRefTags)
-      const skillsDetails = buildDetails(skillsRefTags)
-      const communicationDetails = buildDetails(commRefTags)
-
-      const calculateAverage = (details: any[]) => 
-        details.length > 0 
-          ? Math.round(details.reduce((acc, item) => acc + item.score, 0) / details.length) 
-          : 0
-
-      const processScore = calculateAverage(processDetails)
-      const skillsScore = calculateAverage(skillsDetails)
-      const commScore = calculateAverage(communicationDetails)
+      const processScore = calculateAverage(processRefTags)
+      const skillsScore = calculateAverage(skillsRefTags)
+      const commScore = calculateAverage(commRefTags)
 
       const overallScore = Math.round(
-        (processScore * weights.process + 
-         skillsScore * weights.skills + 
-         commScore * weights.communication) / 100
+        (processScore * weights.process +
+          skillsScore * weights.skills +
+          commScore * weights.communication) / 100
       )
 
       return {
@@ -129,16 +130,16 @@ export async function GET(request: NextRequest) {
     const calculateCorrelation = (agentStats: AgentStats[]): number => {
       const n = agentStats.length
       if (n < 2) return 0
-      
+
       const sumXY = agentStats.reduce((sum, a) => sum + a.overallScore * a.winRate, 0)
       const sumX = agentStats.reduce((sum, a) => sum + a.overallScore, 0)
       const sumY = agentStats.reduce((sum, a) => sum + a.winRate, 0)
       const sumX2 = agentStats.reduce((sum, a) => sum + a.overallScore ** 2, 0)
       const sumY2 = agentStats.reduce((sum, a) => sum + a.winRate ** 2, 0)
-      
+
       const numerator = n * sumXY - sumX * sumY
       const denominator = Math.sqrt((n * sumX2 - sumX ** 2) * (n * sumY2 - sumY ** 2))
-      
+
       return denominator !== 0 ? numerator / denominator : 0
     }
 
@@ -148,14 +149,14 @@ export async function GET(request: NextRequest) {
     const analyzeByScoreQuantiles = (agentStats: AgentStats[]) => {
       const sorted = [...agentStats].sort((a, b) => a.overallScore - b.overallScore)
       const quartileSize = Math.ceil(sorted.length / 4)
-      
+
       const calculateGroupStats = (group: AgentStats[], range: string) => ({
         range,
         avgScore: group.length > 0 ? Math.round(group.reduce((sum, a) => sum + a.overallScore, 0) / group.length) : 0,
         avgWinRate: group.length > 0 ? Math.round(group.reduce((sum, a) => sum + a.winRate, 0) / group.length) : 0,
         sampleSize: group.length
       })
-      
+
       if (sorted.length === 0) {
         return {
           q1: calculateGroupStats([], "Bottom 25%"),
@@ -182,12 +183,12 @@ export async function GET(request: NextRequest) {
         { minScore: 60, expectedWinRate: 50, description: "合格表现阈值" },
         { minScore: 0, expectedWinRate: 30, description: "需要改进阈值" }
       ]
-      
+
       return thresholds.map(threshold => {
         const agentsInRange = agentStats.filter(a => a.overallScore >= threshold.minScore)
-        const actualWinRate = agentsInRange.length > 0 ? 
+        const actualWinRate = agentsInRange.length > 0 ?
           agentsInRange.reduce((sum, a) => sum + a.winRate, 0) / agentsInRange.length : 0
-        
+
         return {
           ...threshold,
           actualWinRate: Math.round(actualWinRate),
@@ -217,41 +218,41 @@ export async function GET(request: NextRequest) {
     `).all(cutoffIso) as any[]
 
     const monthlyStats = new Map<string, { totalScore: number; count: number; wonCount: number }>()
-    
+
     // Group by callId locally
     const callMap = new Map<string, { startedAt: string, outcome: string, dims: Record<string, number> }>()
-    
+
     callDimensionScores.forEach(row => {
-        if (!callMap.has(row.callId)) {
-            callMap.set(row.callId, { startedAt: row.startedAt, outcome: row.outcome, dims: {} })
-        }
-        callMap.get(row.callId)!.dims[row.dimension] = row.dimScore
+      if (!callMap.has(row.callId)) {
+        callMap.set(row.callId, { startedAt: row.startedAt, outcome: row.outcome, dims: {} })
+      }
+      callMap.get(row.callId)!.dims[row.dimension] = row.dimScore
     })
 
     callMap.forEach((call, callId) => {
-        // Calculate overall score based on weights
-        const processScore = call.dims['Sales.Process'] || 0
-        const skillsScore = call.dims['Sales.Skills'] || 0
-        const commScore = call.dims['Sales.Communication'] || 0
-        
-        const overallScore = (
-            processScore * weights.process + 
-            skillsScore * weights.skills + 
-            commScore * weights.communication
-        ) / 100
+      // Calculate overall score based on weights
+      const processScore = call.dims['Sales.Process'] || call.dims['Process'] || 0
+      const skillsScore = call.dims['Sales.Skills'] || call.dims['Skills'] || 0
+      const commScore = call.dims['Sales.Communication'] || call.dims['Communication'] || 0
 
-        const date = new Date(call.startedAt)
-        const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-        
-        if (!monthlyStats.has(month)) {
-            monthlyStats.set(month, { totalScore: 0, count: 0, wonCount: 0 })
-        }
-        const stats = monthlyStats.get(month)!
-        stats.totalScore += overallScore
-        stats.count += 1
-        if (call.outcome === 'won') {
-            stats.wonCount += 1
-        }
+      const overallScore = (
+        processScore * weights.process +
+        skillsScore * weights.skills +
+        commScore * weights.communication
+      ) / 100
+
+      const date = new Date(call.startedAt)
+      const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+      if (!monthlyStats.has(month)) {
+        monthlyStats.set(month, { totalScore: 0, count: 0, wonCount: 0 })
+      }
+      const stats = monthlyStats.get(month)!
+      stats.totalScore += overallScore
+      stats.count += 1
+      if (call.outcome === 'won') {
+        stats.wonCount += 1
+      }
     })
 
     const trendAnalysis = Array.from(monthlyStats.entries())
@@ -271,7 +272,7 @@ export async function GET(request: NextRequest) {
       trendAnalysis,
       summary: {
         isValid: correlation > 0.3,
-        message: correlation > 0.3 
+        message: correlation > 0.3
           ? "评分系统与赢单率呈现显著正相关，验证通过"
           : "评分系统与赢单率相关性不足，需要优化"
       }
