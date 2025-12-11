@@ -10,6 +10,7 @@ const navigation = [
   { name: '分析报表', href: '/dashboard/team-calls/analytics' },
   { name: '分数明细', href: '/dashboard/team-calls/score-details' },
   { name: '配置中心', href: '/dashboard/team-calls/config' },
+  { name: 'AI审计', href: '/dashboard/team-calls/ai-audit' },
   { name: '团队管理', href: '/dashboard/team' },
   { name: '系统设置', href: '/dashboard/settings' },
 ]
