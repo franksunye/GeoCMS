@@ -20,6 +20,7 @@ export function initDatabase() {
       name TEXT NOT NULL,
       code TEXT NOT NULL UNIQUE,
       category TEXT NOT NULL,
+      is_mandatory BOOLEAN DEFAULT 0,
       dimension TEXT NOT NULL,
       polarity TEXT NOT NULL,
       severity TEXT,
@@ -110,12 +111,15 @@ export function initDatabase() {
       id TEXT PRIMARY KEY,
       callId TEXT NOT NULL,
       signalCode TEXT NOT NULL,
-      detectedAt TEXT NOT NULL,
+      category TEXT,
+      dimension TEXT,
+      polarity TEXT,
+      timestamp_sec REAL,
       confidence REAL DEFAULT 0,
       context_text TEXT,
-      metadata TEXT,
-      FOREIGN KEY(callId) REFERENCES calls(id),
-      FOREIGN KEY(signalCode) REFERENCES signals(code)
+      reasoning TEXT,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY(callId) REFERENCES calls(id)
     )`,
     // Raw Source Tables (for ETL)
     `CREATE TABLE IF NOT EXISTS deals (
@@ -152,14 +156,14 @@ export function initDatabase() {
     const logColumnNames = logColumns.map(c => c.name)
 
     if (!logColumnNames.includes('dealId')) {
-       // If table exists but needs migration, we might need to recreate or alter.
-       // Since this is a dev env and we are re-simulating, let's just drop and recreate if it lacks dealId
-       // Or simpler: just add it if possible, but SQLite foreign keys on ALTER are tricky.
-       // For now, let's assume we can just add the column or if the table is empty/unused we can drop it.
-       // Given the user wants to "re-simulate", dropping it is probably fine.
-       console.log('Migrating: Recreating ai_analysis_logs table to match new schema')
-       db.exec('DROP TABLE IF EXISTS ai_analysis_logs')
-       db.exec(`CREATE TABLE IF NOT EXISTS ai_analysis_logs (
+      // If table exists but needs migration, we might need to recreate or alter.
+      // Since this is a dev env and we are re-simulating, let's just drop and recreate if it lacks dealId
+      // Or simpler: just add it if possible, but SQLite foreign keys on ALTER are tricky.
+      // For now, let's assume we can just add the column or if the table is empty/unused we can drop it.
+      // Given the user wants to "re-simulate", dropping it is probably fine.
+      console.log('Migrating: Recreating ai_analysis_logs table to match new schema')
+      db.exec('DROP TABLE IF EXISTS ai_analysis_logs')
+      db.exec(`CREATE TABLE IF NOT EXISTS ai_analysis_logs (
         id TEXT PRIMARY KEY,
         dealId TEXT NOT NULL,
         signals TEXT NOT NULL, -- JSON array of signals
@@ -170,7 +174,7 @@ export function initDatabase() {
     // Migrate call_assessments
     const caColumns = db.prepare('PRAGMA table_info(call_assessments)').all() as any[]
     const caColumnNames = caColumns.map(c => c.name)
-    
+
     if (!caColumnNames.includes('confidence')) {
       console.log('Migrating: Adding confidence column to call_assessments')
       db.exec('ALTER TABLE call_assessments ADD COLUMN confidence REAL DEFAULT 0')
@@ -187,6 +191,38 @@ export function initDatabase() {
       console.log('Migrating: Adding reasoning column to call_assessments')
       db.exec('ALTER TABLE call_assessments ADD COLUMN reasoning TEXT')
     }
+    if (!caColumnNames.includes('context_events')) {
+      console.log('Migrating: Adding context_events column to call_assessments')
+      db.exec('ALTER TABLE call_assessments ADD COLUMN context_events TEXT')
+    }
+
+    // Migrate call_signals - check if table has new structure
+    const csColumns = db.prepare('PRAGMA table_info(call_signals)').all() as any[]
+    const csColumnNames = csColumns.map(c => c.name)
+
+    // If table exists but lacks new columns, recreate it
+    if (csColumns.length > 0 && (!csColumnNames.includes('category') || !csColumnNames.includes('reasoning') || !csColumnNames.includes('timestamp_sec'))) {
+      console.log('Migrating: Recreating call_signals table with new schema')
+      db.exec('DROP TABLE IF EXISTS call_signals')
+      db.exec(`CREATE TABLE IF NOT EXISTS call_signals (
+        id TEXT PRIMARY KEY,
+        callId TEXT NOT NULL,
+        signalCode TEXT NOT NULL,
+        category TEXT,
+        dimension TEXT,
+        polarity TEXT,
+        timestamp_sec REAL,
+        confidence REAL DEFAULT 0,
+        context_text TEXT,
+        reasoning TEXT,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY(callId) REFERENCES calls(id)
+      )`)
+    }
+
+    // Create indexes for call_signals if not exist
+    db.exec('CREATE INDEX IF NOT EXISTS idx_call_signals_callId ON call_signals(callId)')
+    db.exec('CREATE INDEX IF NOT EXISTS idx_call_signals_signalCode ON call_signals(signalCode)')
 
     // Migrate agents
     const agentColumns = db.prepare('PRAGMA table_info(agents)').all() as any[]
@@ -211,7 +247,7 @@ export function initDatabase() {
 
   // Check if data exists, if not seed it
   const tagCount = db.prepare('SELECT count(*) as count FROM tags').get() as { count: number }
-  
+
   if (tagCount.count === 0) {
     console.log('Seeding database with mock data...')
     seedDatabase()
@@ -221,33 +257,33 @@ export function initDatabase() {
 function seedDatabase() {
   const tags = [
     // Sales - Sales.Process
-    { id: '1', name: '开场白完整', code: 'opening_complete', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-1', description: '完整介绍角色与目的', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '2', name: '基础需求识别', code: 'needs_identification_basic', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '基础需求识别', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '3', name: '深度需求挖掘', code: 'needs_identification_deep', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '深度需求探查（原因推测等）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '4', name: '基础方案提案', code: 'solution_proposal_basic', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '提供基础方案方向', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '5', name: '专业方案提案', code: 'solution_proposal_professional', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '解释检测技术、拆除可能性', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '6', name: '尝试预约', code: 'schedule_attempt', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '尝试推进预约', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '7', name: '当日上门尝试', code: 'same_day_visit_attempt', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动提出当天上门', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '8', name: '流程交接说明', code: 'handover_process_explained', category: 'Sales', dimension: 'Sales.Process', type: 'positive', severity: '无', scoreRange: '1-5', description: '明确流程（检测→报价→施工）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    
+    { id: '1', name: '开场白完整', code: 'opening_complete', category: 'Sales', dimension: 'Process', is_mandatory: 1, type: 'positive', severity: '无', scoreRange: '1-1', description: '完整介绍角色与目的', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '2', name: '基础需求识别', code: 'needs_identification_basic', category: 'Sales', dimension: 'Process', is_mandatory: 0, type: 'positive', severity: '无', scoreRange: '1-5', description: '基础需求识别', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '3', name: '深度需求挖掘', code: 'needs_identification_deep', category: 'Sales', dimension: 'Process', is_mandatory: 0, type: 'positive', severity: '无', scoreRange: '1-5', description: '深度需求探查（原因推测等）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '4', name: '基础方案提案', code: 'solution_proposal_basic', category: 'Sales', dimension: 'Process', is_mandatory: 0, type: 'positive', severity: '无', scoreRange: '1-5', description: '提供基础方案方向', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '5', name: '专业方案提案', code: 'solution_proposal_professional', category: 'Sales', dimension: 'Process', is_mandatory: 0, type: 'positive', severity: '无', scoreRange: '1-5', description: '解释检测技术、拆除可能性', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '6', name: '尝试预约', code: 'schedule_attempt', category: 'Sales', dimension: 'Process', is_mandatory: 1, type: 'positive', severity: '无', scoreRange: '1-5', description: '尝试推进预约', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '7', name: '当日上门尝试', code: 'same_day_visit_attempt', category: 'Sales', dimension: 'Process', is_mandatory: 0, type: 'positive', severity: '无', scoreRange: '1-5', description: '主动提出当天上门', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '8', name: '流程交接说明', code: 'handover_process_explained', category: 'Sales', dimension: 'Process', is_mandatory: 1, type: 'positive', severity: '无', scoreRange: '1-5', description: '明确流程（检测→报价→施工）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+
     // Sales - Sales.Skills
-    { id: '9', name: '基础异议处理', code: 'skill_handle_objection_basic', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '常规异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '10', name: '价格异议处理', code: 'skill_handle_objection_price', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '价格异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '11', name: '时间异议处理', code: 'skill_handle_objection_time', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '时间类异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '12', name: '范围异议处理', code: 'skill_handle_objection_scope', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对检测/拆除的异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '13', name: '风险异议处理', code: 'skill_handle_objection_risk', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对风险的异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '14', name: '信任异议处理', code: 'skill_handle_objection_trust', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '信任类异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '15', name: '主动销售主张', code: 'active_selling_proposition', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动介绍服务价值', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '16', name: '主动异议预防', code: 'objection_prevention_proactive', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动预防异议（提前说明）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '17', name: '预期管理', code: 'expectation_setting', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '预期管理（时间/施工范围）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '18', name: '专业能力展示', code: 'expertise_display', category: 'Sales', dimension: 'Sales.Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '技术专业性展示', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '9', name: '基础异议处理', code: 'skill_handle_objection_basic', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '常规异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '10', name: '价格异议处理', code: 'skill_handle_objection_price', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '价格异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '11', name: '时间异议处理', code: 'skill_handle_objection_time', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '时间类异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '12', name: '范围异议处理', code: 'skill_handle_objection_scope', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对检测/拆除的异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '13', name: '风险异议处理', code: 'skill_handle_objection_risk', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '对风险的异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '14', name: '信任异议处理', code: 'skill_handle_objection_trust', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '信任类异议处理', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '15', name: '主动销售主张', code: 'active_selling_proposition', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动介绍服务价值', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '16', name: '主动异议预防', code: 'objection_prevention_proactive', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '主动预防异议（提前说明）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '17', name: '预期管理', code: 'expectation_setting', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '预期管理（时间/施工范围）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '18', name: '专业能力展示', code: 'expertise_display', category: 'Sales', dimension: 'Skills', type: 'positive', severity: '无', scoreRange: '1-5', description: '技术专业性展示', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
     // Sales - Sales.Communication
-    { id: '19', name: '倾听技巧', code: 'listening_good', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '认真倾听（复述、回应）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '20', name: '同理心回应', code: 'empathy_response', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '共情、安抚客户情绪', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '21', name: '解释清晰度', code: 'clarity_of_explanation', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '解释清晰易懂', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '22', name: '专业语气', code: 'tone_professional', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '专业语气', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
-    { id: '23', name: '积极态度', code: 'attitude_positive', category: 'Sales', dimension: 'Sales.Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '态度积极', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '19', name: '倾听技巧', code: 'listening_good', category: 'Sales', dimension: 'Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '认真倾听（复述、回应）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '20', name: '同理心回应', code: 'empathy_response', category: 'Sales', dimension: 'Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '共情、安抚客户情绪', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '21', name: '解释清晰度', code: 'clarity_of_explanation', category: 'Sales', dimension: 'Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '解释清晰易懂', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '22', name: '专业语气', code: 'tone_professional', category: 'Sales', dimension: 'Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '专业语气', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
+    { id: '23', name: '积极态度', code: 'attitude_positive', category: 'Sales', dimension: 'Communication', type: 'positive', severity: '无', scoreRange: '1-5', description: '态度积极', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
 
     // Customer - Customer.Intent
     { id: '24', name: '客户高意向', code: 'customer_high_intent', category: 'Customer', dimension: 'Customer.Intent', type: 'positive', severity: '无', scoreRange: '1-5', description: '强烈需求（急、焦虑）', active: 1, createdAt: '2025-12-04', updatedAt: '2025-12-04' },
@@ -272,8 +308,8 @@ function seedDatabase() {
   ]
 
   const insertTag = db.prepare(`
-    INSERT INTO tags (id, name, code, category, dimension, type, severity, scoreRange, description, active, createdAt, updatedAt)
-    VALUES (@id, @name, @code, @category, @dimension, @type, @severity, @scoreRange, @description, @active, @createdAt, @updatedAt)
+    INSERT INTO tags (id, name, code, category, is_mandatory, dimension, type, severity, scoreRange, description, active, createdAt, updatedAt)
+    VALUES (@id, @name, @code, @category, @is_mandatory, @dimension, @type, @severity, @scoreRange, @description, @active, @createdAt, @updatedAt)
   `)
 
   const insertTransaction = db.transaction((data) => {
@@ -287,7 +323,7 @@ function seedDatabase() {
     { id: '1', name: 'Customer High Intent Signal', appliesTo: 'Calls', description: 'Strong signal', active: 1, ruleType: 'TagBased', tagCode: 'customer_high_intent', targetDimension: 'skills', scoreAdjustment: 35, weight: 1.5, createdAt: '2025-12-01', updatedAt: '2025-12-01' },
     // ... (simplified for brevity, real app would have more)
   ]
-  
+
   // Insert Rules (simplified)
   const insertRule = db.prepare(`INSERT INTO scoring_rules (id, name, appliesTo, description, active, ruleType, tagCode, targetDimension, scoreAdjustment, weight, createdAt, updatedAt) VALUES (@id, @name, @appliesTo, @description, @active, @ruleType, @tagCode, @targetDimension, @scoreAdjustment, @weight, @createdAt, @updatedAt)`)
   db.transaction((data) => { for (const item of data) insertRule.run(item) })(rules)
@@ -300,11 +336,11 @@ function seedDatabase() {
 
   // 1. Agents
   const agents = [
-    { id: '1', name: 'Mike Jones', avatarId: 'knowledge', createdAt: '2025-01-01' },
-    { id: '2', name: 'Sarah Johnson', avatarId: 'planner', createdAt: '2025-01-01' },
-    { id: '3', name: 'Derrick Deacon', avatarId: 'writer', createdAt: '2025-01-01' },
-    { id: '4', name: 'Sheryl Grow', avatarId: 'verifier', createdAt: '2025-01-01' },
-    { id: '5', name: 'Sam Waltman', avatarId: 'call_analysis', createdAt: '2025-01-01' },
+    { id: '1', name: 'Mike Jones', avatarId: 'knowledge', teamId: '9055771909563658940', createdAt: '2025-01-01' },
+    { id: '2', name: 'Sarah Johnson', avatarId: 'planner', teamId: '9055771909563658940', createdAt: '2025-01-01' },
+    { id: '3', name: 'Derrick Deacon', avatarId: 'writer', teamId: '9055771909563658940', createdAt: '2025-01-01' },
+    { id: '4', name: 'Sheryl Grow', avatarId: 'verifier', teamId: '9055771909563658940', createdAt: '2025-01-01' },
+    { id: '5', name: 'Sam Waltman', avatarId: 'call_analysis', teamId: '9055771909563658940', createdAt: '2025-01-01' },
   ]
 
   const insertAgent = db.prepare(`INSERT INTO agents (id, name, avatarId, createdAt) VALUES (@id, @name, @avatarId, @createdAt)`)
@@ -323,12 +359,12 @@ function seedDatabase() {
     agents.forEach((agent, index) => {
       // Agent performance profile (0-1 multiplier)
       // Mike (0) is great (0.9), Sarah (1) is good (0.8), others lower
-      const performance = 0.9 - (index * 0.15) 
-      
+      const performance = 0.9 - (index * 0.15)
+
       for (let i = 0; i < 50; i++) {
         const callId = `call_${callIdCounter++}`
         const isWin = Math.random() < performance // Win rate correlated with performance
-        
+
         insertCall.run({
           id: callId,
           agentId: agent.id,
@@ -345,7 +381,7 @@ function seedDatabase() {
           let baseScore = performance * 100
           let noise = (Math.random() - 0.5) * 30 // +/- 15 points
           let score = Math.max(0, Math.min(100, Math.floor(baseScore + noise)))
-          
+
           insertAssessment.run({
             id: `assess_${assessmentIdCounter++}`,
             callId: callId,

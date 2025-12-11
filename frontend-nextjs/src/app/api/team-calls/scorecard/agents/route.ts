@@ -37,10 +37,10 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Get All Active Tags (to ensure consistent structure)
-    const allTags = db.prepare('SELECT * FROM tags WHERE active = 1 ORDER BY name ASC').all() as any[]
-    const processRefTags = allTags.filter(t => t.dimension === 'Sales.Process')
-    const skillsRefTags = allTags.filter(t => t.dimension === 'Sales.Skills')
-    const commRefTags = allTags.filter(t => t.dimension === 'Sales.Communication')
+    const allTags = db.prepare('SELECT * FROM tags WHERE active = 1 AND category = ? ORDER BY name ASC').all('Sales') as any[]
+    const processRefTags = allTags.filter(t => t.dimension === 'Process' || t.dimension === 'Sales.Process')
+    const skillsRefTags = allTags.filter(t => t.dimension === 'Skills' || t.dimension === 'Sales.Skills')
+    const commRefTags = allTags.filter(t => t.dimension === 'Communication' || t.dimension === 'Sales.Communication')
 
     // 4. Batch Query: Call Stats per Agent
     const agentStats = db.prepare(`
@@ -99,21 +99,36 @@ export async function GET(request: NextRequest) {
       const skillsDetails = buildDetails(skillsRefTags)
       const communicationDetails = buildDetails(commRefTags)
 
-      // D. Calculate Dimension Scores (Average of the details)
-      const calculateAverage = (details: any[]) => 
-        details.length > 0 
-          ? Math.round(details.reduce((acc, item) => acc + item.score, 0) / details.length) 
-          : 0
+      // D. Calculate Dimension Scores (Hybrid: Assessed OR Mandatory)
+      const calculateAverage = (refTags: any[]) => {
+        let totalScore = 0
+        let denominator = 0
 
-      const processScore = calculateAverage(processDetails)
-      const skillsScore = calculateAverage(skillsDetails)
-      const commScore = calculateAverage(communicationDetails)
+        for (const tag of refTags) {
+          const score = agentScores.get(tag.id)
+          if (score !== undefined && score !== null) {
+            // Case 1: Assessed (Triggered)
+            totalScore += score
+            denominator++
+          } else if (tag.is_mandatory) {
+            // Case 2: Unassessed but Mandatory -> Count as 0 score
+            denominator++
+          }
+          // Case 3: Unassessed and Optional -> Ignore
+        }
+
+        return denominator > 0 ? Math.round(totalScore / denominator) : 0
+      }
+
+      const processScore = calculateAverage(processRefTags)
+      const skillsScore = calculateAverage(skillsRefTags)
+      const commScore = calculateAverage(commRefTags)
 
       // E. Calculate Overall Score
       const overallScore = Math.round(
-        (processScore * weights.process + 
-         skillsScore * weights.skills + 
-         commScore * weights.communication) / 100
+        (processScore * weights.process +
+          skillsScore * weights.skills +
+          commScore * weights.communication) / 100
       )
 
       return {
@@ -135,7 +150,7 @@ export async function GET(request: NextRequest) {
 
     // Sort by Overall Score Descending
     formattedAgents.sort((a: any, b: any) => b.overallScore - a.overallScore)
-    
+
     return NextResponse.json(formattedAgents)
   } catch (error) {
     console.error('Database Error:', error)

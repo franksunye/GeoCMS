@@ -22,6 +22,14 @@ export async function GET() {
       ORDER BY c.startedAt DESC
     `).all()
 
+    // 1.5 Get Score Config (for weights)
+    const scoreConfig = db.prepare('SELECT * FROM score_config LIMIT 1').get() as any
+    const weights = {
+      process: scoreConfig?.processWeight || 30,
+      skills: scoreConfig?.skillsWeight || 50,
+      communication: scoreConfig?.communicationWeight || 20
+    }
+
     // 2. Fetch all assessments to calculate scores and tags
     const assessments = db.prepare(`
       SELECT 
@@ -50,31 +58,67 @@ export async function GET() {
       assessmentsByCall[a.callId].push(a)
     })
 
+    // 2.5 Get Mandatory Tags
+    const mandatoryTags = db.prepare('SELECT code, dimension FROM tags WHERE is_mandatory = 1 AND active = 1').all() as any[]
+
+    // Group mandatory tags by dimension for easier lookup
+    // Since dimensions can be 'Process' or 'Sales.Process', we may just keep a flat list filtering inside the loop or pre-process here.
+    // Let's keep distinct list per simple dimension name to match the helper's `dims` arg logic.
+    const mandatoryTagsMap: Record<string, string[]> = {}
+    mandatoryTags.forEach(t => {
+      const dim = t.dimension; // e.g. "Process" or "Sales.Process"
+      if (!mandatoryTagsMap[dim]) mandatoryTagsMap[dim] = []
+      mandatoryTagsMap[dim].push(t.code)
+    })
+
     // 3. Transform to CallRecord format
     const formattedCalls = calls.map((call: any) => {
       const callAssessments = assessmentsByCall[call.id] || []
 
-      // Helper to calculate average score for a dimension
-      const getAvgScore = (dimensionPrefix: string) => {
-        const scores = callAssessments
-          .filter(a => a.dimension && a.dimension.startsWith(dimensionPrefix))
-          .map(a => a.score)
-        
-        if (scores.length === 0) return 0
-        return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length)
+      // Helper to calculate average score for a dimension (Hybrid: Assessed + Missing Mandatory)
+      const getAvgScore = (dims: string[]) => {
+        // 1. Get Assessed Scores
+        const assessed = callAssessments.filter((a: any) =>
+          a.dimension && dims.some((d: string) => a.dimension === d || a.dimension.startsWith(d + '.'))
+        )
+
+        let totalScore = assessed.reduce((sum: number, a: any) => sum + a.score, 0)
+        let denominator = assessed.length
+
+        // 2. Check Missing Mandatory Tags
+        // Filter mandatory tags that belong to the current requested dimensions
+        const relevantMandatoryTags = mandatoryTags.filter(t =>
+          dims.some(d => t.dimension === d || t.dimension.startsWith(d + '.'))
+        )
+
+        for (const mTag of relevantMandatoryTags) {
+          // Check if this mandatory tag is present in the current call's assessments
+          // Note: Use tagCode for comparison
+          const isAssessed = callAssessments.some((a: any) => a.tagCode === mTag.code)
+          if (!isAssessed) {
+            denominator++ // Count as 0 score
+          }
+        }
+
+        if (denominator === 0) return 0
+        return Math.round(totalScore / denominator)
       }
 
-      const processScore = getAvgScore('Sales.Process')
-      const skillsScore = getAvgScore('Sales.Skills')
-      const communicationScore = getAvgScore('Sales.Communication')
-      
-      // Calculate overall quality score (simple average of dimensions)
-      const overallQualityScore = Math.round((processScore + skillsScore + communicationScore) / 3)
+      const processScore = getAvgScore(['Sales.Process', 'Process'])
+      const skillsScore = getAvgScore(['Sales.Skills', 'Skills'])
+      const communicationScore = getAvgScore(['Sales.Communication', 'Communication'])
+
+      // Calculate overall quality score (weighted average)
+      const overallQualityScore = Math.round(
+        (processScore * weights.process +
+          skillsScore * weights.skills +
+          communicationScore * weights.communication) / 100
+      )
 
       // Collect tags and events
       // events: we can consider all tags as events or filter specific categories
       const tags = Array.from(new Set(callAssessments.map((a: any) => a.tagName)))
-      
+
       // behaviors: filtered by specific criteria or just all tags for now
       const behaviors = callAssessments
         .filter(a => a.category === 'Sales' || a.category === 'Communication')
@@ -88,24 +132,39 @@ export async function GET() {
           severity: a.severity ? a.severity.toLowerCase() : 'low'
         }))
 
-      // Signals (Full Detail)
-      const signals = callAssessments.map((a: any) => {
+      // Signals (Raw Signal Events from call_signals table)
+      const rawSignals = db.prepare(`
+        SELECT 
+          signalCode,
+          category,
+          dimension,
+          polarity,
+          timestamp_sec,
+          confidence,
+          context_text,
+          reasoning
+        FROM call_signals
+        WHERE callId = ?
+        ORDER BY timestamp_sec ASC
+      `).all(call.id) as any[]
+
+      const signals = rawSignals.map((s: any) => {
         let timestamp = null
-        if (a.timestamp_sec != null && call.startedAt) {
-           timestamp = new Date(call.startedAt).getTime() + (a.timestamp_sec * 1000)
+        if (s.timestamp_sec != null && call.startedAt) {
+          timestamp = new Date(call.startedAt).getTime() + (s.timestamp_sec * 1000)
         }
-        
+
         return {
-          tag: a.tagCode,
-          name: a.tagName,
-          dimension: a.dimension || 'General',
-          score: a.score != null ? a.score / 100 : null, // Normalize 0-100 to 0-1
-          confidence: a.confidence,
-          reasoning: a.reasoning,
-          context: a.context_text,
+          tag: s.signalCode,
+          name: s.signalCode, // We could join with signals config table to get name
+          dimension: s.dimension || 'General',
+          score: null, // Raw signals don't have scores, only tags do
+          confidence: s.confidence,
+          reasoning: s.reasoning,
+          context: s.context_text,
           timestamp: timestamp,
-          severity: a.severity ? a.severity.toLowerCase() : 'none',
-          polarity: a.polarity ? a.polarity.toLowerCase() : 'neutral'
+          severity: 'none',
+          polarity: s.polarity ? s.polarity.toLowerCase() : 'neutral'
         }
       })
 
@@ -116,7 +175,7 @@ export async function GET() {
           const parsed = JSON.parse(call.transcriptContent)
           // Handle both array of objects or wrapped structure
           const transcriptData = Array.isArray(parsed) ? parsed : []
-          
+
           transcript = transcriptData.map((entry: any) => ({
             timestamp: Math.round((entry.BeginTime || 0) / 1000), // Convert ms to seconds
             speaker: (entry.SpeakerId === '1' || entry.SpeakerId === 1) ? 'agent' : 'customer', // Heuristic: 1 is usually agent
