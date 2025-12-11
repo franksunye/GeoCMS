@@ -129,7 +129,7 @@ export default function ScorecardPage() {
       
       return firstAgent[key].map((sub, idx) => {
         const avg = Math.round(filteredAgents.reduce((acc, a) => acc + (a[key][idx]?.score || 0), 0) / filteredAgents.length)
-        return { name: sub.name, score: avg }
+        return { name: sub.name, is_mandatory: sub.is_mandatory, score: avg }
       })
     }
 
@@ -336,7 +336,16 @@ export default function ScorecardPage() {
               <tbody>
                 {activeCategory.subcategories.map((sub, idx) => (
                   <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-3 text-sm text-gray-900 font-medium">{sub.name}</td>
+                    <td className="px-6 py-3 text-sm text-gray-900 font-medium">
+                      <div className="flex items-center gap-2">
+                        {sub.name}
+                        {sub.is_mandatory && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                            必选
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className={`px-6 py-3 text-sm font-bold ${getScoreColor(activeCategory.score)}`}>
                       {sub.score}
                     </td>
