@@ -231,9 +231,20 @@ export default function ScoreDetailsPage() {
                               )}
                             </td>
                             <td key={`${call.id}-${tag.id}-ctx`} className="p-3 border align-top text-xs text-gray-600 leading-relaxed min-w-[200px] max-w-[300px]">
-                              {assessment ? (
-                                <div className="line-clamp-4" title={assessment.context_text}>
-                                  {assessment.context_text}
+                              {assessment && assessment.context_text ? (
+                                <div className="space-y-1.5" title={assessment.context_text}>
+                                  {assessment.context_text.split(' | ').map((text: string, idx: number, arr: string[]) => (
+                                    <div key={idx} className="flex items-start gap-2">
+                                      {arr.length > 1 && (
+                                        <span className="flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-600 text-[10px] font-medium mt-0.5">
+                                          {idx + 1}
+                                        </span>
+                                      )}
+                                      <span className="bg-gray-50 px-1.5 py-0.5 rounded text-gray-700">
+                                        "{text.trim()}"
+                                      </span>
+                                    </div>
+                                  ))}
                                 </div>
                               ) : null}
                             </td>
