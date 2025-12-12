@@ -2,11 +2,41 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const category = searchParams.get('category')
+    const dimension = searchParams.get('dimension')
+    const polarity = searchParams.get('polarity')
+    const search = searchParams.get('search')
+    const active = searchParams.get('active')
+
+    const where: any = {}
+
+    if (category) {
+      where.category = category
+    }
+    if (dimension) {
+      where.dimension = dimension
+    }
+    if (polarity) {
+      where.polarity = polarity
+    }
+    if (active !== null) {
+      where.active = active === 'true' ? 1 : 0
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search } },
+        { code: { contains: search } }
+      ]
+    }
+
     const tags = await prisma.tag.findMany({
+      where,
       orderBy: { createdAt: 'desc' }
     })
+
     // Convert active from 1/0 to boolean
     const formattedTags = tags.map((tag) => ({
       ...tag,

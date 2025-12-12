@@ -7,7 +7,9 @@ import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
 import { getScoreColor, getScoreBgColor, getScoreBadgeClass, getScoreBarColor } from '@/lib/score-thresholds'
-import { MOCK_CALLS, type CallRecord } from './mock-data'
+import { MOCK_CALLS, type CallRecord, type RawSignal } from './mock-data'
+import { PageHeader } from '@/components/ui/page-header'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
  * 获取维度颜色（用于进度条和图标）
@@ -22,6 +24,27 @@ const getDimensionLabel = (dimension: 'process' | 'skills' | 'communication'): s
   if (dimension === 'process') return '流程规范'
   if (dimension === 'skills') return '销售技巧'
   return '沟通能力'
+}
+
+/**
+ * 根据时间戳查找匹配的信号 (Raw Signals)
+ * 匹配规则：信号的 timestampSec 在当前话语的时间范围内（前后2秒容差）
+ */
+const getSignalsForTimestamp = (
+  rawSignals: RawSignal[] | undefined,
+  entryTimestampSec: number
+): { signalCode: string; signalName: string; reasoning: string }[] => {
+  if (!rawSignals) return []
+  
+  const tolerance = 2 // 秒 (原5秒太大，改为2秒更精确)
+  
+  return rawSignals
+    .filter(s => s.timestampSec !== null && Math.abs(s.timestampSec - entryTimestampSec) <= tolerance)
+    .map(s => ({
+      signalCode: s.signalCode,
+      signalName: s.signalName,
+      reasoning: s.reasoning || ''
+    }))
 }
 
 /**
@@ -220,8 +243,10 @@ export default function ConversationCallListPage() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">团队通话列表</h1>
-        <p className="mt-2 text-gray-600">销售团队通话表现、商机影响及辅导机会</p>
+        <PageHeader
+          title="团队通话列表"
+          description="销售团队通话表现、商机影响及辅导机会"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -498,40 +523,68 @@ export default function ConversationCallListPage() {
 
                     {/* Transcript Entries */}
                     <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                      {selectedCall.transcript.map((entry, idx) => (
-                        <div
-                          key={idx}
-                          className={`flex gap-3 p-3 rounded-lg border ${
-                            entry.speaker === 'agent'
-                              ? 'bg-blue-50 border-blue-200'
-                              : 'bg-gray-50 border-gray-200'
-                          }`}
-                        >
-                          {/* Speaker Avatar */}
-                          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white ${
-                            entry.speaker === 'agent'
-                              ? 'bg-blue-600'
-                              : 'bg-gray-600'
-                          }`}>
-                            {entry.speaker === 'agent' 
-                              ? (selectedCall.agentName ? selectedCall.agentName[0].toUpperCase() : 'A') 
-                              : 'C'}
-                          </div>
+                      <TooltipProvider>
+                        {selectedCall.transcript.map((entry, idx) => {
+                          // 查找匹配当前时间戳的原始信号
+                          const matchedSignals = getSignalsForTimestamp(
+                            selectedCall.rawSignals,
+                            entry.timestamp
+                          )
+                          
+                          return (
+                            <div
+                              key={idx}
+                              className={`flex gap-3 p-3 rounded-lg border ${
+                                entry.speaker === 'agent'
+                                  ? 'bg-blue-50 border-blue-200'
+                                  : 'bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              {/* Speaker Avatar */}
+                              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white ${
+                                entry.speaker === 'agent'
+                                  ? 'bg-blue-600'
+                                  : 'bg-gray-600'
+                              }`}>
+                                {entry.speaker === 'agent' 
+                                  ? (selectedCall.agentName ? selectedCall.agentName[0].toUpperCase() : 'A') 
+                                  : 'C'}
+                              </div>
 
-                          {/* Message Content */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-semibold text-gray-900">
-                                {entry.speaker === 'agent' ? (selectedCall.agentName || '坐席') : '客户'}
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {Math.floor(entry.timestamp / 60)}:{(entry.timestamp % 60).toString().padStart(2, '0')}
-                              </span>
+                              {/* Message Content */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-gray-900">
+                                      {entry.speaker === 'agent' ? (selectedCall.agentName || '坐席') : '客户'}
+                                    </span>
+                                    {/* Signal Badges */}
+                                    {matchedSignals.map((sig, sigIdx) => (
+                                      <Tooltip key={sigIdx}>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 cursor-help border border-amber-200">
+                                            {sig.signalName}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-sm bg-amber-50 text-amber-900 border border-amber-200">
+                                          <div className="flex items-start gap-1.5">
+                                            <Brain className="h-3 w-3 mt-0.5 text-amber-400 flex-shrink-0" />
+                                            <p className="text-xs">{sig.reasoning || '暂无说明'}</p>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    ))}
+                                  </div>
+                                  <span className="text-xs text-gray-500">
+                                    {Math.floor(entry.timestamp / 60)}:{(entry.timestamp % 60).toString().padStart(2, '0')}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-700 break-words">{entry.text}</p>
+                              </div>
                             </div>
-                            <p className="text-sm text-gray-700 break-words">{entry.text}</p>
-                          </div>
-                        </div>
-                      ))}
+                          )
+                        })}
+                      </TooltipProvider>
                     </div>
 
                     {/* Transcript Stats */}
@@ -611,6 +664,9 @@ export default function ConversationCallListPage() {
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2">
                                       <p className="font-semibold text-gray-900 truncate">{item.name || item.tag}</p>
+                                      {item.category && (
+                                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">{item.category}</span>
+                                      )}
                                       <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">{item.dimension}</span>
                                       {item.is_mandatory && (
                                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-600 text-white">
@@ -650,75 +706,72 @@ export default function ConversationCallListPage() {
                                     </div>
                                   )}
 
-                                  {/* Occurrences List */}
-                                  {item.occurrences && item.occurrences.length > 0 ? (
-                                    <div className="space-y-4">
-                                      {item.occurrences.map((occ, idx) => (
-                                         <div key={idx} className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
-                                            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
-                                              <span className="text-xs font-mono text-gray-500">
-                                                Instance #{idx + 1}
-                                              </span>
-                                              <span className="text-xs text-gray-500">
-                                                {occ.timestamp ? new Date(occ.timestamp).toLocaleTimeString() : '—'}
-                                              </span>
-                                            </div>
-                                            
-                                            {occ.context && (
-                                              <div className="mb-2">
-                                                 <h6 className="text-xs font-semibold text-blue-700 flex items-center gap-1 mb-1">
-                                                   <MessageSquare className="h-3 w-3" /> Context
-                                                 </h6>
-                                                 <p className="text-sm text-gray-700 whitespace-pre-wrap pl-2 border-l-2 border-blue-100 italic">
-                                                   "{occ.context}"
-                                                 </p>
-                                              </div>
-                                            )}
-                                            
-                                            {occ.reasoning && (
-                                              <div>
-                                                 <h6 className="text-xs font-semibold text-purple-700 flex items-center gap-1 mb-1">
-                                                   <Brain className="h-3 w-3" /> Reasoning
-                                                 </h6>
-                                                 <p className="text-xs text-gray-600 pl-2">
-                                                   {occ.reasoning}
-                                                 </p>
-                                              </div>
-                                            )}
-                                         </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    // Fallback for missing or single (legacy)
-                                    <>
-                                      {item.context && (
-                                        <div>
-                                          <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                                  {/* Context Events List (Directly from Tag) */}
+                                  {(() => {
+                                    let events: any[] = []
+                                    try {
+                                      if (item.contextEvents) {
+                                        const parsed = JSON.parse(item.contextEvents)
+                                        if (Array.isArray(parsed)) events = parsed
+                                      }
+                                    } catch (e) {
+                                      console.error('Failed to parse contextEvents', e)
+                                    }
+                                    
+                                    if (events.length > 0) {
+                                      return (
+                                        <div className="space-y-3">
+                                          <div className="flex items-center gap-2 mb-2">
                                             <MessageSquare className="h-4 w-4 text-blue-600" />
-                                            Context
-                                          </h5>
-                                          <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
-                                            <p className="whitespace-pre-wrap">{item.context}</p>
+                                            <h5 className="text-sm font-semibold text-gray-900">
+                                              相关对话片段 (Context Events)
+                                            </h5>
                                           </div>
+                                          {events.map((ctx, idx) => (
+                                            <div key={idx} className="bg-white rounded border border-gray-200 p-3 text-sm text-gray-700 shadow-sm">
+                                              <p className="whitespace-pre-wrap italic">"{typeof ctx === 'string' ? ctx : JSON.stringify(ctx)}"</p>
+                                            </div>
+                                          ))}
                                         </div>
-                                      )}
+                                      )
+                                    }
+                                    
+                                    // Fallback if no context events but has legacy scalar context
+                                    if (item.context) {
+                                       return (
+                                          <div className="space-y-2">
+                                            <div className="flex items-center gap-2">
+                                              <MessageSquare className="h-4 w-4 text-blue-600" />
+                                              <h5 className="text-sm font-semibold text-gray-900">Context</h5>
+                                            </div>
+                                            <div className="bg-white rounded border border-gray-200 p-3 text-sm text-gray-700 shadow-sm">
+                                              <p className="whitespace-pre-wrap italic">"{item.context}"</p>
+                                            </div>
+                                          </div>
+                                       )
+                                    }
 
-                                      {item.reasoning && (
-                                        <div>
-                                          <h5 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                                            <Brain className="h-4 w-4 text-purple-600" />
-                                            Reasoning
-                                          </h5>
-                                          <div className="bg-white rounded p-3 text-sm text-gray-700 border border-gray-200">
-                                            <p className="whitespace-pre-wrap">{item.reasoning}</p>
-                                          </div>
-                                        </div>
-                                      )}
-                                      
-                                      <div className="text-xs text-gray-500 pt-2 border-t border-gray-200">
-                                        {item.timestamp ? `Generated: ${new Date(item.timestamp).toLocaleString('en-US')}` : 'Generated: —'}
+                                    return (
+                                       <div className="text-sm text-gray-400 italic p-2 text-center bg-gray-50 rounded border border-dashed border-gray-200">
+                                         未捕获相关语境
+                                       </div>
+                                    )
+                                  })()}
+
+
+                                  {/* Reasoning (Directly from Tag) */}
+                                  {item.reasoning && (
+                                    <div className="space-y-2 pt-2 border-t border-gray-100">
+                                      <div className="flex items-center gap-2">
+                                        <Brain className="h-4 w-4 text-purple-600" />
+                                        <h5 className="text-sm font-semibold text-gray-900">
+                                          AI Reasoning
+                                        </h5>
                                       </div>
-                                    </>
+                                      <div className="bg-white rounded border border-gray-200 p-3 text-sm text-gray-700 shadow-sm">
+                                        <p className="whitespace-pre-wrap">{item.reasoning}</p>
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               )}
@@ -751,7 +804,8 @@ export default function ConversationCallListPage() {
 type SignalItem = {
   tag: string
   name?: string
-  dimension: 'Process' | 'Skills' | 'Communication' | 'Customer Attribute'
+  category?: string
+  dimension: string // Changed from strict union to string to support DB values like 'Intent'
   polarity: 'positive' | 'neutral' | 'negative'
   severity: 'high' | 'medium' | 'low' | 'none'
   score?: number
@@ -772,14 +826,20 @@ function buildSignalItems(call: CallRecord): SignalItem[] {
   if (call.signals && call.signals.length > 0) {
     return call.signals.map(s => {
       // Map dimension
-      let dim: SignalItem['dimension'] = 'Skills'
-      if (s.dimension && s.dimension.includes('Process')) dim = 'Process'
-      else if (s.dimension && s.dimension.includes('Communication')) dim = 'Communication'
-      else if (s.dimension && s.dimension.includes('Customer')) dim = 'Customer Attribute'
+      // Map dimension from DB or normalize
+      let dim: string = s.dimension || 'Unknown'
+      
+      // Optional: Normalize known sales dimensions if they come in complex formats (e.g. "Sales.Process")
+      if (dim.includes('Process')) dim = 'Process'
+      else if (dim.includes('Communication')) dim = 'Communication'
+      else if (dim.includes('Skills') || dim.includes('Sales.Skills')) dim = 'Skills'
+      else if (dim.includes('Customer') && dim !== 'Intent') dim = 'Customer Attribute' 
+      // otherwise keep original DB value (e.g. 'Intent', 'Service Issue')
       
       return {
         tag: s.tag,
         name: s.name,
+        category: s.category,
         dimension: dim,
         polarity: (s.polarity || 'neutral') as any,
         severity: (s.severity || 'none') as any,

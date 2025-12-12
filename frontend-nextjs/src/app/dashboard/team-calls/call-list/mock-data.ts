@@ -7,10 +7,11 @@ export type TranscriptEntry = {
 
 export type Signal = {
   tag: string
-  name?: string
-  dimension: string
-  score: number
-  confidence: number
+  name?: string // Readable name
+  category?: string
+  dimension: string // 'Sales.Process', 'Sales.Skills', 'Customer.Intent'
+  score?: number
+  confidence?: number
   reasoning: string
   context: string
   timestamp: number
@@ -23,6 +24,16 @@ export type Signal = {
     reasoning: string
     confidence: number
   }[]
+  contextEvents?: string // JSON array from DB
+}
+
+export type RawSignal = {
+  signalCode: string
+  signalName: string
+  timestampSec: number | null
+  contextText: string | null
+  reasoning: string | null
+  confidence: number | null
 }
 
 
@@ -42,6 +53,7 @@ export type CallRecord = {
   behaviors: string[]
   service_issues: Array<{ tag: string; severity: 'high' | 'medium' | 'low' }>
   signals?: Signal[] // Rich signal data from database
+  rawSignals?: RawSignal[] // Raw signals from LLM for transcript annotation
   transcript: TranscriptEntry[]
   audioUrl?: string
   agentId?: string // Added for filtering

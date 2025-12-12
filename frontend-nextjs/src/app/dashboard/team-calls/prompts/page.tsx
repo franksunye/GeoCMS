@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Play, ChevronDown, FileText, Sparkles, MessageSquare, Target, Zap, X, Save } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 
 // Types
 type Prompt = {
@@ -280,25 +281,25 @@ export default function PromptsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8 flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+      <div className="mb-8">
+        <PageHeader
+          title="AI 提示词"
+          description="管理 LLM 提示词模板，配置变量、测试执行，优化 AI 分析质量。"
+          icon={
             <span className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white">
               <Sparkles className="h-6 w-6" />
             </span>
-            AI 提示词
-          </h1>
-          <p className="mt-2 text-gray-600">
-            管理 LLM 提示词模板，配置变量、测试执行，优化 AI 分析质量。
-          </p>
-        </div>
-        <button
-          onClick={handleOpenCreateModal}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 text-sm font-medium shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40"
-        >
-          <Plus className="h-4 w-4" />
-          创建提示词
-        </button>
+          }
+          actions={
+            <button
+              onClick={handleOpenCreateModal}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 text-sm font-medium shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40"
+            >
+              <Plus className="h-4 w-4" />
+              创建提示词
+            </button>
+          }
+        />
       </div>
 
       {error && (

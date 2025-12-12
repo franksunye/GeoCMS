@@ -10,6 +10,8 @@ import QuartileBarChart from './components/QuartileBarChart'
 import BusinessThresholdsRadar from './components/BusinessThresholdsRadar'
 import ProgressRing from './components/ProgressRing'
 import TrendAnalysisChart from './components/TrendAnalysisChart'
+import { PageHeader } from '@/components/ui/page-header'
+import { TimeRangeSelector } from '@/components/ui/time-range-selector'
 
 interface ValidationResult {
   correlation: number
@@ -36,13 +38,13 @@ interface ValidationResult {
   }>
 }
 
-type TimeFrame = 'custom' | 'yesterday' | '7d' | '30d' | '3m' | 'all'
+type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all'
 
 export default function AnalyticsPage() {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>('3m')
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>('30d')
 
   useEffect(() => {
     fetchValidationData()
@@ -86,38 +88,24 @@ export default function AnalyticsPage() {
     <TooltipProvider>
       <div className="space-y-6">
         {/* 页面标题和控制区 */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold">评分系统分析仪表板</h1>
-            <p className="text-muted-foreground">
-              实时监控评分系统与赢单率的相关性表现
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-white p-1 rounded-lg border border-gray-200">
-                {(['all', '3m', '30d', '7d'] as const).map((tf) => (
-                  <button
-                    key={tf}
-                    onClick={() => setTimeFrame(tf)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      timeFrame === tf 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    {tf === 'all' ? '全部' : tf === '3m' ? '近3月' : tf === '30d' ? '近30天' : '近7天'}
-                  </button>
-                ))}
-            </div>
+        <PageHeader
+          title="评分系统分析仪表板"
+          description="实时监控评分系统与赢单率的相关性表现"
+          actions={
+            <div className="flex items-center gap-4">
+              <TimeRangeSelector
+                value={timeFrame}
+                onChange={(v) => setTimeFrame(v as TimeFrame)}
+              />
 
-            {validationResult && (
-                <Badge className={correlationInfo.bg + ' ' + correlationInfo.color}>
-                {correlationInfo.level}
-                </Badge>
-            )}
-          </div>
-        </div>
+              {validationResult && (
+                  <Badge className={correlationInfo.bg + ' ' + correlationInfo.color}>
+                  {correlationInfo.level}
+                  </Badge>
+              )}
+            </div>
+          }
+        />
 
         {loading ? (
            <div className="flex items-center justify-center min-h-96">

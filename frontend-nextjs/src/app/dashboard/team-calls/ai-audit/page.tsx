@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, AlertTriangle, CheckCircle, Search, XCircle } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 
 interface Signal {
   id: string
   signalCode: string
-  context_text: string
-  timestamp_sec: number
+  contextText: string
+  timestampSec: number
+  confidence: number
 }
 
 interface TagAnalysis {
@@ -75,15 +77,15 @@ export default function AiAuditPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">AI 审计 & 调试</h2>
-          <p className="text-sm text-gray-500 mt-1">检查 Signal 到 Tag 聚合过程中的数据一致性与丢包情况</p>
-        </div>
-        <button onClick={fetchData} className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">
-          刷新数据
-        </button>
-      </div>
+      <PageHeader
+        title="AI 审计 & 调试"
+        description="检查 Signal 到 Tag 聚合过程中的数据一致性与丢包情况"
+        actions={
+          <button onClick={fetchData} className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">
+            刷新数据
+          </button>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Call List */}
@@ -128,7 +130,7 @@ export default function AiAuditPage() {
                     <CardHeader>
                         <CardTitle className="text-lg flex justify-between">
                             <span>审计详情: {selectedRecord.agentName}</span>
-                            <span className="text-sm font-normal text-gray-500 font-mono">{selectedRecord.id}</span>
+                            <span className="text-sm font-normal text-gray-500 font-mono">Call ID: {selectedRecord.id}</span>
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -160,10 +162,10 @@ export default function AiAuditPage() {
                                                     {item.details.signals.map((s, i) => (
                                                         <li key={i} className="bg-white p-2 rounded border border-gray-200 shadow-sm">
                                                             <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                                                                <span>{s.timestamp_sec ? `${s.timestamp_sec}s` : 'N/A'}</span>
-                                                                <span>ID: {s.id.slice(0,6)}...</span>
+                                                                <span>{s.timestampSec ? `${s.timestampSec}s` : 'N/A'}</span>
+                                                                <span>Confidence: {s.confidence ?? '-'}</span>
                                                             </div>
-                                                            <div className="text-gray-800">"{s.context_text}"</div>
+                                                            <div className="text-gray-800">"{s.contextText}"</div>
                                                         </li>
                                                     ))}
                                                 </ul>

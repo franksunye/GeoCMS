@@ -60,7 +60,7 @@ export function TopNavigation() {
                 key={item.name}
                 href={item.href}
                 className={cn(
-                  "text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md block",
+                  "text-base font-medium transition-colors hover:text-primary px-3 py-2 rounded-md block",
                   isActive 
                     ? "text-primary bg-primary/5" 
                     : "text-muted-foreground"
@@ -80,7 +80,7 @@ export function TopNavigation() {
             return (
               <DropdownMenu key={item.name}>
                 <DropdownMenuTrigger className={cn(
-                  "flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-primary/20",
+                  "flex items-center gap-1 text-base font-medium transition-colors hover:text-primary px-3 py-2 rounded-md outline-none focus:ring-2 focus:ring-primary/20",
                    isChildActive ? "text-primary bg-primary/5" : "text-muted-foreground"
                 )}>
                   {item.name}

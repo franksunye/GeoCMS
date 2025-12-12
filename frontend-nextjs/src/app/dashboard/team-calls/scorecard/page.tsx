@@ -5,8 +5,10 @@ import { ChevronDown, TrendingUp } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import { AgentId } from '@/types'
 import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
+import { PageHeader } from '@/components/ui/page-header'
+import { TimeRangeSelector } from '@/components/ui/time-range-selector'
 
-type TimeFrame = 'custom' | 'yesterday' | '7d' | '30d' | '3m'
+type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all'
 type SortBy = 'overall' | 'process' | 'skills' | 'communication'
 
 interface SubcategoryScore {
@@ -172,26 +174,26 @@ export default function ScorecardPage() {
     }
   }, [filteredAgents])
 
-  const sortedAgents = [...filteredAgents].sort((a, b) => {
-    switch (sortBy) {
-      case 'process': return b.process - a.process
-      case 'skills': return b.skills - a.skills
-      case 'communication': return b.communication - a.communication
-      case 'overall': default: return b.overallScore - a.overallScore
-    }
-  })
+  const sortedAgents = useMemo(() => {
+    return [...filteredAgents].sort((a, b) => {
+      switch (sortBy) {
+        case 'process': return b.process - a.process
+        case 'skills': return b.skills - a.skills
+        case 'communication': return b.communication - a.communication
+        case 'overall': default: return b.overallScore - a.overallScore
+      }
+    })
+  }, [filteredAgents, sortBy])
 
   const activeCategory = categories.find(c => c.name === expandedCategory)
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">评分看板</h1>
-          <p className="mt-2 text-gray-600">团队绩效指标与个人排名</p>
-        </div>
-      </div>
+      <PageHeader
+        title="评分看板"
+        description="团队绩效指标与个人排名"
+      />
 
       {/* Top Filters */}
       <div className="flex items-center justify-between gap-4">
@@ -217,19 +219,10 @@ export default function ScorecardPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">时间范围</span>
-            <div className="flex gap-2">
-              {(['custom', 'yesterday', '7d', '30d', '3m'] as const).map((tf) => (
-                <button
-                  key={tf}
-                  onClick={() => setTimeFrame(tf)}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    timeFrame === tf ? 'bg-blue-100 text-blue-700' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                  }`}
-                >
-                  {tf === 'custom' ? '自定义' : tf === 'yesterday' ? '昨天' : tf === '7d' ? '近7天' : tf === '30d' ? '近30天' : '近3个月'}
-                </button>
-              ))}
-            </div>
+            <TimeRangeSelector
+              value={timeFrame}
+              onChange={(v) => setTimeFrame(v as TimeFrame)}
+            />
           </div>
         </div>
 
@@ -252,34 +245,27 @@ export default function ScorecardPage() {
 
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-gray-700">排序方式</span>
-            <div className="relative group">
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-              {sortBy === 'overall' ? '综合评分' : sortBy === 'process' ? '流程遵循' : sortBy === 'skills' ? '销售技巧' : '沟通能力'}
-              <ChevronDown className="h-4 w-4" />
-            </button>
-            <div className="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 group-hover:block">
-              {[
-                { value: 'overall', label: '综合评分' },
-                { value: 'process', label: '流程遵循' },
-                { value: 'skills', label: '销售技巧' },
-                { value: 'communication', label: '沟通能力' },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setSortBy(option.value as SortBy)}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 first:rounded-t-lg last:rounded-b-lg"
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
+              >
+                <option value="overall">综合评分</option>
+                <option value="process">流程遵循</option>
+                <option value="skills">销售技巧</option>
+                <option value="communication">沟通能力</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <ChevronDown className="h-4 w-4" />
+              </div>
             </div>
-          </div>
         </div>
       </div>
     </div>
 
       {/* Team Overview Card */}
-      <div className="bg-white shadow rounded-lg p-8 border-l-4 border-blue-600">
+      <div className="bg-white shadow rounded-lg p-8">
         <div className="flex items-start justify-between mb-8">
           <div className="flex items-center gap-6">
             <div>

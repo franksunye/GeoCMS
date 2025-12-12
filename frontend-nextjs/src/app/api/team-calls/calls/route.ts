@@ -68,7 +68,7 @@ export async function GET() {
     )
     const transcriptMap = new Map(transcripts.map(t => [t.dealId, t.content]))
 
-    // Fetch all signals
+    // Fetch all signals (raw events from LLM)
     const allSignals = await logger.time('Query: Signals', () =>
       prisma.callSignal.findMany({
         orderBy: { timestampSec: 'asc' }
@@ -76,6 +76,14 @@ export async function GET() {
     )
 
     logger.info('Signals fetched', { count: allSignals.length })
+
+    // Fetch signal definitions for name lookup
+    const signalDefs = await logger.time('Query: Signal Definitions', () =>
+      prisma.signal.findMany({
+        select: { code: true, name: true }
+      })
+    )
+    const signalNameMap = new Map(signalDefs.map(s => [s.code, s.name]))
 
     const signalsByCall: Record<string, typeof allSignals> = {}
     allSignals.forEach(s => {
@@ -170,6 +178,7 @@ export async function GET() {
         return {
           tag: a.tag.code,
           name: a.tag.name,
+          category: a.tag.category,
           dimension: a.tag.dimension,
           score: a.score,
           confidence: a.confidence,
@@ -179,7 +188,8 @@ export async function GET() {
           severity: a.tag.severity || 'none',
           polarity: a.tag.polarity ? a.tag.polarity.toLowerCase() : 'neutral',
           is_mandatory: false,
-          occurrences: instances
+          occurrences: instances,
+          contextEvents: a.contextEvents
         }
       })
 
@@ -238,6 +248,15 @@ export async function GET() {
         behaviors,
         service_issues,
         signals,
+        // Raw signals from LLM (for transcript annotation)
+        rawSignals: rawSignals.map(s => ({
+          signalCode: s.signalCode,
+          signalName: signalNameMap.get(s.signalCode) || s.signalCode,
+          timestampSec: s.timestampSec,
+          contextText: s.contextText,
+          reasoning: s.reasoning,
+          confidence: s.confidence
+        })),
         transcript,
         audioUrl: call.audioUrl
       }

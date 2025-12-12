@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Loader2 } from 'lucide-react'
 import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
+import { PageHeader } from '@/components/ui/page-header'
 
 interface Tag {
   id: string
@@ -110,58 +111,59 @@ export default function ScoreDetailsPage() {
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold tracking-tight">分数明细</h2>
-        
-        <div className="flex gap-4">
-          <Select value={category} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="选择分类" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">所有分类</SelectItem>
-              {filterOptions.categories.map((c) => (
-                <SelectItem key={c} value={c}>{c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <PageHeader
+        title="分数明细"
+        actions={
+          <div className="flex gap-4">
+            <Select value={category} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="选择分类" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有分类</SelectItem>
+                {filterOptions.categories.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={dimension} onValueChange={handleDimensionChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="选择维度" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">所有维度</SelectItem>
-              {filterOptions.dimensions.map((d) => (
-                <SelectItem key={d} value={d}>{d}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={dimension} onValueChange={handleDimensionChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="选择维度" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有维度</SelectItem>
+                {filterOptions.dimensions.map((d) => (
+                  <SelectItem key={d} value={d}>{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={tagName} onValueChange={setTagName}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="选择Tag" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">所有Tag</SelectItem>
-              {filterOptions.tagNames.map((n) => (
-                <SelectItem key={n} value={n}>{n}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Select value={tagName} onValueChange={setTagName}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="选择Tag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">所有Tag</SelectItem>
+                {filterOptions.tagNames.map((n) => (
+                  <SelectItem key={n} value={n}>{n}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={limit} onValueChange={setLimit}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="显示数量" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="3">最近 3 条</SelectItem>
-              <SelectItem value="5">最近 5 条</SelectItem>
-              <SelectItem value="10">最近 10 条</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+            <Select value={limit} onValueChange={setLimit}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="显示数量" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">最近 3 条</SelectItem>
+                <SelectItem value="5">最近 5 条</SelectItem>
+                <SelectItem value="10">最近 10 条</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        }
+      />
 
       <Card>
         <CardHeader>
