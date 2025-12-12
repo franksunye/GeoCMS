@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
     try {
@@ -8,54 +8,70 @@ export async function GET(request: NextRequest) {
         const offset = parseInt(searchParams.get('offset') || '0', 10);
 
         // 1. Fetch Calls that have analysis logs
-        const calls = db.prepare(`
-        SELECT 
-            c.id, 
-            c.startedAt, 
-            c.agentId, 
-            a.name as agentName,
-            (SELECT COUNT(*) FROM call_signals WHERE callId = c.id) as signalCount,
-            (SELECT COUNT(*) FROM call_assessments WHERE callId = c.id) as tagCount
-        FROM calls c
-        LEFT JOIN agents a ON c.agentId = a.id
-        WHERE c.id IN (SELECT DISTINCT callId FROM call_assessments)
-        ORDER BY c.startedAt DESC
-        LIMIT ? OFFSET ?
-    `).all(limit, offset) as any[];
+        const calls = await prisma.call.findMany({
+            where: {
+                assessments: { some: {} } // Only calls that have assessments
+            },
+            select: {
+                id: true,
+                startedAt: true,
+                agentId: true,
+                agent: { select: { name: true } },
+                _count: {
+                    select: {
+                        signals: true,
+                        assessments: true
+                    }
+                }
+            },
+            orderBy: { startedAt: 'desc' },
+            take: limit,
+            skip: offset
+        });
 
         // 2. For each call, fetch Signals and Tags to perform consistency check
-        const auditData = calls.map(call => {
-            const signals = db.prepare(`
-            SELECT id, signalCode, context_text, timestamp_sec, confidence 
-            FROM call_signals 
-            WHERE callId = ?
-        `).all(call.id) as any[];
+        const auditData = await Promise.all(calls.map(async (call) => {
+            const signals = await prisma.callSignal.findMany({
+                where: { callId: call.id },
+                select: {
+                    id: true,
+                    signalCode: true,
+                    contextText: true,
+                    timestampSec: true,
+                    confidence: true
+                }
+            });
 
-            const tags = db.prepare(`
-            SELECT 
-                t.code as tagCode, 
-                ca.score,
-                ca.context_text,
-                ca.context_events, 
-                ca.confidence
-            FROM call_assessments ca
-            JOIN tags t ON ca.tagId = t.id
-            WHERE ca.callId = ?
-        `).all(call.id) as any[];
+            const tags = await prisma.callAssessment.findMany({
+                where: { callId: call.id },
+                select: {
+                    score: true,
+                    contextText: true,
+                    contextEvents: true,
+                    confidence: true,
+                    tag: { select: { code: true } }
+                }
+            });
 
             // Perform Consistency Analysis
-            const analysis = tags.map((tag: any) => {
+            const analysis = tags.map((tagAssessment) => {
+                const tagCode = tagAssessment.tag.code;
+
                 // A. Count expected signals (Raw Signals matching this Tag Code)
-                const matchedSignals = signals.filter(s => s.signalCode === tag.tagCode);
+                const matchedSignals = signals.filter(s => s.signalCode === tagCode);
 
                 // B. Count aggregated events (From Tag's JSON context)
-                let aggregatedEvents = [];
+                let aggregatedEvents: any[] = [];
                 try {
-                    aggregatedEvents = tag.context_events ? JSON.parse(tag.context_events) : [];
+                    aggregatedEvents = tagAssessment.contextEvents
+                        ? JSON.parse(tagAssessment.contextEvents)
+                        : [];
                 } catch (e) {
                     // Fallback to split string if JSON fails
-                    if (tag.context_text) {
-                        aggregatedEvents = tag.context_text.split(' | ').filter((t: string) => t.trim().length > 0);
+                    if (tagAssessment.contextText) {
+                        aggregatedEvents = tagAssessment.contextText
+                            .split(' | ')
+                            .filter((t: string) => t.trim().length > 0);
                     }
                 }
 
@@ -65,8 +81,8 @@ export async function GET(request: NextRequest) {
                 const diff = signalCount - eventCount;
 
                 return {
-                    tagCode: tag.tagCode,
-                    score: tag.score,
+                    tagCode,
+                    score: tagAssessment.score,
                     signalCount,
                     eventCount,
                     diff,
@@ -79,16 +95,20 @@ export async function GET(request: NextRequest) {
             });
 
             // Filter only problematic tags if needed, or return all
-            // For Audit view, we likely want to see "Issues"
             const issues = analysis.filter(a => a.status !== 'ok');
 
             return {
-                ...call,
+                id: call.id,
+                startedAt: call.startedAt,
+                agentId: call.agentId,
+                agentName: call.agent.name,
+                signalCount: call._count.signals,
+                tagCount: call._count.assessments,
                 totalConsistencyScore: Math.round(((tags.length - issues.length) / (tags.length || 1)) * 100),
                 issuesCount: issues.length,
                 analysis
             };
-        });
+        }));
 
         return NextResponse.json({
             data: auditData,

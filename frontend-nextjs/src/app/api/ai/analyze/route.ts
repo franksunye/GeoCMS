@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyBkGzQ2G0V_oB5Syu_YRjG7re7EVcvMB8Y'); // Fallback to provided key if env var fails
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyBkGzQ2G0V_oB5Syu_YRjG7re7EVcvMB8Y');
 
 export async function POST(request: NextRequest) {
     try {
@@ -17,20 +17,16 @@ export async function POST(request: NextRequest) {
         }
 
         // 2. Fetch Transcript
-        // Note: In our current schema, transcripts table exists.
-        // However, if we don't have a transcript for this deal, we might fail or mock it.
-        // For this POC, let's try to fetch it, or fallback to a mock transcript if not found 
-        // (since I might not have seeded transcripts properly in step 1, only calls were seeded).
-        // Let's create a Mock Transcript generator for the POC if one doesn't exist.
-
         let transcriptContent = '';
-        const transcriptRecord = db.prepare('SELECT content FROM transcripts WHERE dealId = ?').get(dealId) as { content: string };
+        const transcriptRecord = await prisma.transcript.findFirst({
+            where: { dealId },
+            select: { content: true }
+        });
 
         if (transcriptRecord) {
             transcriptContent = transcriptRecord.content;
         } else {
             // MOCK TRANSCRIPT GENERATOR functionality for POC
-            // This ensures the demo works even if we haven't uploaded real transcripts
             transcriptContent = `
         sales: 您好，我是Geocms的销售代表Michael，很高兴联系您。
         customer: 你好。
@@ -54,14 +50,20 @@ export async function POST(request: NextRequest) {
             // Direct content provided (e.g. from Playground)
             promptTemplate = promptContent;
         } else if (promptId) {
-            const p = db.prepare('SELECT content FROM prompts WHERE id = ?').get(promptId) as { content: string };
+            const p = await prisma.prompt.findUnique({
+                where: { id: promptId },
+                select: { content: true }
+            });
             if (p) promptTemplate = p.content;
         } else {
-            const p = db.prepare('SELECT content FROM prompts WHERE is_default = 1').get() as { content: string };
+            const p = await prisma.prompt.findFirst({
+                where: { isDefault: true },
+                select: { content: true }
+            });
             if (p) promptTemplate = p.content;
         }
 
-        // Fallback prompt if nothing found (shouldn't happen due to seed)
+        // Fallback prompt if nothing found
         if (!promptTemplate) {
             promptTemplate = "Analyze the transcript:\n\n{{transcript}}\n\nOutput JSON.";
         }
@@ -71,14 +73,12 @@ export async function POST(request: NextRequest) {
 
         // 5. Call Gemini
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-        // Using 1.5-pro as it handles large context better, or flash for speed
 
         const result = await model.generateContent(finalPrompt);
         const response = await result.response;
         const text = response.text();
 
         // 6. Parse and Save Result
-        // Clean markdown code blocks if present
         let cleanJson = text;
         if (cleanJson.startsWith('```json')) {
             cleanJson = cleanJson.replace(/^```json/, '').replace(/```$/, '').trim();
@@ -94,12 +94,18 @@ export async function POST(request: NextRequest) {
             logId = uuidv4();
 
             // Delete old logs for this dealId before inserting new one.
-            db.prepare('DELETE FROM ai_analysis_logs WHERE dealId = ?').run(dealId);
+            await prisma.aIAnalysisLog.deleteMany({
+                where: { dealId }
+            });
 
-            db.prepare(`
-                INSERT INTO ai_analysis_logs (id, dealId, signals, createdAt)
-                VALUES (?, ?, ?, ?)
-            `).run(logId, dealId, cleanJson, now);
+            await prisma.aIAnalysisLog.create({
+                data: {
+                    id: logId,
+                    dealId,
+                    signals: cleanJson,
+                    createdAt: now
+                }
+            });
         }
 
         return NextResponse.json({

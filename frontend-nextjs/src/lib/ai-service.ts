@@ -1,5 +1,4 @@
-import db from '@/lib/db';
-import { v4 as uuidv4 } from 'uuid';
+import prisma from '@/lib/prisma';
 
 // --- Types ---
 export type TranscriptEntry = {
@@ -55,24 +54,37 @@ export function formatTranscript(content: string | null): string {
 }
 
 // Get signals list for variable replacement
-function getSignalsList(): string {
-    const signals = db.prepare('SELECT code, name, category, dimension, description FROM signals WHERE active = 1').all() as any[];
+async function getSignalsList(): Promise<string> {
+    const signals = await prisma.signal.findMany({
+        where: { active: 1 },
+        select: { code: true, name: true, category: true, dimension: true, description: true }
+    });
+
     if (signals.length === 0) {
-        const tags = db.prepare('SELECT code, name, category, dimension, description FROM tags WHERE active = 1').all() as any[];
+        const tags = await prisma.tag.findMany({
+            where: { active: 1 },
+            select: { code: true, name: true, category: true, dimension: true, description: true }
+        });
         return JSON.stringify(tags, null, 2);
     }
     return JSON.stringify(signals, null, 2);
 }
 
 // Get tags list for variable replacement
-function getTagsList(): string {
-    const tags = db.prepare('SELECT code, name, category, dimension, scoreRange, description FROM tags WHERE active = 1').all() as any[];
+async function getTagsList(): Promise<string> {
+    const tags = await prisma.tag.findMany({
+        where: { active: 1 },
+        select: { code: true, name: true, category: true, dimension: true, scoreRange: true, description: true }
+    });
     return JSON.stringify(tags, null, 2);
 }
 
 // Get scoring rules for variable replacement
-function getScoringRules(): string {
-    const rules = db.prepare('SELECT name, tagCode, targetDimension, scoreAdjustment, weight, description FROM scoring_rules WHERE active = 1').all() as any[];
+async function getScoringRules(): Promise<string> {
+    const rules = await prisma.scoringRule.findMany({
+        where: { active: 1 },
+        select: { name: true, tagCode: true, targetDimension: true, scoreAdjustment: true, weight: true, description: true }
+    });
     return JSON.stringify(rules, null, 2);
 }
 
@@ -190,33 +202,37 @@ export async function analyzeCall(callId: string, promptContent: string, isPing:
     let parseError: string | null = null;
 
     // 1. Get Call Data
-    const call = db.prepare(`
-        SELECT 
-            c.id, c.agentId, c.startedAt, c.duration, c.outcome,
-            a.name as agentName,
-            (SELECT content FROM transcripts t WHERE t.dealId = c.id ORDER BY t.createdAt DESC LIMIT 1) as transcriptContent
-        FROM calls c
-        LEFT JOIN agents a ON c.agentId = a.id
-        WHERE c.id = ?
-    `).get(callId) as any;
+    const call = await prisma.call.findUnique({
+        where: { id: callId },
+        include: {
+            agent: { select: { name: true } }
+        }
+    });
 
     if (!call) {
         throw new Error(`Call not found: ${callId}`);
     }
 
+    // Get transcript
+    const transcript = await prisma.transcript.findFirst({
+        where: { dealId: callId },
+        orderBy: { createdAt: 'desc' },
+        select: { content: true }
+    });
+
     // 2. Prepare Variables
     const variables: Record<string, string> = {
-        transcript: formatTranscript(call.transcriptContent),
-        signals: getSignalsList(),
-        tags: getTagsList(),
+        transcript: formatTranscript(transcript?.content || null),
+        signals: await getSignalsList(),
+        tags: await getTagsList(),
         call_metadata: JSON.stringify({
             callId: call.id,
-            agentName: call.agentName,
+            agentName: call.agent.name,
             startedAt: call.startedAt,
             duration: call.duration,
             outcome: call.outcome
         }, null, 2),
-        scoring_rules: getScoringRules()
+        scoring_rules: await getScoringRules()
     };
 
     // 3. Replace Variables
@@ -247,7 +263,7 @@ export async function analyzeCall(callId: string, promptContent: string, isPing:
         console.error('DeepSeek/AI Failed (falling back to mock):', apiError.message);
         networkError = apiError.message;
         isMock = true;
-        rawOutput = generateMockResponse(call.transcriptContent);
+        rawOutput = generateMockResponse(transcript?.content || '');
     }
 
     // 6. Parse Output

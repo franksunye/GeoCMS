@@ -10,7 +10,8 @@
  *   → tags → call_assessments 表
  */
 
-import db from './db'
+import prisma from './prisma'
+import { v4 as uuidv4 } from 'uuid'
 
 // ============================================
 // Type Definitions
@@ -120,8 +121,10 @@ export function parseAnalysisJson(rawJson: string): AIAnalysisResult | null {
  * 获取 Tag ID 映射表
  * code -> id
  */
-export function getTagMap(): Map<string, string> {
-  const allTags = db.prepare('SELECT id, code FROM tags').all() as { id: string, code: string }[]
+export async function getTagMap(): Promise<Map<string, string>> {
+  const allTags = await prisma.tag.findMany({
+    select: { id: true, code: true }
+  })
   const tagMap = new Map<string, string>()
   allTags.forEach(t => tagMap.set(t.code, t.id))
   return tagMap
@@ -135,10 +138,10 @@ export function getTagMap(): Map<string, string> {
  *   - createCall: 是否创建 call 记录（默认 false）
  *   - clearExisting: 是否清除已有的 signals 和 assessments（默认 true）
  */
-export function processCallAnalysis(
+export async function processCallAnalysis(
   input: ETLInput,
   options: { createCall?: boolean; clearExisting?: boolean } = {}
-): ETLResult {
+): Promise<ETLResult> {
   const { callId, agentId, outcome, createdAt, audioUrl, analysisResult } = input
   const { createCall = false, clearExisting = true } = options
 
@@ -151,129 +154,116 @@ export function processCallAnalysis(
     errors: []
   }
 
-  // Get tag mapping
-  const tagMap = getTagMap()
-
-  // Prepare statements
-  const insertCall = db.prepare(`
-    INSERT OR IGNORE INTO calls (id, agentId, startedAt, duration, outcome, audioUrl)
-    VALUES (@id, @agentId, @startedAt, @duration, @outcome, @audioUrl)
-  `)
-
-  const deleteSignals = db.prepare('DELETE FROM call_signals WHERE callId = ?')
-  const deleteAssessments = db.prepare('DELETE FROM call_assessments WHERE callId = ?')
-
-  const insertCallSignal = db.prepare(`
-    INSERT INTO call_signals (id, callId, signalCode, category, dimension, polarity, timestamp_sec, confidence, context_text, reasoning, createdAt)
-    VALUES (@id, @callId, @signalCode, @category, @dimension, @polarity, @timestamp_sec, @confidence, @context_text, @reasoning, @createdAt)
-  `)
-
-  const insertAssessment = db.prepare(`
-    INSERT INTO call_assessments (id, callId, tagId, score, confidence, reasoning, context_text, timestamp_sec, context_events)
-    VALUES (@id, @callId, @tagId, @score, @confidence, @reasoning, @context_text, @timestamp_sec, @context_events)
-  `)
-
-  // Execute transaction
-  const runTransaction = db.transaction(() => {
+  try {
+    // Get tag mapping
+    const tagMap = await getTagMap()
     const now = createdAt || new Date().toISOString()
 
-    // 1. Create call record if requested
-    if (createCall) {
-      insertCall.run({
-        id: callId,
-        agentId: agentId || 'unknown',
-        startedAt: now,
-        duration: 300, // Default duration
-        outcome: outcome || 'unknown',
-        audioUrl: audioUrl || ''
-      })
-    }
-
-    // 2. Clear existing data if requested
-    if (clearExisting) {
-      deleteSignals.run(callId)
-      deleteAssessments.run(callId)
-    }
-
-    // 3. Process Signal Events -> call_signals
-    if (analysisResult.signal_events && Array.isArray(analysisResult.signal_events)) {
-      for (const signal of analysisResult.signal_events) {
-        try {
-          insertCallSignal.run({
-            id: `sig_${callId}_${result.insertedSignals}_${Date.now()}`,
-            callId: callId,
-            signalCode: signal.signal_name,
-            category: signal.category || null,
-            dimension: signal.dimension || null,
-            polarity: signal.polarity || null,
-            timestamp_sec: signal.timestamp_sec || null,
-            confidence: signal.confidence || 0,
-            context_text: signal.context_text || null,
-            reasoning: signal.reasoning || null,
-            createdAt: now
-          })
-          result.insertedSignals++
-        } catch (e) {
-          result.errors.push(`Failed to insert signal ${signal.signal_name}: ${e}`)
-        }
+    // Use transaction for atomicity
+    await prisma.$transaction(async (tx) => {
+      // 1. Create call record if requested
+      if (createCall) {
+        await tx.call.upsert({
+          where: { id: callId },
+          create: {
+            id: callId,
+            agentId: agentId || 'unknown',
+            startedAt: now,
+            duration: 300, // Default duration
+            outcome: outcome || 'unknown',
+            audioUrl: audioUrl || ''
+          },
+          update: {} // Don't update if exists
+        })
       }
-    }
 
-    // 4. Process Tags -> call_assessments
-    if (analysisResult.tags && Array.isArray(analysisResult.tags)) {
-      for (const tag of analysisResult.tags) {
-        const tagId = tagMap.get(tag.tag)
+      // 2. Clear existing data if requested
+      if (clearExisting) {
+        await tx.callSignal.deleteMany({ where: { callId } })
+        await tx.callAssessment.deleteMany({ where: { callId } })
+      }
 
-        if (!tagId) {
-          if (!result.missingTagCodes.includes(tag.tag)) {
-            result.missingTagCodes.push(tag.tag)
+      // 3. Process Signal Events -> call_signals
+      if (analysisResult.signal_events && Array.isArray(analysisResult.signal_events)) {
+        for (const signal of analysisResult.signal_events) {
+          try {
+            await tx.callSignal.create({
+              data: {
+                id: `sig_${callId}_${result.insertedSignals}_${Date.now()}`,
+                callId: callId,
+                signalCode: signal.signal_name,
+                category: signal.category || null,
+                dimension: signal.dimension || null,
+                polarity: signal.polarity || null,
+                timestampSec: signal.timestamp_sec || null,
+                confidence: signal.confidence || 0,
+                contextText: signal.context_text || null,
+                reasoning: signal.reasoning || null,
+                createdAt: now
+              }
+            })
+            result.insertedSignals++
+          } catch (e) {
+            result.errors.push(`Failed to insert signal ${signal.signal_name}: ${e}`)
           }
-          continue
-        }
-
-        // Convert score 1-5 to 0-100
-        const normalizedScore = Math.min(100, Math.max(0, Math.round(tag.score * 20)))
-
-        // Get earliest timestamp from context_events
-        let timestamp_sec: number | null = null
-        if (tag.context_events && tag.context_events.length > 0) {
-          timestamp_sec = Math.min(...tag.context_events.map(e => e.timestamp_sec))
-        }
-
-        // Get max confidence from context_events
-        let confidence = 0
-        if (tag.context_events && tag.context_events.length > 0) {
-          confidence = Math.max(...tag.context_events.map(e => e.confidence))
-        }
-
-        // Combine context_text from all events
-        let context_text: string | null = null
-        if (tag.context_events && tag.context_events.length > 0) {
-          context_text = tag.context_events.map(e => e.context_text).join(' | ')
-        }
-
-        try {
-          insertAssessment.run({
-            id: `assess_${callId}_${tagId}_${Date.now()}`,
-            callId: callId,
-            tagId: tagId,
-            score: normalizedScore,
-            confidence: confidence,
-            reasoning: tag.reasoning || null,
-            context_text: context_text,
-            timestamp_sec: timestamp_sec,
-            context_events: JSON.stringify(tag.context_events || [])
-          })
-          result.insertedAssessments++
-        } catch (e) {
-          result.errors.push(`Failed to insert assessment for tag ${tag.tag}: ${e}`)
         }
       }
-    }
-  })
 
-  try {
-    runTransaction()
+      // 4. Process Tags -> call_assessments
+      if (analysisResult.tags && Array.isArray(analysisResult.tags)) {
+        for (const tag of analysisResult.tags) {
+          const tagId = tagMap.get(tag.tag)
+
+          if (!tagId) {
+            if (!result.missingTagCodes.includes(tag.tag)) {
+              result.missingTagCodes.push(tag.tag)
+            }
+            continue
+          }
+
+          // Convert score 1-5 to 0-100
+          const normalizedScore = Math.min(100, Math.max(0, Math.round(tag.score * 20)))
+
+          // Get earliest timestamp from context_events
+          let timestamp_sec: number | null = null
+          if (tag.context_events && tag.context_events.length > 0) {
+            timestamp_sec = Math.min(...tag.context_events.map(e => e.timestamp_sec))
+          }
+
+          // Get max confidence from context_events
+          let confidence = 0
+          if (tag.context_events && tag.context_events.length > 0) {
+            confidence = Math.max(...tag.context_events.map(e => e.confidence))
+          }
+
+          // Combine context_text from all events
+          let context_text: string | null = null
+          if (tag.context_events && tag.context_events.length > 0) {
+            context_text = tag.context_events.map(e => e.context_text).join(' | ')
+          }
+
+          try {
+            await tx.callAssessment.create({
+              data: {
+                id: `assess_${callId}_${tagId}_${Date.now()}`,
+                callId: callId,
+                tagId: tagId,
+                score: normalizedScore,
+                confidence: confidence,
+                reasoning: tag.reasoning || null,
+                contextText: context_text,
+                timestampSec: timestamp_sec,
+                contextEvents: JSON.stringify(tag.context_events || [])
+              }
+            })
+            result.insertedAssessments++
+          } catch (e) {
+            result.errors.push(`Failed to insert assessment for tag ${tag.tag}: ${e}`)
+          }
+        }
+      }
+    })
+
     result.success = true
 
     console.log(`ETL Complete for Call ${callId}:`)
@@ -298,16 +288,16 @@ export function processCallAnalysis(
 /**
  * 批量处理多个通话
  */
-export function processBatchAnalysis(
+export async function processBatchAnalysis(
   inputs: ETLInput[],
   options: { createCall?: boolean; clearExisting?: boolean } = {}
-): { results: ETLResult[]; summary: { total: number; success: number; failed: number } } {
+): Promise<{ results: ETLResult[]; summary: { total: number; success: number; failed: number } }> {
   const results: ETLResult[] = []
   let successCount = 0
   let failedCount = 0
 
   for (const input of inputs) {
-    const result = processCallAnalysis(input, options)
+    const result = await processCallAnalysis(input, options)
     results.push(result)
     if (result.success) {
       successCount++
@@ -347,7 +337,7 @@ export interface RawAISignal {
  * @deprecated Use processCallAnalysis instead
  * Legacy function for backward compatibility
  */
-export function processAIAnalysis(result: { callId: string; audioUrl?: string; signals: RawAISignal[] }) {
+export async function processAIAnalysis(result: { callId: string; audioUrl?: string; signals: RawAISignal[] }) {
   console.warn('processAIAnalysis is deprecated. Use processCallAnalysis instead.')
 
   // Convert old format to new format

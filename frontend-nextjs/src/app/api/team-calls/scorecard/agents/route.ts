@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import db from '@/lib/db'
+import prisma from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Scorecard/Agents')
 
 export async function GET(request: NextRequest) {
+  const totalTimer = logger.startTimer('Total API Request')
+
   try {
     const { searchParams } = new URL(request.url)
     const timeframe = searchParams.get('timeframe') || '7d'
+
+    logger.info('Request received', { timeframe })
 
     let cutoffDate = new Date()
     cutoffDate.setHours(0, 0, 0, 0)
@@ -26,10 +33,10 @@ export async function GET(request: NextRequest) {
     const cutoffIso = cutoffDate.toISOString()
 
     // 1. Get Agents
-    const agents = db.prepare('SELECT * FROM agents').all()
+    const agents = await logger.time('Query: Agents', () => prisma.agent.findMany())
 
     // 2. Get Score Config (for weights)
-    const scoreConfig = db.prepare('SELECT * FROM score_config LIMIT 1').get() as any
+    const scoreConfig = await logger.time('Query: Score Config', () => prisma.scoreConfig.findFirst())
     const weights = {
       process: scoreConfig?.processWeight || 30,
       skills: scoreConfig?.skillsWeight || 50,
@@ -37,61 +44,105 @@ export async function GET(request: NextRequest) {
     }
 
     // 3. Get All Active Tags (to ensure consistent structure)
-    const allTags = db.prepare('SELECT * FROM tags WHERE active = 1 AND category = ? ORDER BY name ASC').all('Sales') as any[]
+    const allTags = await logger.time('Query: Tags', () =>
+      prisma.tag.findMany({
+        where: { active: 1, category: 'Sales' },
+        orderBy: { name: 'asc' }
+      })
+    )
     const processRefTags = allTags.filter(t => t.dimension === 'Process' || t.dimension === 'Sales.Process')
     const skillsRefTags = allTags.filter(t => t.dimension === 'Skills' || t.dimension === 'Sales.Skills')
     const commRefTags = allTags.filter(t => t.dimension === 'Communication' || t.dimension === 'Sales.Communication')
 
     // 4. Batch Query: Call Stats per Agent
-    const agentStats = db.prepare(`
-      SELECT 
-        agentId,
-        count(*) as totalCalls,
-        sum(CASE WHEN outcome = 'won' THEN 1 ELSE 0 END) as wonCalls
-      FROM calls 
-      WHERE startedAt >= ?
-      GROUP BY agentId
-    `).all(cutoffIso) as any[]
+    const agentCallStats = await logger.time('Query: Call Stats', () =>
+      prisma.call.groupBy({
+        by: ['agentId'],
+        where: { startedAt: { gte: cutoffIso } },
+        _count: { id: true },
+      })
+    )
 
-    const statsMap = new Map(agentStats.map(s => [s.agentId, s]))
+    // Get won calls separately
+    const wonCallStats = await logger.time('Query: Won Call Stats', () =>
+      prisma.call.groupBy({
+        by: ['agentId'],
+        where: { startedAt: { gte: cutoffIso }, outcome: 'won' },
+        _count: { id: true },
+      })
+    )
 
-    // 5. Batch Query: Tag Scores per Agent
-    const allTagScores = db.prepare(`
-      SELECT 
-        c.agentId,
-        t.id as tagId,
-        AVG(ca.score) as score
-      FROM call_assessments ca 
-      JOIN calls c ON c.id = ca.callId 
-      JOIN tags t ON t.id = ca.tagId 
-      WHERE c.startedAt >= ?
-      GROUP BY c.agentId, t.id
-    `).all(cutoffIso) as any[]
-
-    // Map: AgentId -> TagId -> Score
-    const agentTagScoresMap = new Map<string, Map<string, number>>()
-    allTagScores.forEach((row: any) => {
-      if (!agentTagScoresMap.has(row.agentId)) {
-        agentTagScoresMap.set(row.agentId, new Map())
-      }
-      agentTagScoresMap.get(row.agentId)!.set(row.tagId, row.score)
+    const statsMap = new Map<string, { totalCalls: number; wonCalls: number }>()
+    agentCallStats.forEach(s => {
+      statsMap.set(s.agentId, { totalCalls: s._count.id, wonCalls: 0 })
+    })
+    wonCallStats.forEach(s => {
+      const existing = statsMap.get(s.agentId)
+      if (existing) existing.wonCalls = s._count.id
     })
 
+    // 5. Batch Query: Tag Scores per Agent (HEAVIEST QUERY)
+    const allTagScores = await logger.time('Query: All Tag Scores', () =>
+      prisma.callAssessment.findMany({
+        where: {
+          call: { startedAt: { gte: cutoffIso } }
+        },
+        select: {
+          tagId: true,
+          score: true,
+          call: { select: { agentId: true } }
+        }
+      }),
+      { timeframe } // 附加数据用于日志分析
+    )
+
+    logger.info('Tag Scores fetched', { count: allTagScores.length })
+
+    // Map: AgentId -> TagId -> Scores Array
+    const computeTimer = logger.startTimer('Compute: Aggregate Scores')
+
+    const agentTagScoresMap = new Map<string, Map<string, number[]>>()
+    allTagScores.forEach((row) => {
+      const agentId = row.call.agentId
+      if (!agentTagScoresMap.has(agentId)) {
+        agentTagScoresMap.set(agentId, new Map())
+      }
+      const tagMap = agentTagScoresMap.get(agentId)!
+      if (!tagMap.has(row.tagId)) {
+        tagMap.set(row.tagId, [])
+      }
+      tagMap.get(row.tagId)!.push(row.score)
+    })
+
+    // Calculate averages
+    const agentTagAvgMap = new Map<string, Map<string, number>>()
+    agentTagScoresMap.forEach((tagMap, agentId) => {
+      const avgMap = new Map<string, number>()
+      tagMap.forEach((scores, tagId) => {
+        avgMap.set(tagId, scores.reduce((a, b) => a + b, 0) / scores.length)
+      })
+      agentTagAvgMap.set(agentId, avgMap)
+    })
+
+    computeTimer.end({ agentCount: agentTagAvgMap.size })
+
     // 6. Process each agent
-    const formattedAgents = agents.map((agent: any) => {
+    const formatTimer = logger.startTimer('Compute: Format Agents')
+
+    const formattedAgents = agents.map((agent) => {
       // A. Get Call Stats from Map
       const stats = statsMap.get(agent.id) || { totalCalls: 0, wonCalls: 0 }
       const recordings = stats.totalCalls
       const winRate = recordings > 0 ? Math.round((stats.wonCalls / recordings) * 100) : 0
 
       // B. Get Tag Scores from Map
-      const agentScores = agentTagScoresMap.get(agent.id) || new Map()
+      const agentScores = agentTagAvgMap.get(agent.id) || new Map()
 
       // C. Helper to build details array ensuring consistent order/length
-      const buildDetails = (refTags: any[]) => {
+      const buildDetails = (refTags: typeof allTags) => {
         return refTags.map(tag => ({
           name: tag.name,
-          is_mandatory: Boolean(tag.is_mandatory),
+          is_mandatory: Boolean(tag.isMandatory),
           score: Math.round(agentScores.get(tag.id) || 0)
         }))
       }
@@ -101,7 +152,7 @@ export async function GET(request: NextRequest) {
       const communicationDetails = buildDetails(commRefTags)
 
       // D. Calculate Dimension Scores (Hybrid: Assessed OR Mandatory)
-      const calculateAverage = (refTags: any[]) => {
+      const calculateAverage = (refTags: typeof allTags) => {
         let totalScore = 0
         let denominator = 0
 
@@ -111,7 +162,7 @@ export async function GET(request: NextRequest) {
             // Case 1: Assessed (Triggered)
             totalScore += score
             denominator++
-          } else if (tag.is_mandatory) {
+          } else if (tag.isMandatory) {
             // Case 2: Unassessed but Mandatory -> Count as 0 score
             denominator++
           }
@@ -150,11 +201,24 @@ export async function GET(request: NextRequest) {
     })
 
     // Sort by Overall Score Descending
-    formattedAgents.sort((a: any, b: any) => b.overallScore - a.overallScore)
+    formattedAgents.sort((a, b) => b.overallScore - a.overallScore)
+
+    formatTimer.end({ agentCount: formattedAgents.length })
+
+    const totalDuration = totalTimer.end({
+      agentCount: formattedAgents.length,
+      tagScoreCount: allTagScores.length
+    })
+
+    logger.info('Response ready', {
+      totalDuration,
+      agentCount: formattedAgents.length
+    })
 
     return NextResponse.json(formattedAgents)
   } catch (error) {
-    console.error('Database Error:', error)
+    logger.error('Request failed', { error: String(error) })
+    totalTimer.end({ status: 'error' })
     return NextResponse.json({ error: 'Failed to fetch agents' }, { status: 500 })
   }
 }

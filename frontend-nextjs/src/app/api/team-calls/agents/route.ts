@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server'
-import db from '@/lib/db'
+import prisma from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const agents = db.prepare('SELECT id, name, avatarId FROM agents ORDER BY name ASC').all()
+    const agents = await prisma.agent.findMany({
+      select: {
+        id: true,
+        name: true,
+        avatarId: true,
+      },
+      orderBy: { name: 'asc' }
+    })
     return NextResponse.json(agents)
   } catch (error) {
     console.error('Database Error:', error)

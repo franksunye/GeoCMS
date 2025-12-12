@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         analysisResult
       }
 
-      const result = processCallAnalysis(input, {
+      const result = await processCallAnalysis(input, {
         createCall: false, // Assume call already exists
         clearExisting: true
       })
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
     if (isLegacyFormat(body)) {
       console.warn(`Processing AI analysis for call ${body.callId} (legacy format - deprecated)`)
 
-      const result = processAIAnalysis(body)
+      const result = await processAIAnalysis(body)
 
       return NextResponse.json({
         message: 'Analysis processed successfully',

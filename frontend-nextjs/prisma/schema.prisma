@@ -1,0 +1,275 @@
+// Prisma Schema for GeoCMS Team Calls
+// Generated from existing SQLite database and optimized
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================
+// Core Business Models
+// ============================================
+
+/// 坐席/销售人员
+model Agent {
+  id        String   @id
+  name      String
+  avatarId  String
+  teamId    String?
+  createdAt String
+
+  // Relations
+  calls       Call[]
+  deals       Deal[]
+  transcripts Transcript[]
+
+  @@map("agents")
+}
+
+/// 通话记录
+model Call {
+  id        String  @id
+  agentId   String
+  startedAt String
+  duration  Int
+  outcome   String  // 'won' | 'lost'
+  audioUrl  String?
+
+  // Relations
+  agent               Agent                @relation(fields: [agentId], references: [id])
+  assessments         CallAssessment[]
+  signals             CallSignal[]
+  promptExecutionLogs PromptExecutionLog[]
+
+  @@map("calls")
+}
+
+/// 通话评估（Tag 级别的打分）
+model CallAssessment {
+  id            String  @id
+  callId        String
+  tagId         String
+  score         Int     // 0-100
+  confidence    Float?  @default(0)
+  contextText   String? @map("context_text")
+  timestampSec  Int?    @map("timestamp_sec")
+  reasoning     String?
+  contextEvents String? @map("context_events") // JSON array
+
+  // Relations
+  call Call @relation(fields: [callId], references: [id])
+  tag  Tag  @relation(fields: [tagId], references: [id])
+
+  @@map("call_assessments")
+}
+
+/// 通话信号（事件级别的检测）
+model CallSignal {
+  id           String  @id
+  callId       String
+  signalCode   String
+  category     String?
+  dimension    String?
+  polarity     String?
+  timestampSec Float?  @map("timestamp_sec")
+  confidence   Float?  @default(0)
+  contextText  String? @map("context_text")
+  reasoning    String?
+  createdAt    String
+
+  // Relations
+  call Call @relation(fields: [callId], references: [id])
+
+  @@index([callId], map: "idx_call_signals_callId")
+  @@index([signalCode], map: "idx_call_signals_signalCode")
+  @@map("call_signals")
+}
+
+// ============================================
+// Configuration Models
+// ============================================
+
+/// 标签定义（通话级别的质量维度）
+model Tag {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  category    String   // 'Sales' | 'Customer' | 'Service Issue'
+  dimension   String   // 'Process' | 'Skills' | 'Communication' etc.
+  polarity    String   // 'positive' | 'negative' | 'neutral'
+  severity    String?
+  scoreRange  String   // e.g., '1-5'
+  description String
+  isMandatory Boolean? @default(false) @map("is_mandatory")
+  active      Int?     @default(1)
+  createdAt   String
+  updatedAt   String
+
+  // Relations
+  assessments CallAssessment[]
+
+  @@map("tags")
+}
+
+/// 信号定义（事件级别的行为检测）
+model Signal {
+  id                String @id @default(cuid())
+  code              String @unique
+  name              String
+  category          String
+  dimension         String
+  targetTagCode     String
+  aggregationMethod String
+  description       String
+  active            Int?   @default(1)
+  createdAt         String
+  updatedAt         String
+
+  @@map("signals")
+}
+
+/// 评分规则
+model ScoringRule {
+  id              String @id @default(cuid())
+  name            String
+  appliesTo       String
+  description     String
+  active          Int?   @default(1)
+  ruleType        String
+  tagCode         String
+  targetDimension String
+  scoreAdjustment Float
+  weight          Float
+  createdAt       String
+  updatedAt       String
+
+  @@map("scoring_rules")
+}
+
+/// 评分配置
+model ScoreConfig {
+  id                  String  @id
+  aggregationMethod   String
+  processWeight       Int
+  skillsWeight        Int
+  communicationWeight Int
+  customFormula       String?
+  description         String
+  createdAt           String
+  updatedAt           String
+
+  @@map("score_config")
+}
+
+// ============================================
+// AI & Prompt Models
+// ============================================
+
+/// 提示词模板
+model Prompt {
+  id           String   @id @default(cuid())
+  name         String
+  version      String?
+  content      String
+  description  String?
+  promptType   String?  @default("quality_check") @map("prompt_type")
+  variables    String?  // JSON array
+  outputSchema String?  @map("output_schema") // JSON schema
+  isDefault    Boolean? @default(false) @map("is_default")
+  active       Int?     @default(1)
+  createdAt    String
+  updatedAt    String
+
+  // Relations
+  executionLogs PromptExecutionLog[]
+
+  @@map("prompts")
+}
+
+/// 提示词执行日志
+model PromptExecutionLog {
+  id              String  @id @default(cuid())
+  promptId        String
+  callId          String
+  inputVariables  String? @map("input_variables") // JSON
+  rawOutput       String? @map("raw_output")
+  parsedOutput    String? @map("parsed_output") // JSON
+  executionTimeMs Int?    @map("execution_time_ms")
+  status          String  // 'success' | 'error'
+  errorMessage    String? @map("error_message")
+  isDryRun        Int?    @default(0) @map("is_dry_run")
+  createdAt       String
+
+  // Relations
+  prompt Prompt @relation(fields: [promptId], references: [id])
+  call   Call   @relation(fields: [callId], references: [id])
+
+  @@index([promptId], map: "idx_prompt_logs_promptId")
+  @@index([callId], map: "idx_prompt_logs_callId")
+  @@map("prompt_execution_logs")
+}
+
+// ============================================
+// Raw Data / ETL Models
+// ============================================
+
+/// 交易/案例
+model Deal {
+  id        String @id
+  agentId   String
+  outcome   String // 'won' | 'lost'
+  createdAt String
+
+  // Relations
+  agent       Agent        @relation(fields: [agentId], references: [id])
+  transcripts Transcript[]
+
+  @@map("deals")
+}
+
+/// 通话转录文本
+model Transcript {
+  id        String  @id
+  dealId    String
+  agentId   String
+  content   String  // JSON content
+  audioUrl  String?
+  createdAt String
+
+  // Relations
+  agent Agent @relation(fields: [agentId], references: [id])
+  deal  Deal  @relation(fields: [dealId], references: [id])
+
+  @@map("transcripts")
+}
+
+/// AI 分析日志
+model AIAnalysisLog {
+  id           String  @id @default(cuid())
+  dealId       String?
+  transcriptId String?
+  agentId      String?
+  teamId       String?
+  signals      String  // JSON array
+  createdAt    String
+
+  @@map("ai_analysis_logs")
+}
+
+/// 审计日志
+model AuditLog {
+  id         String @id @default(cuid())
+  timestamp  String
+  user       String
+  action     String
+  objectType String
+  objectName String
+  changes    String // JSON
+  details    String
+
+  @@map("audit_logs")
+}

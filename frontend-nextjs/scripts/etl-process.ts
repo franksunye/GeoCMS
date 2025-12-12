@@ -7,54 +7,44 @@
  * 
  * 使用核心 ETL 模块 (src/lib/etl.ts) 进行处理。
  * 
- * Usage: npx ts-node scripts/etl-process.ts
+ * Usage: npx tsx scripts/etl-process.ts
  */
 
-import db from '@/lib/db'
+import prisma from '../src/lib/prisma'
 import {
   parseAnalysisJson,
   processCallAnalysis,
   ETLInput,
   ETLResult
-} from '@/lib/etl'
-
-interface AnalysisLog {
-  id: string
-  dealId: string
-  signals: string // JSON string
-  createdAt: string
-  agentId: string | null
-  teamId: string | null
-}
+} from '../src/lib/etl'
 
 interface Deal {
   id: string
   outcome: string
 }
 
-function runETL() {
+async function runETL() {
   console.log('='.repeat(60))
   console.log('Starting ETL Process...')
   console.log('='.repeat(60))
 
-  // Disable FKs for ETL
-  db.pragma('foreign_keys = OFF')
-
   // 1. Load Deals Map (ID -> Outcome)
-  const allDeals = db.prepare('SELECT id, outcome FROM deals').all() as Deal[]
+  const allDeals = await prisma.deal.findMany({
+    select: { id: true, outcome: true }
+  })
   const dealMap = new Map<string, string>()
   allDeals.forEach(d => dealMap.set(d.id, d.outcome))
   console.log(`Loaded ${dealMap.size} deals for outcome lookup.`)
 
   // 2. Clear existing data
   console.log('\nClearing existing calls, assessments, and signals...')
-  db.prepare('DELETE FROM call_assessments').run()
-  db.prepare('DELETE FROM call_signals').run()
-  db.prepare('DELETE FROM calls').run()
+  await prisma.callAssessment.deleteMany({})
+  await prisma.callSignal.deleteMany({})
+  await prisma.call.deleteMany({})
   console.log('  ✓ Cleared existing data.')
 
   // 3. Load analysis logs
-  const logs = db.prepare('SELECT * FROM ai_analysis_logs').all() as AnalysisLog[]
+  const logs = await prisma.aIAnalysisLog.findMany()
   console.log(`\nFound ${logs.length} analysis logs to process.`)
 
   // 4. Process each log
@@ -90,8 +80,8 @@ function runETL() {
       analysisResult: analysisResult
     }
 
-    // Process using core ETL module
-    const result = processCallAnalysis(input, {
+    // Process using core ETL module (now async)
+    const result = await processCallAnalysis(input, {
       createCall: true,
       clearExisting: false // We already cleared all data above
     })
@@ -132,15 +122,17 @@ function runETL() {
   // 6. Verify results
   console.log('\n' + '-'.repeat(60))
   console.log('Verification:')
-  const callCount = (db.prepare('SELECT COUNT(*) as cnt FROM calls').get() as { cnt: number }).cnt
-  const signalCount = (db.prepare('SELECT COUNT(*) as cnt FROM call_signals').get() as { cnt: number }).cnt
-  const assessmentCount = (db.prepare('SELECT COUNT(*) as cnt FROM call_assessments').get() as { cnt: number }).cnt
+  const callCount = await prisma.call.count()
+  const signalCount = await prisma.callSignal.count()
+  const assessmentCount = await prisma.callAssessment.count()
 
   console.log(`  - Calls in DB: ${callCount}`)
   console.log(`  - Signals in DB: ${signalCount}`)
   console.log(`  - Assessments in DB: ${assessmentCount}`)
   console.log('-'.repeat(60))
+
+  await prisma.$disconnect()
 }
 
 // Run ETL
-runETL()
+runETL().catch(console.error)

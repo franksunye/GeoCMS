@@ -15,6 +15,7 @@ export type Signal = {
   context: string
   timestamp: number
   polarity?: string
+  severity?: string
   is_mandatory?: boolean
   occurrences?: {
     timestamp: number | null
@@ -23,6 +24,7 @@ export type Signal = {
     confidence: number
   }[]
 }
+
 
 export type CallRecord = {
   id: string | number

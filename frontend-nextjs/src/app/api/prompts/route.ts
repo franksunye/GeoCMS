@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
 // Prompt Types
@@ -26,7 +26,12 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const includeMetadata = searchParams.get('metadata') === 'true';
 
-        const prompts = db.prepare('SELECT * FROM prompts ORDER BY is_default DESC, updatedAt DESC').all();
+        const prompts = await prisma.prompt.findMany({
+            orderBy: [
+                { isDefault: 'desc' },
+                { updatedAt: 'desc' }
+            ]
+        });
 
         if (includeMetadata) {
             return NextResponse.json({
@@ -59,28 +64,27 @@ export async function POST(request: NextRequest) {
 
         // If setting as default, unset others first
         if (is_default) {
-            db.prepare('UPDATE prompts SET is_default = 0').run();
+            await prisma.prompt.updateMany({
+                data: { isDefault: false }
+            });
         }
 
-        const stmt = db.prepare(`
-      INSERT INTO prompts (id, name, version, content, description, prompt_type, variables, output_schema, is_default, active, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-        stmt.run(
-            id,
-            name,
-            version || '1.0',
-            content,
-            description || '',
-            prompt_type || 'quality_check',
-            variables ? JSON.stringify(variables) : null,
-            output_schema ? JSON.stringify(output_schema) : null,
-            is_default ? 1 : 0,
-            active !== false ? 1 : 0,
-            now,
-            now
-        );
+        await prisma.prompt.create({
+            data: {
+                id,
+                name,
+                version: version || '1.0',
+                content,
+                description: description || '',
+                promptType: prompt_type || 'quality_check',
+                variables: variables ? JSON.stringify(variables) : null,
+                outputSchema: output_schema ? JSON.stringify(output_schema) : null,
+                isDefault: is_default ? true : false,
+                active: active !== false ? 1 : 0,
+                createdAt: now,
+                updatedAt: now,
+            }
+        });
 
         return NextResponse.json({ success: true, id });
     } catch (error) {
@@ -102,35 +106,28 @@ export async function PUT(request: NextRequest) {
         const now = new Date().toISOString();
 
         if (is_default) {
-            db.prepare('UPDATE prompts SET is_default = 0').run();
+            await prisma.prompt.updateMany({
+                data: { isDefault: false }
+            });
         }
 
-        const updates: string[] = [];
-        const params: any[] = [];
+        // Build update data dynamically
+        const updateData: any = { updatedAt: now };
 
-        if (name) { updates.push('name = ?'); params.push(name); }
-        if (version) { updates.push('version = ?'); params.push(version); }
-        if (content) { updates.push('content = ?'); params.push(content); }
-        if (description !== undefined) { updates.push('description = ?'); params.push(description); }
-        if (prompt_type) { updates.push('prompt_type = ?'); params.push(prompt_type); }
-        if (variables !== undefined) {
-            updates.push('variables = ?');
-            params.push(variables ? JSON.stringify(variables) : null);
-        }
-        if (output_schema !== undefined) {
-            updates.push('output_schema = ?');
-            params.push(output_schema ? JSON.stringify(output_schema) : null);
-        }
-        if (is_default !== undefined) { updates.push('is_default = ?'); params.push(is_default ? 1 : 0); }
-        if (active !== undefined) { updates.push('active = ?'); params.push(active ? 1 : 0); }
+        if (name !== undefined) updateData.name = name;
+        if (version !== undefined) updateData.version = version;
+        if (content !== undefined) updateData.content = content;
+        if (description !== undefined) updateData.description = description;
+        if (prompt_type !== undefined) updateData.promptType = prompt_type;
+        if (variables !== undefined) updateData.variables = variables ? JSON.stringify(variables) : null;
+        if (output_schema !== undefined) updateData.outputSchema = output_schema ? JSON.stringify(output_schema) : null;
+        if (is_default !== undefined) updateData.isDefault = is_default ? true : false;
+        if (active !== undefined) updateData.active = active ? 1 : 0;
 
-        updates.push('updatedAt = ?');
-        params.push(now);
-
-        params.push(id); // For WHERE clause
-
-        const sql = `UPDATE prompts SET ${updates.join(', ')} WHERE id = ?`;
-        db.prepare(sql).run(...params);
+        await prisma.prompt.update({
+            where: { id },
+            data: updateData
+        });
 
         return NextResponse.json({ success: true, id });
 
@@ -151,12 +148,19 @@ export async function DELETE(request: NextRequest) {
         }
 
         // Check if this is the default prompt
-        const prompt = db.prepare('SELECT is_default FROM prompts WHERE id = ?').get(id) as any;
-        if (prompt?.is_default) {
+        const prompt = await prisma.prompt.findUnique({
+            where: { id },
+            select: { isDefault: true }
+        });
+
+        if (prompt?.isDefault) {
             return NextResponse.json({ error: 'Cannot delete the default prompt' }, { status: 400 });
         }
 
-        db.prepare('DELETE FROM prompts WHERE id = ?').run(id);
+        await prisma.prompt.delete({
+            where: { id }
+        });
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error deleting prompt:', error);

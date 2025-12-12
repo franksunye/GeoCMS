@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -9,29 +9,29 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '10', 10);
 
   try {
-    // 1. Fetch Tags
-    let tagQuery = 'SELECT * FROM tags WHERE active = 1';
-    const tagParams: any[] = [];
+    // 1. Build tag filter
+    const tagWhere: any = { active: 1 };
 
     if (category && category !== 'all') {
-      tagQuery += ' AND category = ?';
-      tagParams.push(category);
+      tagWhere.category = category;
     }
-
     if (dimension && dimension !== 'all') {
-      tagQuery += ' AND dimension = ?';
-      tagParams.push(dimension);
+      tagWhere.dimension = dimension;
     }
-
     if (tagName && tagName !== 'all') {
-      tagQuery += ' AND name = ?';
-      tagParams.push(tagName);
+      tagWhere.name = tagName;
     }
 
-    // Sort tags for consistent display
-    tagQuery += ' ORDER BY category, dimension, code';
+    // Fetch Tags
+    const tags = await prisma.tag.findMany({
+      where: tagWhere,
+      orderBy: [
+        { category: 'asc' },
+        { dimension: 'asc' },
+        { code: 'asc' }
+      ]
+    });
 
-    const tags = db.prepare(tagQuery).all(tagParams) as any[];
     const tagIds = tags.map(t => t.id);
 
     if (tagIds.length === 0) {
@@ -39,13 +39,17 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Fetch Recent Calls
-    const calls = db.prepare(`
-      SELECT c.id, c.startedAt, c.outcome, c.agentId, a.name as agentName
-      FROM calls c
-      LEFT JOIN agents a ON c.agentId = a.id
-      ORDER BY c.startedAt DESC 
-      LIMIT ?
-    `).all(limit) as any[];
+    const calls = await prisma.call.findMany({
+      select: {
+        id: true,
+        startedAt: true,
+        outcome: true,
+        agentId: true,
+        agent: { select: { name: true } }
+      },
+      orderBy: { startedAt: 'desc' },
+      take: limit
+    });
 
     if (calls.length === 0) {
       return NextResponse.json({ tags, calls: [], assessments: {} });
@@ -54,32 +58,61 @@ export async function GET(request: NextRequest) {
     const callIds = calls.map(c => c.id);
 
     // 3. Fetch Assessments for these calls and tags
-    // better-sqlite3 doesn't support array binding easily for IN clause, need to generate placeholders
-    const callPlaceholders = callIds.map(() => '?').join(',');
-    const tagPlaceholders = tagIds.map(() => '?').join(',');
-
-    const assessmentQuery = `
-      SELECT callId, tagId, score, context_text, confidence
-      FROM call_assessments
-      WHERE callId IN (${callPlaceholders})
-      AND tagId IN (${tagPlaceholders})
-    `;
-
-    const assessments = db.prepare(assessmentQuery).all([...callIds, ...tagIds]) as any[];
+    const assessments = await prisma.callAssessment.findMany({
+      where: {
+        callId: { in: callIds },
+        tagId: { in: tagIds }
+      },
+      select: {
+        callId: true,
+        tagId: true,
+        score: true,
+        contextText: true,
+        confidence: true
+      }
+    });
 
     // 4. Structure Assessments for easy lookup: [callId]_[tagId] -> Assessment
     const assessmentMap: Record<string, any> = {};
     assessments.forEach(a => {
       const key = `${a.callId}_${a.tagId}`;
-      assessmentMap[key] = a;
+      assessmentMap[key] = {
+        callId: a.callId,
+        tagId: a.tagId,
+        score: a.score,
+        context_text: a.contextText,
+        confidence: a.confidence
+      };
     });
 
     // 5. Get Filter Options for the UI (cascading)
-    const allTags = db.prepare('SELECT id, category, dimension, name FROM tags WHERE active = 1 ORDER BY category, dimension, name').all();
+    const allTags = await prisma.tag.findMany({
+      where: { active: 1 },
+      select: {
+        id: true,
+        category: true,
+        dimension: true,
+        name: true
+      },
+      orderBy: [
+        { category: 'asc' },
+        { dimension: 'asc' },
+        { name: 'asc' }
+      ]
+    });
+
+    // Format calls to include agentName at top level
+    const formattedCalls = calls.map(c => ({
+      id: c.id,
+      startedAt: c.startedAt,
+      outcome: c.outcome,
+      agentId: c.agentId,
+      agentName: c.agent.name
+    }));
 
     return NextResponse.json({
       tags,
-      calls,
+      calls: formattedCalls,
       assessments: assessmentMap,
       filters: {
         allTags

@@ -1,29 +1,29 @@
 import { NextResponse } from 'next/server'
-import db from '@/lib/db'
+import prisma from '@/lib/prisma'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('Calls')
 
 export async function GET() {
+  const totalTimer = logger.startTimer('Total API Request')
+
   try {
-    // 1. Fetch Calls with Agent info and Transcript content
-    // Note: calls.id corresponds to dealId
-    // Use subquery for transcript content to avoid duplication if multiple transcripts exist for a deal
-    const calls = db.prepare(`
-      SELECT 
-        c.id, 
-        c.agentId, 
-        c.startedAt, 
-        c.duration, 
-        c.outcome, 
-        c.audioUrl,
-        a.name as agentName,
-        a.avatarId as agentAvatarId,
-        (SELECT content FROM transcripts t WHERE t.dealId = c.id ORDER BY t.createdAt DESC LIMIT 1) as transcriptContent
-      FROM calls c
-      LEFT JOIN agents a ON c.agentId = a.id
-      ORDER BY c.startedAt DESC
-    `).all()
+    // 1. Fetch Calls with Agent info
+    const calls = await logger.time('Query: Calls with Agents', () =>
+      prisma.call.findMany({
+        include: {
+          agent: {
+            select: { name: true, avatarId: true }
+          }
+        },
+        orderBy: { startedAt: 'desc' }
+      })
+    )
+
+    logger.info('Calls fetched', { count: calls.length })
 
     // 1.5 Get Score Config (for weights)
-    const scoreConfig = db.prepare('SELECT * FROM score_config LIMIT 1').get() as any
+    const scoreConfig = await logger.time('Query: Score Config', () => prisma.scoreConfig.findFirst())
     const weights = {
       process: scoreConfig?.processWeight || 30,
       skills: scoreConfig?.skillsWeight || 50,
@@ -31,27 +31,21 @@ export async function GET() {
     }
 
     // 2. Fetch all assessments to calculate scores and tags
-    const assessments = db.prepare(`
-      SELECT 
-        ca.callId,
-        ca.score,
-        ca.confidence,
-        ca.reasoning,
-        ca.context_text,
-        ca.timestamp_sec,
-        t.name as tagName,
-        t.code as tagCode,
-        t.dimension,
-        t.category,
-        t.severity,
-        t.polarity
-      FROM call_assessments ca
-      JOIN tags t ON ca.tagId = t.id
-    `).all()
+    const allAssessments = await logger.time('Query: All Assessments', () =>
+      prisma.callAssessment.findMany({
+        include: {
+          tag: {
+            select: { name: true, code: true, dimension: true, category: true, severity: true, polarity: true }
+          }
+        }
+      })
+    )
+
+    logger.info('Assessments fetched', { count: allAssessments.length })
 
     // Group assessments by callId for efficient lookup
-    const assessmentsByCall: Record<string, any[]> = {}
-    assessments.forEach((a: any) => {
+    const assessmentsByCall: Record<string, typeof allAssessments> = {}
+    allAssessments.forEach(a => {
       if (!assessmentsByCall[a.callId]) {
         assessmentsByCall[a.callId] = []
       }
@@ -59,42 +53,62 @@ export async function GET() {
     })
 
     // 2.5 Get Mandatory Tags
-    const mandatoryTags = db.prepare('SELECT code, name, dimension FROM tags WHERE is_mandatory = 1 AND active = 1').all() as any[]
+    const mandatoryTags = await logger.time('Query: Mandatory Tags', () =>
+      prisma.tag.findMany({
+        where: { isMandatory: true, active: 1 },
+        select: { code: true, name: true, dimension: true }
+      })
+    )
 
-    // Group mandatory tags by dimension for easier lookup
-    // Since dimensions can be 'Process' or 'Sales.Process', we may just keep a flat list filtering inside the loop or pre-process here.
-    // Let's keep distinct list per simple dimension name to match the helper's `dims` arg logic.
-    const mandatoryTagsMap: Record<string, string[]> = {}
-    mandatoryTags.forEach(t => {
-      const dim = t.dimension; // e.g. "Process" or "Sales.Process"
-      if (!mandatoryTagsMap[dim]) mandatoryTagsMap[dim] = []
-      mandatoryTagsMap[dim].push(t.code)
+    // Fetch all transcripts
+    const transcripts = await logger.time('Query: Transcripts', () =>
+      prisma.transcript.findMany({
+        select: { dealId: true, content: true }
+      })
+    )
+    const transcriptMap = new Map(transcripts.map(t => [t.dealId, t.content]))
+
+    // Fetch all signals
+    const allSignals = await logger.time('Query: Signals', () =>
+      prisma.callSignal.findMany({
+        orderBy: { timestampSec: 'asc' }
+      })
+    )
+
+    logger.info('Signals fetched', { count: allSignals.length })
+
+    const signalsByCall: Record<string, typeof allSignals> = {}
+    allSignals.forEach(s => {
+      if (!signalsByCall[s.callId]) {
+        signalsByCall[s.callId] = []
+      }
+      signalsByCall[s.callId].push(s)
     })
 
     // 3. Transform to CallRecord format
-    const formattedCalls = calls.map((call: any) => {
+    const formatTimer = logger.startTimer('Compute: Format Calls')
+
+    const formattedCalls = calls.map((call) => {
       const callAssessments = assessmentsByCall[call.id] || []
+      const rawSignals = signalsByCall[call.id] || []
 
       // Helper to calculate average score for a dimension (Hybrid: Assessed + Missing Mandatory)
       const getAvgScore = (dims: string[]) => {
         // 1. Get Assessed Scores
-        const assessed = callAssessments.filter((a: any) =>
-          a.dimension && dims.some((d: string) => a.dimension === d || a.dimension.startsWith(d + '.'))
+        const assessed = callAssessments.filter(a =>
+          a.tag.dimension && dims.some(d => a.tag.dimension === d || a.tag.dimension.startsWith(d + '.'))
         )
 
-        let totalScore = assessed.reduce((sum: number, a: any) => sum + a.score, 0)
+        let totalScore = assessed.reduce((sum, a) => sum + a.score, 0)
         let denominator = assessed.length
 
         // 2. Check Missing Mandatory Tags
-        // Filter mandatory tags that belong to the current requested dimensions
         const relevantMandatoryTags = mandatoryTags.filter(t =>
           dims.some(d => t.dimension === d || t.dimension.startsWith(d + '.'))
         )
 
         for (const mTag of relevantMandatoryTags) {
-          // Check if this mandatory tag is present in the current call's assessments
-          // Note: Use tagCode for comparison
-          const isAssessed = callAssessments.some((a: any) => a.tagCode === mTag.code)
+          const isAssessed = callAssessments.some(a => a.tag.code === mTag.code)
           if (!isAssessed) {
             denominator++ // Count as 0 score
           }
@@ -116,121 +130,102 @@ export async function GET() {
       )
 
       // Collect tags and events
-      // events: we can consider all tags as events or filter specific categories
-      const tags = Array.from(new Set(callAssessments.map((a: any) => a.tagName)))
+      const tags = Array.from(new Set(callAssessments.map(a => a.tag.name)))
 
-      // behaviors: filtered by specific criteria or just all tags for now
+      // behaviors: filtered by specific criteria
       const behaviors = callAssessments
-        .filter(a => a.category === 'Sales' || a.category === 'Communication')
-        .map(a => a.tagCode)
+        .filter(a => a.tag.category === 'Sales' || a.tag.category === 'Communication')
+        .map(a => a.tag.code)
 
       // service_issues
       const service_issues = callAssessments
-        .filter(a => a.category === 'Service Issue')
+        .filter(a => a.tag.category === 'Service Issue')
         .map(a => ({
-          tag: a.tagCode,
-          severity: a.severity ? a.severity.toLowerCase() : 'low'
+          tag: a.tag.code,
+          severity: a.tag.severity ? a.tag.severity.toLowerCase() : 'low'
         }))
 
       // Signals: Use Assessments + Missing Mandatory (Scored View)
-      // 1. Fetch Raw Signals first
-      const rawSignals = db.prepare(`
-               SELECT 
-                 signalCode,
-                 category,
-                 dimension,
-                 polarity,
-                 timestamp_sec,
-                 confidence,
-                 context_text,
-                 reasoning
-               FROM call_signals
-               WHERE callId = ?
-               ORDER BY timestamp_sec ASC
-             `).all(call.id) as any[]
-
-      const assessmentSignals = callAssessments.map((a: any) => {
+      const assessmentSignals = callAssessments.map(a => {
         // Find all occurrences for this tag
-        const instances = rawSignals.filter((r: any) => r.signalCode === a.tagCode).map((r: any) => ({
-          timestamp: r.timestamp_sec ? new Date(call.startedAt).getTime() + (r.timestamp_sec * 1000) : null,
-          context: r.context_text,
-          reasoning: r.reasoning,
-          confidence: r.confidence
-        }))
+        const instances = rawSignals
+          .filter(r => r.signalCode === a.tag.code)
+          .map(r => ({
+            timestamp: r.timestampSec ? new Date(call.startedAt).getTime() + (r.timestampSec * 1000) : null,
+            context: r.contextText,
+            reasoning: r.reasoning,
+            confidence: r.confidence
+          }))
 
-        // If no raw signals found (shouldn't happen if assessment exists, but just in case), use assessment data
+        // If no raw signals found, use assessment data
         if (instances.length === 0) {
           instances.push({
-            timestamp: a.timestamp_sec ? new Date(call.startedAt).getTime() + (a.timestamp_sec * 1000) : null,
-            context: a.context_text,
+            timestamp: a.timestampSec ? new Date(call.startedAt).getTime() + (a.timestampSec * 1000) : null,
+            context: a.contextText,
             reasoning: a.reasoning,
             confidence: a.confidence
           })
         }
 
         return {
-          tag: a.tagCode,
-          name: a.tagName,
-          dimension: a.dimension,
+          tag: a.tag.code,
+          name: a.tag.name,
+          dimension: a.tag.dimension,
           score: a.score,
           confidence: a.confidence,
           reasoning: a.reasoning,
-          context: a.context_text,
-          timestamp: a.timestamp_sec ? new Date(call.startedAt).getTime() + (a.timestamp_sec * 1000) : null,
-          severity: a.severity || 'none',
-          polarity: a.polarity ? a.polarity.toLowerCase() : 'neutral',
+          context: a.contextText,
+          timestamp: a.timestampSec ? new Date(call.startedAt).getTime() + (a.timestampSec * 1000) : null,
+          severity: a.tag.severity || 'none',
+          polarity: a.tag.polarity ? a.tag.polarity.toLowerCase() : 'neutral',
           is_mandatory: false,
           occurrences: instances
         }
       })
 
-      const missingSignals = []
-      for (const mTag of mandatoryTags) {
-        const isAssessed = callAssessments.some((a: any) => a.tagCode === mTag.code)
-        if (!isAssessed) {
-          missingSignals.push({
-            tag: mTag.code,
-            name: mTag.name,
-            dimension: mTag.dimension,
-            score: 0,
-            confidence: 1.0,
-            reasoning: 'Missing Mandatory Action (必选动作缺失)',
-            context: 'Not detected in call',
-            timestamp: null,
-            severity: 'high',
-            polarity: 'negative',
-            is_mandatory: true
-          })
-        }
-      }
+      const missingSignals = mandatoryTags
+        .filter(mTag => !callAssessments.some(a => a.tag.code === mTag.code))
+        .map(mTag => ({
+          tag: mTag.code,
+          name: mTag.name,
+          dimension: mTag.dimension,
+          score: 0,
+          confidence: 1.0,
+          reasoning: 'Missing Mandatory Action (必选动作缺失)',
+          context: 'Not detected in call',
+          timestamp: null,
+          severity: 'high',
+          polarity: 'negative',
+          is_mandatory: true
+        }))
 
       const signals = [...assessmentSignals, ...missingSignals]
 
       // Parse Transcript
       let transcript: any[] = []
       try {
-        if (call.transcriptContent) {
-          const parsed = JSON.parse(call.transcriptContent)
-          // Handle both array of objects or wrapped structure
+        const transcriptContent = transcriptMap.get(call.id)
+        if (transcriptContent) {
+          const parsed = JSON.parse(transcriptContent)
           const transcriptData = Array.isArray(parsed) ? parsed : []
 
           transcript = transcriptData.map((entry: any) => ({
-            timestamp: Math.round((entry.BeginTime || 0) / 1000), // Convert ms to seconds
-            speaker: (entry.SpeakerId === '1' || entry.SpeakerId === 1) ? 'agent' : 'customer', // Heuristic: 1 is usually agent
+            timestamp: Math.round((entry.BeginTime || 0) / 1000),
+            speaker: (entry.SpeakerId === '1' || entry.SpeakerId === 1) ? 'agent' : 'customer',
             text: entry.Text || ''
           }))
         }
       } catch (e) {
-        console.error(`Error parsing transcript for call ${call.id}:`, e)
+        logger.warn(`Transcript parse error for call ${call.id}`)
       }
 
       return {
         id: call.id,
         agentId: call.agentId,
-        agentName: call.agentName,
-        agentAvatarId: call.agentAvatarId,
-        title: `Call with ${call.agentName || 'Agent'}`, // Placeholder title
-        customer_name: 'Customer', // Database doesn't have customer name yet
+        agentName: call.agent.name,
+        agentAvatarId: call.agent.avatarId,
+        title: `Call with ${call.agent.name || 'Agent'}`,
+        customer_name: 'Customer',
         timestamp: call.startedAt,
         duration_minutes: Math.round((call.duration || 0) / 60),
         processScore,
@@ -239,7 +234,7 @@ export async function GET() {
         overallQualityScore,
         business_grade: call.outcome === 'won' ? 'High' : (call.outcome === 'lost' ? 'Low' : 'Medium'),
         tags,
-        events: behaviors, // Using behaviors as events for now to populate UI
+        events: behaviors,
         behaviors,
         service_issues,
         signals,
@@ -248,9 +243,18 @@ export async function GET() {
       }
     })
 
+    formatTimer.end({ callCount: formattedCalls.length })
+
+    totalTimer.end({
+      callCount: formattedCalls.length,
+      assessmentCount: allAssessments.length,
+      signalCount: allSignals.length
+    })
+
     return NextResponse.json(formattedCalls)
   } catch (error) {
-    console.error('Database Error:', error)
+    logger.error('Request failed', { error: String(error) })
+    totalTimer.end({ status: 'error' })
     return NextResponse.json({ error: 'Failed to fetch calls' }, { status: 500 })
   }
 }

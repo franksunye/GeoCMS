@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { analyzeCall } from '@/lib/ai-service';
 
 // POST: Execute a prompt (test run or actual run)
 export async function POST(request: NextRequest) {
-    const startTime = Date.now();
-    let isMock = false;
-    let networkError = null;
-
     try {
         const body = await request.json();
         const { promptId, promptContent, callId, dryRun = true, ping = false } = body;
@@ -16,9 +12,12 @@ export async function POST(request: NextRequest) {
         // 1. Get prompt content
         let finalPromptContent = promptContent;
         if (promptId) {
-            const promptRecord = db.prepare('SELECT * FROM prompts WHERE id = ?').get(promptId);
-            if (promptRecord && typeof promptRecord === 'object' && 'content' in promptRecord) {
-                finalPromptContent = (promptRecord as any).content;
+            const promptRecord = await prisma.prompt.findUnique({
+                where: { id: promptId },
+                select: { content: true }
+            });
+            if (promptRecord) {
+                finalPromptContent = promptRecord.content;
             }
         }
 
@@ -28,21 +27,12 @@ export async function POST(request: NextRequest) {
         }
 
         if (!callId && !ping) {
-            // Basic ping allows no callId if just checking API connectivity without variables
-            // But if we ever want to handle "PING" purely for API check, we can skip analyzeCall entirely or make analyzeCall robust.
-            // Given our current analyzeCall requires CallId to fetch transcript, we enforce CallId except for a pure connectivity ping?
-            // Actually, analyzeCall throws error if CallId not found.
-            // Let's enforce callId unless it's a "Simple Ping" (which we haven't strictly defined, usually UI sends callId).
-            // If UI sends ping=true without callId, it might crash analyzeCall.
-            // Let's just say for now: callId is required for consistency.
             return NextResponse.json({ error: 'callId is required for analysis context' }, { status: 400 });
         }
 
         // 2. Call AI Service
         let analysisResult;
         try {
-            // If ping is strictly connectivity check, we might want to bypass DB fetch if callId is missing.
-            // But assume UI always provides callId.
             analysisResult = await analyzeCall(callId || 'dummy', finalPromptContent || '', ping);
         } catch (e: any) {
             return NextResponse.json({ error: e.message }, { status: 500 });
@@ -53,40 +43,45 @@ export async function POST(request: NextRequest) {
             isMock: serviceIsMock, networkError: serviceNetworkError, parseError, executionTime
         } = analysisResult;
 
-        isMock = serviceIsMock;
-        networkError = serviceNetworkError;
+        const isMock = serviceIsMock;
+        const networkError = serviceNetworkError;
 
         // 3. Log execution (Audit Log)
         const logId = uuidv4();
         const now = new Date().toISOString();
 
-        db.prepare(`
-            INSERT INTO prompt_execution_logs (
-                id, promptId, callId, input_variables, raw_output, parsed_output, 
-                execution_time_ms, status, error_message, is_dry_run, createdAt
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            logId,
-            promptId || 'inline',
-            callId,
-            JSON.stringify(replacements.map(r => r.variable)),
-            rawOutput,
-            parsedOutput ? JSON.stringify(parsedOutput) : null,
-            // Re-calculate total execution time or use service time? Service time is cleaner.
-            executionTime,
-            parseError ? 'parse_error' : (isMock ? 'success_mock' : 'success'),
-            networkError ? `Network Error (Fallback Used): ${networkError}` : parseError,
-            dryRun ? 1 : 0,
-            now
-        );
+        await prisma.promptExecutionLog.create({
+            data: {
+                id: logId,
+                promptId: promptId || 'inline',
+                callId: callId,
+                inputVariables: JSON.stringify(replacements.map((r: any) => r.variable)),
+                rawOutput: rawOutput,
+                parsedOutput: parsedOutput ? JSON.stringify(parsedOutput) : null,
+                executionTimeMs: executionTime,
+                status: parseError ? 'parse_error' : (isMock ? 'success_mock' : 'success'),
+                errorMessage: networkError ? `Network Error (Fallback Used): ${networkError}` : parseError,
+                isDryRun: dryRun ? 1 : 0,
+                createdAt: now,
+            }
+        });
 
-        // 4. Update Business Data (IfNot dryRun)
+        // 4. Update Business Data (If Not dryRun)
         if (!dryRun && parsedOutput && !parseError && !isMock && !ping) {
-            db.prepare('DELETE FROM ai_analysis_logs WHERE dealId = ?').run(callId);
-            db.prepare(`
-                INSERT INTO ai_analysis_logs (id, dealId, signals, createdAt)
-                VALUES (?, ?, ?, ?)
-            `).run(uuidv4(), callId, JSON.stringify(parsedOutput), now);
+            // Delete existing analysis logs for this call
+            await prisma.aIAnalysisLog.deleteMany({
+                where: { dealId: callId }
+            });
+
+            // Insert new analysis log
+            await prisma.aIAnalysisLog.create({
+                data: {
+                    id: uuidv4(),
+                    dealId: callId,
+                    signals: JSON.stringify(parsedOutput),
+                    createdAt: now,
+                }
+            });
         }
 
         return NextResponse.json({
@@ -121,23 +116,15 @@ export async function GET(request: NextRequest) {
         const callId = searchParams.get('callId');
         const limit = parseInt(searchParams.get('limit') || '20');
 
-        let sql = 'SELECT * FROM prompt_execution_logs WHERE 1=1';
-        const params: any[] = [];
+        const where: any = {};
+        if (promptId) where.promptId = promptId;
+        if (callId) where.callId = callId;
 
-        if (promptId) {
-            sql += ' AND promptId = ?';
-            params.push(promptId);
-        }
-
-        if (callId) {
-            sql += ' AND callId = ?';
-            params.push(callId);
-        }
-
-        sql += ' ORDER BY createdAt DESC LIMIT ?';
-        params.push(limit);
-
-        const logs = db.prepare(sql).all(...params);
+        const logs = await prisma.promptExecutionLog.findMany({
+            where,
+            orderBy: { createdAt: 'desc' },
+            take: limit
+        });
 
         return NextResponse.json(logs);
     } catch (error) {

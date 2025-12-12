@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server'
-import db from '@/lib/db'
+import prisma from '@/lib/prisma'
 import { randomUUID } from 'crypto'
 
 export async function GET() {
   try {
-    const signals = db.prepare('SELECT * FROM signals ORDER BY createdAt DESC').all()
+    const signals = await prisma.signal.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
     // Convert active from 1/0 to boolean
-    const formattedSignals = signals.map((signal: any) => ({
+    const formattedSignals = signals.map((signal) => ({
       ...signal,
       active: Boolean(signal.active)
     }))
@@ -27,27 +29,28 @@ export async function POST(request: Request) {
     }
 
     const id = randomUUID()
+    const now = new Date().toISOString()
 
-    const stmt = db.prepare(`
-      INSERT INTO signals (id, name, code, category, dimension, targetTagCode, aggregationMethod, description, active, createdAt, updatedAt)
-      VALUES (@id, @name, @code, @category, @dimension, @targetTagCode, @aggregationMethod, @description, 1, datetime('now'), datetime('now'))
-    `)
-
-    stmt.run({
-      id,
-      name,
-      code,
-      category,
-      dimension,
-      targetTagCode: targetTagCode || '',
-      aggregationMethod: aggregationMethod || 'Count',
-      description: description || ''
+    await prisma.signal.create({
+      data: {
+        id,
+        name,
+        code,
+        category,
+        dimension: dimension || '',
+        targetTagCode: targetTagCode || '',
+        aggregationMethod: aggregationMethod || 'Count',
+        description: description || '',
+        active: 1,
+        createdAt: now,
+        updatedAt: now,
+      }
     })
 
     return NextResponse.json({ success: true, id, message: 'Signal created successfully' })
   } catch (error: any) {
     console.error('Database Error:', error)
-    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+    if (error.code === 'P2002') {
       return NextResponse.json({ error: 'Signal code already exists' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Failed to create signal' }, { status: 500 })
@@ -63,33 +66,24 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Missing ID' }, { status: 400 })
     }
 
-    const stmt = db.prepare(`
-      UPDATE signals
-      SET name = @name, 
-          code = @code, 
-          category = @category, 
-          dimension = @dimension, 
-          targetTagCode = @targetTagCode, 
-          aggregationMethod = @aggregationMethod, 
-          description = @description, 
-          active = @active, 
-          updatedAt = datetime('now')
-      WHERE id = @id
-    `)
+    const now = new Date().toISOString()
 
-    const result = stmt.run({
-      id,
-      name,
-      code,
-      category,
-      dimension,
-      targetTagCode: targetTagCode || '',
-      aggregationMethod: aggregationMethod || 'Count',
-      description: description || '',
-      active: active ? 1 : 0
+    const result = await prisma.signal.updateMany({
+      where: { id },
+      data: {
+        name,
+        code,
+        category,
+        dimension: dimension || '',
+        targetTagCode: targetTagCode || '',
+        aggregationMethod: aggregationMethod || 'Count',
+        description: description || '',
+        active: active ? 1 : 0,
+        updatedAt: now,
+      }
     })
 
-    if (result.changes === 0) {
+    if (result.count === 0) {
       return NextResponse.json({ error: 'Signal not found' }, { status: 404 })
     }
 
@@ -109,10 +103,11 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Missing ID' }, { status: 400 })
     }
 
-    const stmt = db.prepare('DELETE FROM signals WHERE id = ?')
-    const result = stmt.run(id)
+    const result = await prisma.signal.deleteMany({
+      where: { id }
+    })
 
-    if (result.changes === 0) {
+    if (result.count === 0) {
       return NextResponse.json({ error: 'Signal not found' }, { status: 404 })
     }
 

@@ -1,6 +1,13 @@
+/**
+ * Batch Re-analyze Script
+ * 
+ * 批量重新分析已有的通话记录，使用指定的 Prompt。
+ * 
+ * Usage: npx tsx scripts/batch-reanalyze.ts
+ */
 
-import db from '@/lib/db';
-import { analyzeCall } from '@/lib/ai-service';
+import prisma from '../src/lib/prisma';
+import { analyzeCall } from '../src/lib/ai-service';
 import { v4 as uuidv4 } from 'uuid';
 
 // Configuration
@@ -12,7 +19,11 @@ async function runBatch() {
     console.log(`Limit: ${BATCH_LIMIT} calls`);
 
     // 1. Get Prompt Content
-    const promptRecord = db.prepare('SELECT content FROM prompts WHERE id = ?').get(PROMPT_ID) as { content: string };
+    const promptRecord = await prisma.prompt.findUnique({
+        where: { id: PROMPT_ID },
+        select: { content: true }
+    });
+
     if (!promptRecord) {
         console.error('Prompt not found!');
         process.exit(1);
@@ -21,14 +32,17 @@ async function runBatch() {
     console.log('Prompt loaded successfully.');
 
     // 2. Get Calls to Process (Only those that already exist in analysis logs)
-    // We want to RE-analyze existing entries to update their signals with the new prompt.
-    const calls = db.prepare(`
-        SELECT DISTINCT c.id, c.startedAt 
-        FROM calls c
-        INNER JOIN ai_analysis_logs l ON c.id = l.dealId
-        ORDER BY c.startedAt DESC
-        -- LIMIT ? -- Uncomment if you want to limit safe run
-    `).all() as { id: string, startedAt: string }[];
+    // Get calls that have analysis logs
+    const logsWithCalls = await prisma.aIAnalysisLog.findMany({
+        select: { dealId: true }
+    });
+    const callIds = [...new Set(logsWithCalls.map(l => l.dealId).filter((id): id is string => id !== null))];
+
+    const calls = await prisma.call.findMany({
+        where: { id: { in: callIds } },
+        orderBy: { startedAt: 'desc' },
+        select: { id: true, startedAt: true }
+    });
 
     console.log(`Found ${calls.length} calls to process.`);
 
@@ -48,7 +62,6 @@ async function runBatch() {
                 console.warn(`  ⚠️  Result is MOCK data (Network/API Error: ${result.networkError})`);
                 failCount++;
                 continue;
-                // Skip saving mock data for batch runs? usually yes.
             }
 
             if (result.parseError) {
@@ -59,46 +72,41 @@ async function runBatch() {
 
             console.log(`  ✅  Analysis Success (${result.executionTime}ms)`);
 
-            // 4. Update Database (ETL)
-            // UPDATE existing log to preserve other fields (agentId, teamId, etc.)
+            // 4. Update Database
             const now = new Date().toISOString();
 
-            // Transaction
-            const insert = db.transaction(() => {
-                const info = db.prepare(`
-                    UPDATE ai_analysis_logs 
-                    SET signals = ?, createdAt = ?
-                    WHERE dealId = ?
-                `).run(JSON.stringify(result.parsedOutput), now, callId);
+            await prisma.$transaction(async (tx) => {
+                // Update existing log
+                const updateResult = await tx.aIAnalysisLog.updateMany({
+                    where: { dealId: callId },
+                    data: {
+                        signals: JSON.stringify(result.parsedOutput),
+                        createdAt: now
+                    }
+                });
 
-                if (info.changes === 0) {
-                    // Only if it doesn't exist (shouldn't happen in this script logic), insert fresh
-                    // But we need to be careful about missing fields. For now, log warning.
-                    console.warn(`  ⚠️  Record disappeared? Insert logic skipped to avoid data loss.`);
+                if (updateResult.count === 0) {
+                    console.warn(`  ⚠️  Record disappeared? Update skipped.`);
                 }
 
-                // Optional: Log execution history
-                db.prepare(`
-                    INSERT INTO prompt_execution_logs (
-                        id, promptId, callId, input_variables, raw_output, parsed_output, 
-                        execution_time_ms, status, error_message, is_dry_run, createdAt
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `).run(
-                    uuidv4(),
-                    PROMPT_ID,
-                    callId,
-                    JSON.stringify(result.replacements.map(r => r.variable)),
-                    result.rawOutput,
-                    JSON.stringify(result.parsedOutput),
-                    result.executionTime,
-                    'success_batch',
-                    null,
-                    0, // Not dry run
-                    now
-                );
+                // Log execution history
+                await tx.promptExecutionLog.create({
+                    data: {
+                        id: uuidv4(),
+                        promptId: PROMPT_ID,
+                        callId: callId,
+                        inputVariables: JSON.stringify(result.replacements.map(r => r.variable)),
+                        rawOutput: result.rawOutput,
+                        parsedOutput: JSON.stringify(result.parsedOutput),
+                        executionTimeMs: result.executionTime,
+                        status: 'success_batch',
+                        errorMessage: null,
+                        isDryRun: 0,
+                        createdAt: now
+                    }
+                });
             });
 
-            insert();
             console.log(`  💾  Saved to DB`);
             successCount++;
 
@@ -112,6 +120,8 @@ async function runBatch() {
     console.log(`Total: ${calls.length}`);
     console.log(`Success: ${successCount}`);
     console.log(`Failed: ${failCount}`);
+
+    await prisma.$disconnect();
 }
 
 runBatch();
