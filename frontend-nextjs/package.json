@@ -14,6 +14,7 @@
     "db:migrate:pg": "prisma migrate dev --schema=prisma/schema.postgres.prisma",
     "db:studio": "prisma studio --schema=prisma/schema.sqlite.prisma",
     "db:studio:pg": "prisma studio --schema=prisma/schema.postgres.prisma",
+    "db:migrate-data": "npx tsx scripts/migrate-to-supabase.ts",
     "postinstall": "prisma generate --schema=prisma/schema.sqlite.prisma"
   },
   "dependencies": {
@@ -65,6 +66,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.9.0",
+    "@types/pg": "^8.16.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "autoprefixer": "^10.4.20",

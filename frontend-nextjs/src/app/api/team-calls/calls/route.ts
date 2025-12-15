@@ -9,6 +9,10 @@ export async function GET() {
   const totalTimer = logger.startTimer('Total API Request')
 
   try {
+    // Debug: Check count first
+    const count = await prisma.call.count()
+    console.log('[API Debug] Total calls in DB:', count)
+
     // 1. Fetch Calls with Agent info
     const calls = await logger.time('Query: Calls with Agents', () =>
       prisma.call.findMany({
@@ -20,6 +24,13 @@ export async function GET() {
         orderBy: { startedAt: 'desc' }
       })
     )
+
+    console.log('[API Debug] Calls fetched with prisma:', calls.length)
+    if (calls.length === 0) {
+      // Try fetch without relation to debug
+      const rawCalls = await prisma.call.findMany({ take: 1 })
+      console.log('[API Debug] Raw call sample:', rawCalls[0])
+    }
 
     logger.info('Calls fetched', { count: calls.length })
 
@@ -271,10 +282,22 @@ export async function GET() {
       signalCount: allSignals.length
     })
 
+    if (calls.length === 0) {
+      const rawCalls = await prisma.call.findMany({ take: 5 })
+      const count = await prisma.call.count()
+      return NextResponse.json({
+        debug: true,
+        message: 'Calls array is empty',
+        dbCount: count,
+        rawCallsSample: rawCalls,
+        dbUrlPreview: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 20) + '...' : 'undefined'
+      })
+    }
+
     return NextResponse.json(formattedCalls)
   } catch (error) {
     logger.error('Request failed', { error: String(error) })
     totalTimer.end({ status: 'error' })
-    return NextResponse.json({ error: 'Failed to fetch calls' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch calls', details: String(error) }, { status: 500 })
   }
 }
