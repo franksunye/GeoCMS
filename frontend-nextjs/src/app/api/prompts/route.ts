@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 
-// Prompt Types
-export const PROMPT_TYPES = [
+// Prompt Types (not exported - Next.js route files can only export route handlers)
+const PROMPT_TYPES = [
     { value: 'quality_check', label: '质量检测', description: '识别通话中的销售行为信号并评分' },
     { value: 'summarization', label: '通话摘要', description: '生成通话内容的结构化摘要' },
     { value: 'sentiment', label: '情感分析', description: '分析通话中的情感倾向' },
@@ -11,8 +11,8 @@ export const PROMPT_TYPES = [
     { value: 'custom', label: '自定义', description: '自定义分析逻辑' }
 ];
 
-// Available Variables
-export const AVAILABLE_VARIABLES = [
+// Available Variables (not exported - Next.js route files can only export route handlers)
+const AVAILABLE_VARIABLES = [
     { name: 'transcript', description: '通话文本记录（JSON格式或纯文本）', example: '{{transcript}}' },
     { name: 'signals', description: '已配置的信号列表', example: '{{signals}}' },
     { name: 'tags', description: '已配置的标签列表', example: '{{tags}}' },
