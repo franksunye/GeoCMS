@@ -1,0 +1,241 @@
+// Prisma Schema for PostgreSQL (Supabase - Production/Vercel)
+// Usage: npm run db:generate:pg
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// 坐席/销售人员
+model Agent {
+  id          String       @id
+  name        String
+  avatarId    String       @map("avatar_id")
+  createdAt   String       @map("created_at")
+  teamId      String?      @map("team_id")
+  calls       Call[]
+  deals       Deal[]
+  transcripts Transcript[]
+
+  @@map("sync_agents")
+}
+
+/// 通话记录
+model Call {
+  id                  String               @id
+  agentId             String               @map("agent_id")
+  startedAt           String               @map("started_at")
+  duration            Int
+  outcome             String
+  audioUrl            String?              @map("audio_url")
+  assessments         CallAssessment[]
+  signals             CallSignal[]
+  agent               Agent                @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promptExecutionLogs PromptExecutionLog[]
+
+  @@map("biz_calls")
+}
+
+/// 通话评估（Tag 级别的打分）
+model CallAssessment {
+  id            String  @id @default(cuid())
+  callId        String  @map("call_id")
+  tagId         String  @map("tag_id")
+  score         Int
+  confidence    Float?  @default(0)
+  contextText   String? @map("context_text")
+  timestampSec  Int?    @map("timestamp_sec")
+  reasoning     String?
+  contextEvents String? @map("context_events")
+  tag           Tag     @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  call          Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("biz_call_assessments")
+}
+
+/// 通话信号（事件级别的检测）
+model CallSignal {
+  id           String  @id @default(cuid())
+  callId       String  @map("call_id")
+  signalCode   String  @map("signal_code")
+  category     String?
+  dimension    String?
+  polarity     String?
+  timestampSec Float?  @map("timestamp_sec")
+  confidence   Float?  @default(0)
+  contextText  String? @map("context_text")
+  reasoning    String?
+  createdAt    String  @map("created_at")
+  call         Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([callId])
+  @@index([signalCode])
+  @@map("biz_call_signals")
+}
+
+/// 标签定义（通话级别的质量维度）
+model Tag {
+  id          String           @id @default(cuid())
+  name        String
+  code        String           @unique
+  category    String
+  dimension   String
+  polarity    String
+  severity    String?
+  scoreRange  String           @map("score_range")
+  description String
+  active      Int?             @default(1)
+  createdAt   String           @map("created_at")
+  updatedAt   String           @map("updated_at")
+  isMandatory Boolean?         @default(false) @map("is_mandatory")
+  assessments CallAssessment[]
+
+  @@map("cfg_tags")
+}
+
+/// 信号定义（事件级别的行为检测）
+model Signal {
+  id                String  @id @default(cuid())
+  code              String  @unique
+  name              String
+  category          String
+  dimension         String
+  targetTagCode     String  @map("target_tag_code")
+  aggregationMethod String  @map("aggregation_method")
+  description       String
+  active            Int?    @default(1)
+  createdAt         String  @map("created_at")
+  updatedAt         String  @map("updated_at")
+
+  @@map("cfg_signals")
+}
+
+/// 评分规则
+model ScoringRule {
+  id              String  @id @default(cuid())
+  name            String
+  appliesTo       String  @map("applies_to")
+  description     String
+  active          Int?    @default(1)
+  ruleType        String  @map("rule_type")
+  tagCode         String  @map("tag_code")
+  targetDimension String  @map("target_dimension")
+  scoreAdjustment Float   @map("score_adjustment")
+  weight          Float
+  createdAt       String  @map("created_at")
+  updatedAt       String  @map("updated_at")
+
+  @@map("cfg_scoring_rules")
+}
+
+/// 评分配置
+model ScoreConfig {
+  id                  String  @id @default(cuid())
+  aggregationMethod   String  @map("aggregation_method")
+  processWeight       Int     @map("process_weight")
+  skillsWeight        Int     @map("skills_weight")
+  communicationWeight Int     @map("communication_weight")
+  customFormula       String? @map("custom_formula")
+  description         String
+  createdAt           String  @map("created_at")
+  updatedAt           String  @map("updated_at")
+
+  @@map("cfg_score_config")
+}
+
+/// 提示词模板
+model Prompt {
+  id            String               @id @default(cuid())
+  name          String
+  version       String?
+  content       String
+  description   String?
+  isDefault     Boolean?             @default(false) @map("is_default")
+  active        Int?                 @default(1)
+  createdAt     String               @map("created_at")
+  updatedAt     String               @map("updated_at")
+  promptType    String?              @default("quality_check") @map("prompt_type")
+  variables     String?
+  outputSchema  String?              @map("output_schema")
+  executionLogs PromptExecutionLog[]
+
+  @@map("cfg_prompts")
+}
+
+/// 提示词执行日志
+model PromptExecutionLog {
+  id              String  @id @default(cuid())
+  promptId        String  @map("prompt_id")
+  callId          String  @map("call_id")
+  inputVariables  String? @map("input_variables")
+  rawOutput       String? @map("raw_output")
+  parsedOutput    String? @map("parsed_output")
+  executionTimeMs Int?    @map("execution_time_ms")
+  status          String
+  errorMessage    String? @map("error_message")
+  isDryRun        Int?    @default(0) @map("is_dry_run")
+  createdAt       String  @map("created_at")
+  call            Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  prompt          Prompt  @relation(fields: [promptId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([promptId])
+  @@index([callId])
+  @@map("log_prompt_execution")
+}
+
+/// 交易/案例
+model Deal {
+  id          String       @id
+  agentId     String       @map("agent_id")
+  outcome     String
+  createdAt   String       @map("created_at")
+  agent       Agent        @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transcripts Transcript[]
+
+  @@map("sync_deals")
+}
+
+/// 通话转录文本
+model Transcript {
+  id        String  @id
+  dealId    String  @map("deal_id")
+  agentId   String  @map("agent_id")
+  content   String
+  createdAt String  @map("created_at")
+  audioUrl  String? @map("audio_url")
+  agent     Agent   @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deal      Deal    @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("sync_transcripts")
+}
+
+/// AI 分析日志
+model AIAnalysisLog {
+  id           String  @id @default(cuid())
+  signals      String
+  createdAt    String  @map("created_at")
+  transcriptId String? @map("transcript_id")
+  agentId      String? @map("agent_id")
+  dealId       String? @map("deal_id")
+  teamId       String? @map("team_id")
+
+  @@map("sync_ai_analysis")
+}
+
+/// 审计日志
+model AuditLog {
+  id         String  @id @default(cuid())
+  timestamp  String
+  user       String
+  action     String
+  objectType String  @map("object_type")
+  objectName String  @map("object_name")
+  changes    String
+  details    String
+
+  @@map("log_audit")
+}

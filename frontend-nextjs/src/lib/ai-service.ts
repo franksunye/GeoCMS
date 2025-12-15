@@ -20,7 +20,7 @@ export type AnalysisResult = {
 }
 
 // --- Configuration ---
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-34b4db2c01b4476da1c56c2396b35203';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/chat/completions';
 
 // --- Helper Functions ---

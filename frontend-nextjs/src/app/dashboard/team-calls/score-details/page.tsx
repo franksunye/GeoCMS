@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Play, Pause, Volume2, X } from 'lucide-react'
 import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
 import { PageHeader } from '@/components/ui/page-header'
 
@@ -22,6 +22,8 @@ interface Call {
   outcome: string
   agentId: string
   agentName: string
+  duration: number
+  audioUrl?: string
 }
 
 interface Assessment {
@@ -29,6 +31,7 @@ interface Assessment {
   tagId: string
   score: number
   context_text: string
+  context_events: string | null
   confidence: number
 }
 
@@ -48,6 +51,66 @@ export default function ScoreDetailsPage() {
   const [dimension, setDimension] = useState('all')
   const [tagName, setTagName] = useState('all')
   const [limit, setLimit] = useState('10')
+
+  // Audio Player State
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [volume, setVolume] = useState(100)
+  const [activeCall, setActiveCall] = useState<Call | null>(null)
+  const [activeContextIndex, setActiveContextIndex] = useState<string | null>(null)
+
+  // Audio Control Functions
+  const handlePlayContext = (call: Call, contextKey: string, timestampSec?: number) => {
+    if (!call.audioUrl) return
+
+    // Check if clicking on the same context that's currently active
+    if (isPlaying && activeContextIndex === contextKey) {
+      // Pause
+      audioRef.current?.pause()
+      setIsPlaying(false)
+      setActiveContextIndex(null)
+    } else {
+      // Play new context
+      if (activeCall?.id !== call.id) {
+        // Different call - update audio source
+        setActiveCall(call)
+        if (audioRef.current) {
+          audioRef.current.src = call.audioUrl
+          audioRef.current.load()
+        }
+      }
+      
+      // Seek to timestamp if provided
+      if (timestampSec !== undefined && audioRef.current) {
+        audioRef.current.currentTime = timestampSec
+      }
+      
+      audioRef.current?.play().catch(console.error)
+      setIsPlaying(true)
+      setActiveContextIndex(contextKey)
+    }
+  }
+
+  const handleClosePlayer = () => {
+    audioRef.current?.pause()
+    setIsPlaying(false)
+    setActiveCall(null)
+    setActiveContextIndex(null)
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Sync volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100
+    }
+  }, [volume])
 
   useEffect(() => {
     fetchData()
@@ -233,22 +296,72 @@ export default function ScoreDetailsPage() {
                               )}
                             </td>
                             <td key={`${call.id}-${tag.id}-ctx`} className="p-3 border align-top text-xs text-gray-600 leading-relaxed min-w-[200px] max-w-[300px]">
-                              {assessment && assessment.context_text ? (
-                                <div className="space-y-1.5" title={assessment.context_text}>
-                                  {assessment.context_text.split(' | ').map((text: string, idx: number, arr: string[]) => (
-                                    <div key={idx} className="flex items-start gap-2">
-                                      {arr.length > 1 && (
-                                        <span className="flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-600 text-[10px] font-medium mt-0.5">
-                                          {idx + 1}
-                                        </span>
-                                      )}
-                                      <span className="bg-gray-50 px-1.5 py-0.5 rounded text-gray-700">
-                                        "{text.trim()}"
-                                      </span>
+                              {assessment && assessment.context_events ? (() => {
+                                try {
+                                  const events = JSON.parse(assessment.context_events)
+                                  if (!Array.isArray(events) || events.length === 0) return null
+                                  
+                                  return (
+                                    <div className="space-y-1.5">
+                                      {events.map((event: any, idx: number) => {
+                                        const contextKey = `${call.id}_${tag.id}_${idx}`
+                                        const isActive = isPlaying && activeContextIndex === contextKey
+                                        const timestampSec = event.timestamp_sec
+                                        const contextText = event.context_text || ''
+                                        
+                                        return (
+                                          <div 
+                                            key={idx} 
+                                            onClick={() => call.audioUrl && handlePlayContext(call, contextKey, timestampSec)}
+                                            className={`flex items-start gap-2 p-1 rounded transition-all ${
+                                              call.audioUrl ? 'cursor-pointer hover:bg-blue-50' : ''
+                                            } ${isActive ? 'bg-blue-100 ring-1 ring-blue-300' : ''}`}
+                                          >
+                                            {call.audioUrl && timestampSec !== undefined && (
+                                              <span className={`flex-shrink-0 flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-medium mt-0.5 transition-colors ${
+                                                isActive ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-600 hover:bg-blue-200'
+                                              }`}>
+                                                {isActive ? '⏸' : '▶'}
+                                              </span>
+                                            )}
+                                            {events.length > 1 && (!call.audioUrl || timestampSec === undefined) && (
+                                              <span className="flex-shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-gray-200 text-gray-600 text-[10px] font-medium mt-0.5">
+                                                {idx + 1}
+                                              </span>
+                                            )}
+                                            <div className="flex-1">
+                                              <span className={`px-1.5 py-0.5 rounded ${isActive ? 'bg-blue-50 text-blue-900 font-medium' : 'bg-gray-50 text-gray-700'}`}>
+                                                "{contextText.trim()}"
+                                              </span>
+                                              {timestampSec !== undefined && (
+                                                <span className="ml-2 text-[10px] text-gray-400 font-mono">
+                                                  {Math.floor(timestampSec / 60)}:{Math.floor(timestampSec % 60).toString().padStart(2, '0')}
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )
+                                      })}
                                     </div>
-                                  ))}
-                                </div>
-                              ) : null}
+                                  )
+                                } catch (e) {
+                                  // Fallback to context_text if JSON parsing fails
+                                  if (assessment.context_text) {
+                                    return (
+                                      <div className="space-y-1.5">
+                                        {assessment.context_text.split(' | ').map((text: string, idx: number) => (
+                                          <div key={idx} className="flex items-start gap-2">
+                                            <span className="bg-gray-50 px-1.5 py-0.5 rounded text-gray-700">
+                                              "{text.trim()}"
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )
+                                  }
+                                  return null
+                                }
+                              })() : null}
                             </td>
                           </>
                         )
@@ -261,6 +374,78 @@ export default function ScoreDetailsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Hidden Audio Element */}
+      <audio
+        ref={audioRef}
+        onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+        onEnded={() => { setIsPlaying(false); setActiveContextIndex(null) }}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        preload="metadata"
+      />
+
+      {/* Floating Audio Player */}
+      {activeCall && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-4 min-w-[400px] max-w-[600px]">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                if (isPlaying) {
+                  audioRef.current?.pause()
+                } else {
+                  audioRef.current?.play()
+                }
+              }}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md"
+            >
+              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+            </button>
+
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-900 mb-1">
+                {activeCall.agentName} - Call #{activeCall.id.slice(-4)}
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="0"
+                  max={activeCall.duration || 100}
+                  value={currentTime}
+                  onChange={(e) => {
+                    const time = parseFloat(e.target.value)
+                    setCurrentTime(time)
+                    if (audioRef.current) audioRef.current.currentTime = time
+                  }}
+                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                />
+                <span className="text-xs font-mono text-gray-600 min-w-[60px]">
+                  {formatTime(currentTime)} / {formatTime(activeCall.duration)}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Volume2 className="h-4 w-4 text-gray-500" />
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={volume}
+                onChange={(e) => setVolume(parseInt(e.target.value))}
+                className="w-16 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+            </div>
+
+            <button
+              onClick={handleClosePlayer}
+              className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-100 text-gray-500 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

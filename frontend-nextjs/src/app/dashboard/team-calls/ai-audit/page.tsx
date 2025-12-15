@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, AlertTriangle, CheckCircle, Search, XCircle } from 'lucide-react'
+import { Loader2, AlertTriangle, CheckCircle, Search, XCircle, Play, Pause, RotateCcw, Volume2 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
 
 interface Signal {
@@ -30,6 +30,8 @@ interface AuditRecord {
   id: string
   startedAt: string
   agentName: string
+  duration: number
+  audioUrl?: string
   signalCount: number
   tagCount: number
   totalConsistencyScore: number
@@ -41,6 +43,13 @@ export default function AiAuditPage() {
   const [data, setData] = useState<AuditRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null)
+  
+  // Audio Player State
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [volume, setVolume] = useState(100)
+  const [activeSegmentTime, setActiveSegmentTime] = useState<number | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -73,6 +82,65 @@ export default function AiAuditPage() {
         return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">丢失 ({analysis.diff})</span>
     }
     return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">冗余 (+{Math.abs(analysis.diff)})</span>
+  }
+
+  // Audio Control Functions
+  const handlePlayPause = () => {
+    if (!audioRef.current) return
+    if (isPlaying) {
+      audioRef.current.pause()
+      setActiveSegmentTime(null)
+    } else {
+      audioRef.current.play().catch(e => console.error("Play failed:", e))
+    }
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleSeekTo = (seconds: number) => {
+    if (audioRef.current) {
+      // Check if clicking on the same segment that's currently active
+      if (isPlaying && activeSegmentTime === seconds) {
+        // If currently playing this segment, pause
+        audioRef.current.pause()
+        setIsPlaying(false)
+        setActiveSegmentTime(null)
+      } else {
+        // Otherwise seek and play
+        audioRef.current.currentTime = seconds
+        audioRef.current.play().catch(console.error)
+        setIsPlaying(true)
+        setActiveSegmentTime(seconds)
+      }
+    }
+  }
+
+  const handleReset = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.pause()
+    }
+    setCurrentTime(0)
+    setIsPlaying(false)
+    setActiveSegmentTime(null)
+  }
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Sync volume
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = volume / 100
+    }
+  }, [volume])
+
+  // Helper to check if a timestamp is currently active (playing)
+  const isCurrentlyPlaying = (seconds: number) => {
+    if (!isPlaying || !seconds) return false
+    return activeSegmentTime === seconds
   }
 
   return (
@@ -133,6 +201,72 @@ export default function AiAuditPage() {
                             <span className="text-sm font-normal text-gray-500 font-mono">Call ID: {selectedRecord.id}</span>
                         </CardTitle>
                     </CardHeader>
+                    
+                    {/* Audio Player */}
+                    {selectedRecord.audioUrl && (
+                      <div className="px-6 pb-4">
+                        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-100">
+                          <audio
+                            ref={audioRef}
+                            src={selectedRecord.audioUrl}
+                            onTimeUpdate={() => setCurrentTime(audioRef.current?.currentTime || 0)}
+                            onEnded={() => { setIsPlaying(false); setCurrentTime(0) }}
+                            onPlay={() => setIsPlaying(true)}
+                            onPause={() => setIsPlaying(false)}
+                            preload="metadata"
+                          />
+                          
+                          <div className="flex items-center gap-4">
+                            <button
+                              onClick={handlePlayPause}
+                              className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md"
+                            >
+                              {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+                            </button>
+                            <button
+                              onClick={handleReset}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors text-sm"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </button>
+                            
+                            <div className="flex-1">
+                              <input
+                                type="range"
+                                min="0"
+                                max={selectedRecord.duration || 100}
+                                value={currentTime}
+                                onChange={(e) => {
+                                  const time = parseFloat(e.target.value)
+                                  setCurrentTime(time)
+                                  if (audioRef.current) audioRef.current.currentTime = time
+                                }}
+                                className="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                              />
+                            </div>
+                            
+                            <span className="text-sm font-mono text-gray-700 min-w-[80px] text-right">
+                              {formatTime(currentTime)} / {formatTime(selectedRecord.duration)}
+                            </span>
+                            
+                            <div className="flex items-center gap-2">
+                              <Volume2 className="h-4 w-4 text-gray-600" />
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={volume}
+                                onChange={(e) => setVolume(parseInt(e.target.value))}
+                                className="w-16 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                              />
+                            </div>
+                          </div>
+                          
+                          <p className="text-xs text-gray-500 mt-2">💡 点击下方时间戳可跳转到对应音频位置</p>
+                        </div>
+                      </div>
+                    )}
+                    
                     <CardContent>
                         <div className="space-y-6">
                             {selectedRecord.analysis.map((item, idx) => (
@@ -159,15 +293,28 @@ export default function AiAuditPage() {
                                                 <span className="text-gray-400 italic">No signals found</span>
                                             ) : (
                                                 <ul className="space-y-2">
-                                                    {item.details.signals.map((s, i) => (
-                                                        <li key={i} className="bg-white p-2 rounded border border-gray-200 shadow-sm">
+                                                    {item.details.signals.map((s, i) => {
+                                                        const isActive = isCurrentlyPlaying(s.timestampSec)
+                                                        return (
+                                                        <li key={i} className={`p-2 rounded border shadow-sm transition-all ${isActive ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' : 'bg-white border-gray-200'}`}>
                                                             <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                                                                <span>{s.timestampSec ? `${s.timestampSec}s` : 'N/A'}</span>
+                                                                {s.timestampSec ? (
+                                                                  <button
+                                                                    onClick={() => handleSeekTo(s.timestampSec)}
+                                                                    className={`font-medium cursor-pointer flex items-center gap-1 ${isActive ? 'text-blue-700' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}
+                                                                    title={isActive ? "点击暂停" : "点击跳转到此位置"}
+                                                                  >
+                                                                    {isActive ? '⏸' : '▶'} {formatTime(s.timestampSec)}
+                                                                  </button>
+                                                                ) : (
+                                                                  <span>N/A</span>
+                                                                )}
                                                                 <span>Confidence: {s.confidence ?? '-'}</span>
                                                             </div>
-                                                            <div className="text-gray-800">"{s.contextText}"</div>
+                                                            <div className={`${isActive ? 'text-blue-900 font-medium' : 'text-gray-800'}`}>"{s.contextText}"</div>
                                                         </li>
-                                                    ))}
+                                                        )
+                                                    })}
                                                 </ul>
                                             )}
                                         </div>
@@ -181,17 +328,31 @@ export default function AiAuditPage() {
                                                 <span className="text-gray-400 italic">No aggregated events</span>
                                             ) : (
                                                 <ul className="space-y-2">
-                                                    {item.details.events.map((e: any, i: number) => (
-                                                        <li key={i} className="bg-white p-2 rounded border border-gray-200 shadow-sm">
+                                                    {item.details.events.map((e: any, i: number) => {
+                                                        const ts = typeof e === 'object' ? e.timestamp_sec : null
+                                                        const isActive = ts ? isCurrentlyPlaying(ts) : false
+                                                        return (
+                                                        <li key={i} className={`p-2 rounded border shadow-sm transition-all ${isActive ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-200' : 'bg-white border-gray-200'}`}>
                                                             <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                                                                <span>{typeof e === 'object' && e.timestamp_sec ? `${e.timestamp_sec}s` : 'N/A'}</span>
+                                                                {ts ? (
+                                                                  <button
+                                                                    onClick={() => handleSeekTo(ts)}
+                                                                    className={`font-medium cursor-pointer flex items-center gap-1 ${isActive ? 'text-blue-700' : 'text-blue-600 hover:text-blue-800 hover:underline'}`}
+                                                                    title={isActive ? "点击暂停" : "点击跳转到此位置"}
+                                                                  >
+                                                                    {isActive ? '⏸' : '▶'} {formatTime(ts)}
+                                                                  </button>
+                                                                ) : (
+                                                                  <span>N/A</span>
+                                                                )}
                                                                 <span>Confidence: {typeof e === 'object' ? e.confidence : '-'}</span>
                                                             </div>
-                                                            <div className="text-gray-800">
+                                                            <div className={`${isActive ? 'text-blue-900 font-medium' : 'text-gray-800'}`}>
                                                                 "{typeof e === 'object' ? e.context_text : e}"
                                                             </div>
                                                         </li>
-                                                    ))}
+                                                        )
+                                                    })}
                                                 </ul>
                                             )}
                                         </div>

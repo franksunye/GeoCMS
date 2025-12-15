@@ -1,0 +1,241 @@
+// Prisma Schema for SQLite (Local Development)
+// Usage: npm run db:generate
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// 坐席/销售人员
+model Agent {
+  id          String       @id
+  name        String
+  avatarId    String
+  createdAt   String
+  teamId      String?
+  calls       Call[]
+  deals       Deal[]
+  transcripts Transcript[]
+
+  @@map("sync_agents")
+}
+
+/// 通话记录
+model Call {
+  id                  String               @id
+  agentId             String
+  startedAt           String
+  duration            Int
+  outcome             String
+  audioUrl            String?
+  assessments         CallAssessment[]
+  signals             CallSignal[]
+  agent               Agent                @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  promptExecutionLogs PromptExecutionLog[]
+
+  @@map("biz_calls")
+}
+
+/// 通话评估（Tag 级别的打分）
+model CallAssessment {
+  id            String  @id
+  callId        String
+  tagId         String
+  score         Int
+  confidence    Float?  @default(0)
+  contextText   String? @map("context_text")
+  timestampSec  Int?    @map("timestamp_sec")
+  reasoning     String?
+  contextEvents String? @map("context_events")
+  tag           Tag     @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  call          Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("biz_call_assessments")
+}
+
+/// 通话信号（事件级别的检测）
+model CallSignal {
+  id           String  @id
+  callId       String
+  signalCode   String
+  category     String?
+  dimension    String?
+  polarity     String?
+  timestampSec Float?  @map("timestamp_sec")
+  confidence   Float?  @default(0)
+  contextText  String? @map("context_text")
+  reasoning    String?
+  createdAt    String
+  call         Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([callId], map: "idx_biz_call_signals_callId")
+  @@index([signalCode], map: "idx_biz_call_signals_signalCode")
+  @@map("biz_call_signals")
+}
+
+/// 标签定义（通话级别的质量维度）
+model Tag {
+  id          String           @id @default(cuid())
+  name        String
+  code        String           @unique(map: "sqlite_autoindex_tags_2")
+  category    String
+  dimension   String
+  polarity    String
+  severity    String?
+  scoreRange  String
+  description String
+  active      Int?             @default(1)
+  createdAt   String
+  updatedAt   String
+  isMandatory Boolean?         @default(false) @map("is_mandatory")
+  assessments CallAssessment[]
+
+  @@map("cfg_tags")
+}
+
+/// 信号定义（事件级别的行为检测）
+model Signal {
+  id                String  @id @default(cuid())
+  code              String  @unique(map: "sqlite_autoindex_signals_2")
+  name              String
+  category          String
+  dimension         String
+  targetTagCode     String
+  aggregationMethod String
+  description       String
+  active            Int?    @default(1)
+  createdAt         String
+  updatedAt         String
+
+  @@map("cfg_signals")
+}
+
+/// 评分规则
+model ScoringRule {
+  id              String  @id @default(cuid())
+  name            String
+  appliesTo       String
+  description     String
+  active          Int?    @default(1)
+  ruleType        String
+  tagCode         String
+  targetDimension String
+  scoreAdjustment Float
+  weight          Float
+  createdAt       String
+  updatedAt       String
+
+  @@map("cfg_scoring_rules")
+}
+
+/// 评分配置
+model ScoreConfig {
+  id                  String  @id
+  aggregationMethod   String
+  processWeight       Int
+  skillsWeight        Int
+  communicationWeight Int
+  customFormula       String?
+  description         String
+  createdAt           String
+  updatedAt           String
+
+  @@map("cfg_score_config")
+}
+
+/// 提示词模板
+model Prompt {
+  id            String               @id @default(cuid())
+  name          String
+  version       String?
+  content       String
+  description   String?
+  isDefault     Boolean?             @default(false) @map("is_default")
+  active        Int?                 @default(1)
+  createdAt     String
+  updatedAt     String
+  promptType    String?              @default("quality_check") @map("prompt_type")
+  variables     String?
+  outputSchema  String?              @map("output_schema")
+  executionLogs PromptExecutionLog[]
+
+  @@map("cfg_prompts")
+}
+
+/// 提示词执行日志
+model PromptExecutionLog {
+  id              String  @id @default(cuid())
+  promptId        String
+  callId          String
+  inputVariables  String? @map("input_variables")
+  rawOutput       String? @map("raw_output")
+  parsedOutput    String? @map("parsed_output")
+  executionTimeMs Int?    @map("execution_time_ms")
+  status          String
+  errorMessage    String? @map("error_message")
+  isDryRun        Int?    @default(0) @map("is_dry_run")
+  createdAt       String
+  call            Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  prompt          Prompt  @relation(fields: [promptId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([promptId], map: "idx_log_prompt_execution_promptId")
+  @@index([callId], map: "idx_log_prompt_execution_callId")
+  @@map("log_prompt_execution")
+}
+
+/// 交易/案例
+model Deal {
+  id          String       @id
+  agentId     String
+  outcome     String
+  createdAt   String
+  agent       Agent        @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transcripts Transcript[]
+
+  @@map("sync_deals")
+}
+
+/// 通话转录文本
+model Transcript {
+  id        String  @id
+  dealId    String
+  agentId   String
+  content   String
+  createdAt String
+  audioUrl  String?
+  agent     Agent   @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deal      Deal    @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("sync_transcripts")
+}
+
+/// AI 分析日志
+model AIAnalysisLog {
+  id           String  @id @default(cuid())
+  signals      String
+  createdAt    String
+  transcriptId String?
+  agentId      String?
+  dealId       String?
+  teamId       String?
+
+  @@map("sync_ai_analysis")
+}
+
+/// 审计日志
+model AuditLog {
+  id         String  @id @default(cuid())
+  timestamp  String
+  user       String
+  action     String
+  objectType String
+  objectName String
+  changes    String
+  details    String
+
+  @@map("log_audit")
+}

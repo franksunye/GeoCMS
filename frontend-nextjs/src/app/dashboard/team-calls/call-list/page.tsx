@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import React, { useState, useRef, useEffect } from 'react'
-import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle } from 'lucide-react'
+import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle, TrendingUp, TrendingDown, MinusCircle } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
@@ -18,6 +18,34 @@ const getDimensionIcon = (dimension: 'process' | 'skills' | 'communication'): st
   if (dimension === 'process') return '⚙️'
   if (dimension === 'skills') return '🎯'
   return '💬'
+}
+
+/**
+ * 获取赢单状态的徽章样式和文本
+ */
+const getOutcomeBadge = (businessGrade: string) => {
+  if (businessGrade === 'High') {
+    return {
+      icon: TrendingUp,
+      label: '赢单',
+      className: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+      iconClassName: 'text-emerald-600'
+    }
+  }
+  if (businessGrade === 'Low') {
+    return {
+      icon: TrendingDown,
+      label: '输单',
+      className: 'bg-rose-100 text-rose-800 border border-rose-200',
+      iconClassName: 'text-rose-600'
+    }
+  }
+  return {
+    icon: MinusCircle,
+    label: '进行中',
+    className: 'bg-slate-100 text-slate-700 border border-slate-200',
+    iconClassName: 'text-slate-500'
+  }
 }
 
 const getDimensionLabel = (dimension: 'process' | 'skills' | 'communication'): string => {
@@ -83,11 +111,6 @@ const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerPr
       seekTo: (time: number) => {
         if (audioRef.current) {
           audioRef.current.currentTime = time
-          // Optional: Auto play on seek
-          if (!isPlaying) {
-            audioRef.current.play().catch(console.error)
-            setIsPlaying(true)
-          }
         }
       },
       play: () => audioRef.current?.play(),
@@ -164,7 +187,7 @@ const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerPr
     }
 
     return (
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-100 sticky top-4 z-10 shadow-sm">
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-100 sticky top-4 z-10 shadow-sm">
         <audio
           ref={audioRef}
           src={audioUrl}
@@ -175,45 +198,79 @@ const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerPr
           preload="metadata"
         />
         
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">通话录音</h3>
-            <p className="text-xs text-gray-600 mt-1">
-              总时长: {Math.floor(duration/60)}分{Math.floor(duration%60)}秒
-            </p>
+        {/* Header - Compact */}
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h3 className="text-base font-semibold text-gray-900">通话录音</h3>
+            <span className="text-xs text-gray-600">
+              {Math.floor(duration/60)}:{(Math.floor(duration%60)).toString().padStart(2, '0')}
+            </span>
           </div>
-          <span className={`px-2 py-1 rounded text-xs font-medium ${audioUrl ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
+          <span className={`px-2 py-0.5 rounded text-xs font-medium ${audioUrl ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
             {audioUrl ? '可播放' : '无录音'}
           </span>
         </div>
 
-        {/* Player Controls */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
+        {/* Main Controls - Single Row */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={handlePlayPause}
               disabled={!audioUrl}
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full text-white transition-colors shadow-md hover:shadow-lg ${audioUrl ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+              className={`inline-flex items-center justify-center w-9 h-9 rounded-full text-white transition-colors shadow-sm hover:shadow ${audioUrl ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
             >
               {isPlaying ? (
-                <Pause className="h-5 w-5 fill-current" />
+                <Pause className="h-4 w-4 fill-current" />
               ) : (
-                <Play className="h-5 w-5 fill-current ml-0.5" />
+                <Play className="h-4 w-4 fill-current ml-0.5" />
               )}
             </button>
             <button
               onClick={handleReset}
               disabled={!audioUrl}
-              className="inline-flex items-center justify-center px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors text-sm font-medium disabled:opacity-50"
+              className="inline-flex items-center justify-center w-9 h-9 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors disabled:opacity-50"
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-3.5 w-3.5" />
             </button>
-            <span className="text-sm font-mono text-gray-700">
+            <span className="text-xs font-mono text-gray-700 min-w-[90px]">
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
+            
+            {/* Volume Control - Inline */}
+            <div className="flex items-center gap-2 ml-auto">
+              <Volume2 className="h-3.5 w-3.5 text-gray-600" />
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={volume}
+                onChange={(e) => setVolume(parseInt(e.target.value))}
+                className="w-20 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <span className="text-xs text-gray-600 w-8 text-right">{volume}%</span>
+            </div>
+            
+            {/* Playback Speed - Inline */}
+            <div className="flex items-center gap-1 ml-2">
+              <span className="text-xs font-medium text-gray-700">倍速:</span>
+              {[0.75, 1, 1.25, 1.5, 2.0].map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => setPlaybackRate(speed)}
+                  className={`px-1.5 py-0.5 rounded text-xs font-medium transition-colors ${
+                    playbackRate === speed 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-white border border-gray-300 text-gray-700 hover:text-blue-600 hover:border-blue-500'
+                  }`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Progress Bar */}
+          <div className="flex items-center gap-2">
             <input
               type="range"
               min="0"
@@ -221,40 +278,8 @@ const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerPr
               value={currentTime}
               onChange={handleProgressChange}
               disabled={!audioUrl}
-              className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-50"
+              className="flex-1 h-1.5 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-50"
             />
-          </div>
-
-          <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
-            <Volume2 className="h-4 w-4 text-gray-600" />
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={volume}
-              onChange={(e) => setVolume(parseInt(e.target.value))}
-              className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-            <span className="text-xs text-gray-600 w-8 text-right">{volume}%</span>
-          </div>
-
-          <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
-            <span className="text-xs font-medium text-gray-700">倍速:</span>
-            <div className="flex gap-1">
-              {[0.75, 1, 1.25, 1.5, 2.0].map((speed) => (
-                <button
-                  key={speed}
-                  onClick={() => setPlaybackRate(speed)}
-                  className={`px-2 py-1 rounded border text-xs font-medium transition-colors ${
-                    playbackRate === speed 
-                      ? 'bg-blue-600 text-white border-blue-600' 
-                      : 'bg-white border-gray-300 text-gray-700 hover:text-blue-600 hover:border-blue-500'
-                  }`}
-                >
-                  {speed}x
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </div>
@@ -274,6 +299,17 @@ export default function ConversationCallListPage() {
   const playerRef = useRef<PlayerHandle>(null)
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false)
+
+  // Reset player when switching calls
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.pause()
+      playerRef.current.seekTo(0)
+    }
+    setCurrentPlaybackTime(0)
+    setIsPlayerPlaying(false)
+  }, [selectedCall?.id]) // Reset when call ID changes
+
 
   const { data: calls, isLoading } = useQuery<CallRecord[]>({
     queryKey: ['calls'],
@@ -409,6 +445,17 @@ export default function ConversationCallListPage() {
                       >
                         质量分 {call.overallQualityScore}
                       </span>
+                      {/* Won/Lost Status Badge */}
+                      {(() => {
+                        const outcome = getOutcomeBadge(call.business_grade)
+                        const OutcomeIcon = outcome.icon
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${outcome.className}`}>
+                            <OutcomeIcon className={`h-3 w-3 ${outcome.iconClassName}`} />
+                            {outcome.label}
+                          </span>
+                        )
+                      })()}
                       {/* Sales KPI Indicators */}
                       {call.events?.includes('customer_solution_request') && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
@@ -559,10 +606,20 @@ export default function ConversationCallListPage() {
                         <p className="text-xs text-gray-600 mb-1">通话时长</p>
                         <p className="text-lg font-semibold text-gray-900">{selectedCall.duration_minutes} 分钟</p>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p className="text-xs text-gray-600 mb-1">商机等级</p>
-                        <p className="text-lg font-semibold text-gray-900">{selectedCall.business_grade}</p>
-                      </div>
+                      {/* Won/Lost Status Card */}
+                      {(() => {
+                        const outcome = getOutcomeBadge(selectedCall.business_grade)
+                        const OutcomeIcon = outcome.icon
+                        return (
+                          <div className={`rounded-lg p-4 border ${outcome.className}`}>
+                            <p className="text-xs mb-1 opacity-80">赢单状态</p>
+                            <div className="flex items-center gap-2">
+                              <OutcomeIcon className={`h-5 w-5 ${outcome.iconClassName}`} />
+                              <p className="text-lg font-bold">{outcome.label}</p>
+                            </div>
+                          </div>
+                        )
+                      })()}
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                         <p className="text-xs text-gray-600 mb-1">通话日期</p>
                         <p className="text-lg font-semibold text-gray-900">{new Date(selectedCall.timestamp).toLocaleDateString()}</p>
@@ -635,7 +692,12 @@ export default function ConversationCallListPage() {
                           return (
                             <div
                               key={idx}
-                              onClick={() => playerRef.current?.seekTo(entry.timestamp)}
+                              onClick={() => {
+                                if (playerRef.current) {
+                                  playerRef.current.seekTo(entry.timestamp)
+                                  playerRef.current.play()
+                                }
+                              }}
                               className={`flex gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-l-4 ${
                                 isCurrent 
                                   ? 'bg-amber-50 border-amber-400 ring-1 ring-amber-100 shadow-sm' 

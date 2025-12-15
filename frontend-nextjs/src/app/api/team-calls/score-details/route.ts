@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getStorageUrl } from '@/lib/storage';
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -45,6 +46,8 @@ export async function GET(request: NextRequest) {
         startedAt: true,
         outcome: true,
         agentId: true,
+        duration: true,
+        audioUrl: true,
         agent: { select: { name: true } }
       },
       orderBy: { startedAt: 'desc' },
@@ -68,6 +71,7 @@ export async function GET(request: NextRequest) {
         tagId: true,
         score: true,
         contextText: true,
+        contextEvents: true,
         confidence: true
       }
     });
@@ -81,6 +85,7 @@ export async function GET(request: NextRequest) {
         tagId: a.tagId,
         score: a.score,
         context_text: a.contextText,
+        context_events: a.contextEvents,
         confidence: a.confidence
       };
     });
@@ -107,7 +112,9 @@ export async function GET(request: NextRequest) {
       startedAt: c.startedAt,
       outcome: c.outcome,
       agentId: c.agentId,
-      agentName: c.agent.name
+      agentName: c.agent.name,
+      duration: c.duration || 0,
+      audioUrl: getStorageUrl(c.audioUrl)
     }));
 
     return NextResponse.json({

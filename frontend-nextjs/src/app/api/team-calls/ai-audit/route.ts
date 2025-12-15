@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getStorageUrl } from '@/lib/storage';
 
 export async function GET(request: NextRequest) {
     try {
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest) {
                 id: true,
                 startedAt: true,
                 agentId: true,
+                duration: true,
+                audioUrl: true,
                 agent: { select: { name: true } },
                 _count: {
                     select: {
@@ -102,6 +105,8 @@ export async function GET(request: NextRequest) {
                 startedAt: call.startedAt,
                 agentId: call.agentId,
                 agentName: call.agent.name,
+                duration: call.duration || 0,
+                audioUrl: getStorageUrl(call.audioUrl),
                 signalCount: call._count.signals,
                 tagCount: call._count.assessments,
                 totalConsistencyScore: Math.round(((tags.length - issues.length) / (tags.length || 1)) * 100),

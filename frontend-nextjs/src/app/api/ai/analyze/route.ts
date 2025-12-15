@@ -3,8 +3,12 @@ import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyBkGzQ2G0V_oB5Syu_YRjG7re7EVcvMB8Y');
+// Initialize Gemini API - API Key must be configured via environment variable
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+if (!GEMINI_API_KEY) {
+    console.warn('[AI Analyze] GEMINI_API_KEY is not configured');
+}
+const genAI = GEMINI_API_KEY ? new GoogleGenerativeAI(GEMINI_API_KEY) : null;
 
 export async function POST(request: NextRequest) {
     try {
@@ -72,6 +76,9 @@ export async function POST(request: NextRequest) {
         const finalPrompt = promptTemplate.replace('{{transcript}}', transcriptContent);
 
         // 5. Call Gemini
+        if (!genAI) {
+            return NextResponse.json({ error: 'GEMINI_API_KEY is not configured' }, { status: 500 });
+        }
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
         const result = await model.generateContent(finalPrompt);
