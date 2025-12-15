@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import mediaData from '@/lib/data/media.json'
 
+// Force dynamic rendering since we use searchParams
+export const dynamic = 'force-dynamic';
+
 let media = [...mediaData]
 let nextId = Math.max(...media.map(m => m.id)) + 1
 

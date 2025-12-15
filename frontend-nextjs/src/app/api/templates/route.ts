@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import templatesData from '@/lib/data/templates.json'
 
+// Force dynamic rendering since we use searchParams
+export const dynamic = 'force-dynamic';
+
 let templates = [...templatesData]
 let nextId = Math.max(...templates.map(t => t.id)) + 1
 
@@ -14,10 +17,10 @@ function transformTemplate(template: any) {
     content: template.content_template || template.content || '',
     variables: Array.isArray(template.structure?.variables)
       ? template.structure.variables.map((v: string) => ({
-          name: v.replace(/[{}]/g, ''),
-          type: 'string',
-          required: false
-        }))
+        name: v.replace(/[{}]/g, ''),
+        type: 'string',
+        required: false
+      }))
       : [],
     usageCount: template.usage_count || 0,
     createdAt: template.created_at || new Date().toISOString(),
