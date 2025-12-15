@@ -1,13 +1,15 @@
 /**
  * Prisma Client 单例实例
  * 
- * 支持双数据库策略：
- * - 本地开发: SQLite (使用 better-sqlite3 adapter)
- * - Vercel 生产: Supabase PostgreSQL
+ * 支持双数据库策略 (使用 Prisma 7 Driver Adapters):
+ * - 本地开发: SQLite (使用 @prisma/adapter-better-sqlite3)
+ * - Vercel 生产: Supabase PostgreSQL (使用 @prisma/adapter-pg)
  * 
- * 通过环境变量 DATABASE_PROVIDER 控制：
- * - "sqlite" = 本地 SQLite
- * - "postgresql" = Supabase/PostgreSQL (默认在 Vercel)
+ * 这是 Prisma 7 官方推荐的配置方式。
+ * 
+ * 通过环境变量控制：
+ * - DATABASE_PROVIDER = "sqlite" | "postgresql"
+ * - DATABASE_URL = 数据库连接字符串
  */
 
 import { PrismaClient } from '@/generated/prisma'
@@ -18,41 +20,56 @@ declare global {
     var _prisma: PrismaClient | undefined
 }
 
-// 延迟初始化 Prisma Client，避免在构建时执行
+// 检测当前环境
+const isProduction = process.env.NODE_ENV === 'production'
+const isVercel = process.env.VERCEL === '1'
+const databaseProvider = process.env.DATABASE_PROVIDER || (isVercel ? 'postgresql' : 'sqlite')
+
+/**
+ * 创建 Prisma Client 实例
+ * 使用 Prisma 7 Driver Adapters 模式
+ */
+function createPrismaClient(): PrismaClient {
+    // PostgreSQL (Vercel/Supabase)
+    if (databaseProvider === 'postgresql') {
+        console.log('[Prisma] Using PostgreSQL with @prisma/adapter-pg')
+
+        // 动态导入以避免在 SQLite 环境加载 pg
+        const { PrismaPg } = require('@prisma/adapter-pg')
+        const connectionString = process.env.DATABASE_URL
+
+        if (!connectionString) {
+            throw new Error('DATABASE_URL is required for PostgreSQL')
+        }
+
+        const adapter = new PrismaPg({ connectionString })
+
+        return new PrismaClient({
+            adapter,
+            log: isProduction ? ['error'] : ['query', 'error', 'warn'],
+        })
+    }
+
+    // SQLite (本地开发)
+    console.log('[Prisma] Using SQLite with @prisma/adapter-better-sqlite3')
+
+    const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3')
+    const DATABASE_URL = process.env.DATABASE_URL || 'file:./team-calls.db'
+    const adapter = new PrismaBetterSqlite3({ url: DATABASE_URL })
+
+    return new PrismaClient({
+        adapter,
+        log: ['query', 'error', 'warn'],
+    })
+}
+
+// 使用延迟初始化的单例模式
 function getPrismaClient(): PrismaClient {
-    // 如果已经有全局实例，直接返回
     if (globalThis._prisma) {
         return globalThis._prisma
     }
 
-    // 检测当前环境使用的数据库类型
-    const isProduction = process.env.NODE_ENV === 'production'
-    const isVercel = process.env.VERCEL === '1'
-    const databaseProvider = process.env.DATABASE_PROVIDER || (isVercel ? 'postgresql' : 'sqlite')
-
-    let client: PrismaClient
-
-    // 在 Vercel/生产环境使用 PostgreSQL，无需 adapter
-    if (databaseProvider === 'postgresql') {
-        console.log('[Prisma] Using PostgreSQL (Supabase)')
-        client = new PrismaClient({
-            log: isProduction ? ['error'] : ['query', 'error', 'warn'],
-        })
-    } else {
-        // 本地开发环境使用 SQLite + better-sqlite3 adapter
-        console.log('[Prisma] Using SQLite (local development)')
-
-        // 动态导入 better-sqlite3 adapter（仅在本地需要）
-        // 这样在 Vercel 环境不会尝试加载 native 模块
-        const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3')
-        const DATABASE_URL = process.env.DATABASE_URL || 'file:./team-calls.db'
-        const adapter = new PrismaBetterSqlite3({ url: DATABASE_URL })
-
-        client = new PrismaClient({
-            adapter,
-            log: ['query', 'error', 'warn'],
-        })
-    }
+    const client = createPrismaClient()
 
     // 开发环境下保存到全局变量，避免热重载问题
     if (!isProduction) {
@@ -62,10 +79,10 @@ function getPrismaClient(): PrismaClient {
     return client
 }
 
-// 使用 Proxy 来延迟初始化
-// 这样只有在实际访问 prisma 方法时才会创建客户端
+// 使用 Proxy 实现延迟初始化
+// 只有在实际使用时才创建客户端，避免构建时执行
 const prisma = new Proxy({} as PrismaClient, {
-    get(target, prop) {
+    get(_target, prop) {
         const client = getPrismaClient()
         return (client as any)[prop]
     }
