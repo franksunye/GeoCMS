@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { getStorageUrl } from '@/lib/storage'
 
 const logger = createLogger('Calls')
 
@@ -258,7 +259,7 @@ export async function GET() {
           confidence: s.confidence
         })),
         transcript,
-        audioUrl: call.audioUrl
+        audioUrl: getStorageUrl(call.audioUrl)
       }
     })
 

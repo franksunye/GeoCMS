@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
@@ -50,133 +50,218 @@ const getSignalsForTimestamp = (
 /**
  * Audio Player Component for Call Recording
  */
-function CallRecordingPlayer({ callId, duration, audioUrl }: { callId: string | number; duration: number; audioUrl?: string }) {
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [volume, setVolume] = useState(100)
-  
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
+// Define handle for parent control
+export interface PlayerHandle {
+  seekTo: (time: number) => void;
+  play: () => void;
+  pause: () => void;
+}
 
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying)
-  }
+interface CallRecordingPlayerProps {
+  callId: string | number;
+  duration: number;
+  audioUrl?: string;
+  onTimeUpdate?: (time: number) => void;
+  onIsPlayingChange?: (isPlaying: boolean) => void;
+}
 
-  const handleReset = () => {
-    setCurrentTime(0)
-    setIsPlaying(false)
-  }
+const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerProps>(
+  ({ callId, duration, audioUrl, onTimeUpdate, onIsPlayingChange }, ref) => {
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [currentTime, setCurrentTime] = useState(0)
+    const [volume, setVolume] = useState(100)
+    const [playbackRate, setPlaybackRate] = useState(1)
+    const audioRef = useRef<HTMLAudioElement>(null)
 
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCurrentTime(parseFloat(e.target.value))
-  }
+    // Notify parent of state changes
+    useEffect(() => {
+      onIsPlayingChange?.(isPlaying)
+    }, [isPlaying, onIsPlayingChange])
 
-  return (
-    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-100">
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">通话录音</h3>
-          <p className="text-xs text-gray-600 mt-1">
-            总时长: {formatTime(duration)}
-          </p>
-        </div>
-        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
-          可播放
-        </span>
-      </div>
+    // Expose methods to parent
+    React.useImperativeHandle(ref, () => ({
+      seekTo: (time: number) => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = time
+          // Optional: Auto play on seek
+          if (!isPlaying) {
+            audioRef.current.play().catch(console.error)
+            setIsPlaying(true)
+          }
+        }
+      },
+      play: () => audioRef.current?.play(),
+      pause: () => audioRef.current?.pause()
+    }))
 
-      {/* Player Controls */}
-      <div className="space-y-4">
-        {/* Play/Pause Controls */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handlePlayPause}
-            className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-md hover:shadow-lg"
-          >
-            {isPlaying ? (
-              <Pause className="h-5 w-5 fill-current" />
-            ) : (
-              <Play className="h-5 w-5 fill-current ml-0.5" />
-            )}
-          </button>
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center justify-center px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors text-sm font-medium"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-          <span className="text-sm font-mono text-gray-700">
-            {formatTime(currentTime)} / {formatTime(duration)}
+    // Sync volume
+    useEffect(() => {
+      if (audioRef.current) {
+        audioRef.current.volume = volume / 100
+      }
+    }, [volume])
+
+    // Sync playback rate and keep it persistent
+    // When audio src changes or metadata loads, playbackRate might reset, so we enforce it
+    useEffect(() => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      audio.playbackRate = playbackRate
+      
+      const enforceRate = () => { audio.playbackRate = playbackRate }
+      audio.addEventListener('play', enforceRate)
+      return () => audio.removeEventListener('play', enforceRate)
+    }, [playbackRate])
+
+    const handlePlayPause = () => {
+      if (!audioRef.current) return
+      
+      if (isPlaying) {
+        audioRef.current.pause()
+      } else {
+        audioRef.current.play().catch(e => console.error("Play failed:", e))
+      }
+      setIsPlaying(!isPlaying)
+    }
+
+    const handleReset = () => {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0
+        audioRef.current.pause()
+      }
+      setCurrentTime(0)
+      setIsPlaying(false)
+      onTimeUpdate?.(0)
+    }
+
+    const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const time = parseFloat(e.target.value)
+      setCurrentTime(time)
+      if (audioRef.current) {
+        audioRef.current.currentTime = time
+      }
+    }
+
+    const handleTimeUpdate = () => {
+      if (audioRef.current) {
+        const time = audioRef.current.currentTime
+        setCurrentTime(time)
+        onTimeUpdate?.(time) 
+      }
+    }
+
+    const handleEnded = () => {
+      setIsPlaying(false)
+      setCurrentTime(0)
+      onTimeUpdate?.(0)
+    }
+
+    const formatTime = (seconds: number) => {
+      const mins = Math.floor(seconds / 60)
+      const secs = Math.floor(seconds % 60)
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+
+    return (
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-100 sticky top-4 z-10 shadow-sm">
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onTimeUpdate={handleTimeUpdate}
+          onEnded={handleEnded}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          preload="metadata"
+        />
+        
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">通话录音</h3>
+            <p className="text-xs text-gray-600 mt-1">
+              总时长: {Math.floor(duration/60)}分{Math.floor(duration%60)}秒
+            </p>
+          </div>
+          <span className={`px-2 py-1 rounded text-xs font-medium ${audioUrl ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
+            {audioUrl ? '可播放' : '无录音'}
           </span>
         </div>
 
-        {/* Progress Bar */}
-        <div className="flex items-center gap-3">
-          <input
-            type="range"
-            min="0"
-            max={duration}
-            value={currentTime}
-            onChange={handleProgressChange}
-            className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-        </div>
+        {/* Player Controls */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handlePlayPause}
+              disabled={!audioUrl}
+              className={`inline-flex items-center justify-center w-12 h-12 rounded-full text-white transition-colors shadow-md hover:shadow-lg ${audioUrl ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+            >
+              {isPlaying ? (
+                <Pause className="h-5 w-5 fill-current" />
+              ) : (
+                <Play className="h-5 w-5 fill-current ml-0.5" />
+              )}
+            </button>
+            <button
+              onClick={handleReset}
+              disabled={!audioUrl}
+              className="inline-flex items-center justify-center px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 transition-colors text-sm font-medium disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-mono text-gray-700">
+              {formatTime(currentTime)} / {formatTime(duration)}
+            </span>
+          </div>
 
-        {/* Volume Control */}
-        <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
-          <Volume2 className="h-4 w-4 text-gray-600" />
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={(e) => setVolume(parseInt(e.target.value))}
-            className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-          <span className="text-xs text-gray-600 w-8 text-right">{volume}%</span>
-        </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min="0"
+              max={duration || 100}
+              value={currentTime}
+              onChange={handleProgressChange}
+              disabled={!audioUrl}
+              className="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600 disabled:opacity-50"
+            />
+          </div>
 
-        {/* Playback Speed */}
-        <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
-          <span className="text-xs font-medium text-gray-700">倍速:</span>
-          <div className="flex gap-1">
-            {[0.75, 1, 1.25, 1.5].map((speed) => (
-              <button
-                key={speed}
-                className="px-2 py-1 rounded bg-white border border-gray-300 hover:border-blue-500 text-xs font-medium text-gray-700 hover:text-blue-600 transition-colors"
-              >
-                {speed}x
-              </button>
-            ))}
+          <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
+            <Volume2 className="h-4 w-4 text-gray-600" />
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volume}
+              onChange={(e) => setVolume(parseInt(e.target.value))}
+              className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+            <span className="text-xs text-gray-600 w-8 text-right">{volume}%</span>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2 border-t border-blue-200">
+            <span className="text-xs font-medium text-gray-700">倍速:</span>
+            <div className="flex gap-1">
+              {[0.75, 1, 1.25, 1.5, 2.0].map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => setPlaybackRate(speed)}
+                  className={`px-2 py-1 rounded border text-xs font-medium transition-colors ${
+                    playbackRate === speed 
+                      ? 'bg-blue-600 text-white border-blue-600' 
+                      : 'bg-white border-gray-300 text-gray-700 hover:text-blue-600 hover:border-blue-500'
+                  }`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-
-      {/* Recording Info */}
-      <div className="mt-4 pt-4 border-t border-blue-200 grid grid-cols-2 gap-3 text-xs">
-        <div>
-          <span className="text-gray-600">格式:</span>
-          <p className="font-medium text-gray-900">MP3</p>
-        </div>
-        <div>
-          <span className="text-gray-600">大小:</span>
-          <p className="font-medium text-gray-900">12.5 MB</p>
-        </div>
-        <div>
-          <span className="text-gray-600">码率:</span>
-          <p className="font-medium text-gray-900">128 kbps</p>
-        </div>
-        <div>
-          <span className="text-gray-600">声道:</span>
-          <p className="font-medium text-gray-900">立体声</p>
-        </div>
-      </div>
-    </div>
-  )
-}
+    )
+  }
+)
+CallRecordingPlayer.displayName = 'CallRecordingPlayer'
 
 export default function ConversationCallListPage() {
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null)
@@ -184,6 +269,11 @@ export default function ConversationCallListPage() {
   const [expandedTagKey, setExpandedTagKey] = useState<string | null>(null)
   const [filterAgent, setFilterAgent] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'recent' | 'score' | 'duration'>('recent')
+  
+  // Link Transcript with Audio
+  const playerRef = useRef<PlayerHandle>(null)
+  const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
+  const [isPlayerPlaying, setIsPlayerPlaying] = useState(false)
 
   const { data: calls, isLoading } = useQuery<CallRecord[]>({
     queryKey: ['calls'],
@@ -419,8 +509,19 @@ export default function ConversationCallListPage() {
                 </div>
               </div>
 
-              {/* Tabs */}
               <div className="border-b border-gray-200 bg-gray-50">
+                {/* Persistent Player */}
+                <div className="px-6 pt-6 pb-2">
+                    <CallRecordingPlayer 
+                      ref={playerRef}
+                      callId={selectedCall.id} 
+                      duration={selectedCall.duration_minutes * 60} 
+                      audioUrl={selectedCall.audioUrl}
+                      onTimeUpdate={(t) => setCurrentPlaybackTime(t)}
+                      onIsPlayingChange={setIsPlayerPlaying}
+                    />
+                </div>
+
                 <div className="flex overflow-x-auto">
                   {[
                     { id: 'summary', label: '通话摘要', icon: PhoneCall },
@@ -448,13 +549,6 @@ export default function ConversationCallListPage() {
               <div className="p-6">
                 {activeTab === 'summary' && (
                   <div className="space-y-6">
-                    {/* Call Recording Player */}
-                    <CallRecordingPlayer 
-                      callId={selectedCall.id} 
-                      duration={selectedCall.duration_minutes * 60} 
-                      audioUrl={selectedCall.audioUrl}
-                    />
-
                     {/* Call Overview */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -530,14 +624,24 @@ export default function ConversationCallListPage() {
                             selectedCall.rawSignals,
                             entry.timestamp
                           )
+
+                          // Check if this entry is currently being played
+                          // Logic: currentTime >= entry.start && currentTime < nextEntry.start
+                          // If it's the last entry, just check >= start
+                          const nextEntry = selectedCall.transcript[idx + 1]
+                          const isCurrent = currentPlaybackTime >= entry.timestamp && 
+                            (!nextEntry || currentPlaybackTime < nextEntry.timestamp)
                           
                           return (
                             <div
                               key={idx}
-                              className={`flex gap-3 p-3 rounded-lg border ${
-                                entry.speaker === 'agent'
-                                  ? 'bg-blue-50 border-blue-200'
-                                  : 'bg-gray-50 border-gray-200'
+                              onClick={() => playerRef.current?.seekTo(entry.timestamp)}
+                              className={`flex gap-3 p-3 rounded-lg border cursor-pointer transition-colors border-l-4 ${
+                                isCurrent 
+                                  ? 'bg-amber-50 border-amber-400 ring-1 ring-amber-100 shadow-sm' 
+                                  : entry.speaker === 'agent'
+                                    ? 'bg-blue-50 border-blue-200 border-l-blue-400 hover:bg-blue-100'
+                                    : 'bg-gray-50 border-gray-200 border-l-gray-400 hover:bg-gray-100'
                               }`}
                             >
                               {/* Speaker Avatar */}
@@ -709,14 +813,47 @@ export default function ConversationCallListPage() {
                                   {/* Context Events List (Directly from Tag) */}
                                   {(() => {
                                     let events: any[] = []
+                                    // Robust Parsing Logic
                                     try {
-                                      if (item.contextEvents) {
-                                        const parsed = JSON.parse(item.contextEvents)
-                                        if (Array.isArray(parsed)) events = parsed
+                                      let raw = item.contextEvents
+                                      if (raw) {
+                                        // 1. Initial parse / check
+                                        if (typeof raw === 'string') {
+                                          try {
+                                            events = JSON.parse(raw)
+                                          } catch { /* ignore */ }
+                                        } else if (typeof raw === 'object') {
+                                          events = raw
+                                        }
+
+                                        // 2. Handle double-stringified JSON (common in ETL pipelines)
+                                        if (typeof events === 'string') {
+                                           try {
+                                             events = JSON.parse(events)
+                                           } catch { /* ignore */ }
+                                        }
+
+                                        // 3. Ensure it's an array
+                                        if (!Array.isArray(events)) {
+                                          events = []
+                                        }
                                       }
                                     } catch (e) {
                                       console.error('Failed to parse contextEvents', e)
                                     }
+                                    
+                                    // Debug: Force show raw data type
+                                    /*
+                                    return (
+                                      <div className="text-xs border p-2 mb-2 bg-yellow-50 text-gray-500 font-mono break-all">
+                                        DEBUG: HasEvents={item.contextEvents ? 'YES' : 'NO'} <br/>
+                                        Type={typeof item.contextEvents} <br/>
+                                        RawLength={item.contextEvents?.length} <br/>
+                                        ParsedEvents={events.length} <br/>
+                                        Value={String(item.contextEvents).substring(0, 50)}...
+                                      </div>
+                                    )
+                                    */
                                     
                                     if (events.length > 0) {
                                       return (
@@ -725,17 +862,91 @@ export default function ConversationCallListPage() {
                                             <MessageSquare className="h-4 w-4 text-blue-600" />
                                             <h5 className="text-sm font-semibold text-gray-900">
                                               相关对话片段 (Context Events)
+                                              {/* Debug count */}
+                                              <span className="text-xs text-gray-400 font-normal ml-2">({events.length} items)</span>
                                             </h5>
                                           </div>
-                                          {events.map((ctx, idx) => (
-                                            <div key={idx} className="bg-white rounded border border-gray-200 p-3 text-sm text-gray-700 shadow-sm">
-                                              <p className="whitespace-pre-wrap italic">"{typeof ctx === 'string' ? ctx : JSON.stringify(ctx)}"</p>
-                                            </div>
-                                          ))}
+                                          {events.map((ctx, idx) => {
+                                            // Ensure conversion to number
+                                            const ts = Number(ctx.timestamp_sec)
+                                            const hasTimestamp = !isNaN(ts) && ts > 0
+                                            
+                                            // Fallback for text extraction
+                                            const text = ctx.context_text || ctx.text || (typeof ctx === 'string' ? ctx : JSON.stringify(ctx))
+
+                                            // Check if currently playing this segment (within 10 seconds window)
+                                            const isCurrentSegment = hasTimestamp && currentPlaybackTime >= ts && currentPlaybackTime < (ts + 10)
+                                            // Determine visual state: playing if current segment AND player is actually playing
+                                            const isVisuallyPlaying = isCurrentSegment && isPlayerPlaying
+
+                                            return (
+                                              <div 
+                                                key={idx} 
+                                                onClick={(e) => {
+                                                  e.stopPropagation() 
+                                                  if (hasTimestamp && playerRef.current) {
+                                                    if (isCurrentSegment && isPlayerPlaying) {
+                                                      // If currently playing this segment, pause
+                                                      playerRef.current.pause()
+                                                    } else {
+                                                      // Otherwise seek and play
+                                                      playerRef.current.seekTo(ts)
+                                                      playerRef.current.play()
+                                                    }
+                                                  }
+                                                }}
+                                                className={`bg-white rounded border p-3 text-sm transition-all duration-300 ${
+                                                  isCurrentSegment 
+                                                    ? 'border-blue-400 ring-1 ring-blue-100 shadow-md transform scale-[1.01]' 
+                                                    : 'border-gray-200 shadow-sm'
+                                                } ${
+                                                  hasTimestamp ? 'cursor-pointer hover:bg-blue-50 hover:border-blue-300 group' : ''
+                                                }`}
+                                              >
+                                                <div className="flex flex-col gap-1">
+                                                  <div className="flex items-start justify-between gap-2">
+                                                    <p className={`whitespace-pre-wrap italic flex-1 transition-colors ${isCurrentSegment ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
+                                                      "{text}"
+                                                    </p>
+                                                    {hasTimestamp ? (
+                                                      <span className={`text-xs font-mono px-1.5 py-0.5 rounded transition-all whitespace-nowrap flex items-center gap-1 ${
+                                                        isCurrentSegment 
+                                                          ? 'bg-blue-600 text-white opacity-100' 
+                                                          : 'bg-blue-50 text-blue-500 opacity-100 group-hover:opacity-100'
+                                                      }`}>
+                                                        {isVisuallyPlaying ? (
+                                                          <span className="flex h-2 w-2 relative">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                                                          </span>
+                                                        ) : (
+                                                          // If current segment but paused, show play icon (or pause icon if we wanted to indicate 'paused on this')
+                                                          // But standard is 'play' means 'click to play'. 
+                                                          // Let's us standard play icon always, but changes color.
+                                                          '▶'
+                                                        )}
+                                                        {Math.floor(ts / 60)}:{(Math.floor(ts) % 60).toString().padStart(2, '0')}
+                                                      </span>
+                                                    ) : (
+                                                      <span className="text-xs text-red-300">TS: {String(ctx.timestamp_sec)}</span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          })}
                                         </div>
                                       )
                                     }
                                     
+                                    // Fallback for Debugging: if events is empty, show why
+                                    if (item.contextEvents) {
+                                        return (
+                                            <div className="text-xs border p-2 bg-red-50 text-red-600">
+                                                Failed to parse events. Raw: {typeof item.contextEvents}
+                                            </div>
+                                        )
+                                    }
                                     // Fallback if no context events but has legacy scalar context
                                     if (item.context) {
                                        return (
@@ -819,6 +1030,7 @@ type SignalItem = {
     reasoning: string
     confidence: number
   }[]
+  contextEvents?: any
 }
 
 function buildSignalItems(call: CallRecord): SignalItem[] {
@@ -848,7 +1060,8 @@ function buildSignalItems(call: CallRecord): SignalItem[] {
         timestamp: s.timestamp ? new Date(s.timestamp).toISOString() : null,
         reasoning: s.reasoning,
         is_mandatory: s.is_mandatory,
-        occurrences: s.occurrences
+        occurrences: s.occurrences,
+        contextEvents: (s as any).contextEvents
       }
     })
   }

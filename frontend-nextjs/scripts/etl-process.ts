@@ -36,6 +36,16 @@ async function runETL() {
   allDeals.forEach(d => dealMap.set(d.id, d.outcome))
   console.log(`Loaded ${dealMap.size} deals for outcome lookup.`)
 
+  // 1.1 Load Transcripts Map (dealId -> audioUrl)
+  const allTranscripts = await prisma.transcript.findMany({
+    select: { dealId: true, audioUrl: true }
+  })
+  const audioMap = new Map<string, string>()
+  allTranscripts.forEach(t => {
+    if (t.audioUrl) audioMap.set(t.dealId, t.audioUrl)
+  })
+  console.log(`Loaded ${audioMap.size} audio URLs from transcripts.`)
+
   // 2. Clear existing data
   console.log('\nClearing existing calls, assessments, and signals...')
   await prisma.callAssessment.deleteMany({})
@@ -72,10 +82,13 @@ async function runETL() {
 
     // Prepare ETL input
     const outcome = dealMap.get(callId) || 'unknown'
+    const audioUrl = audioMap.get(callId) || ''
+    
     const input: ETLInput = {
       callId: callId,
       agentId: log.agentId || 'unknown',
       outcome: outcome,
+      audioUrl: audioUrl,
       createdAt: log.createdAt,
       analysisResult: analysisResult
     }
