@@ -38,7 +38,6 @@ function createPrismaClient(): PrismaClient {
 
     // 动态导入 better-sqlite3 adapter（仅在本地需要）
     // 这样在 Vercel 环境不会尝试加载 native 模块
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3')
     const DATABASE_URL = process.env.DATABASE_URL || 'file:./team-calls.db'
     const adapter = new PrismaBetterSqlite3({ url: DATABASE_URL })

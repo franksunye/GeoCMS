@@ -677,7 +677,7 @@ export default function PromptsPage() {
                                                                     <p className="text-gray-600 mb-2">{signal.reasoning}</p>
                                                                     {signal.context_text && (
                                                                         <div className="text-xs text-gray-500 italic border-l-2 border-gray-300 pl-2">
-                                                                            "{signal.context_text}"
+                                                                            &quot;{signal.context_text}&quot;
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -693,7 +693,7 @@ export default function PromptsPage() {
                                                     ) : (
                                                         <div className="text-center py-8 text-gray-500">
                                                             <p>未检测到结构化信号数据</p>
-                                                            <p className="text-xs mt-2 text-gray-400">请检查 "原始 JSON" 页签查看 AI 实际返回的内容</p>
+                                                            <p className="text-xs mt-2 text-gray-400">请检查 &quot;原始 JSON&quot; 页签查看 AI 实际返回的内容</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -712,7 +712,7 @@ export default function PromptsPage() {
                         ) : (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
                                 <Play className="h-12 w-12 mb-4 opacity-20" />
-                                <p>点击左侧 "立即测试" 执行运行</p>
+                                <p>点击左侧 &quot;立即测试&quot; 执行运行</p>
                             </div>
                         )}
                     </div>

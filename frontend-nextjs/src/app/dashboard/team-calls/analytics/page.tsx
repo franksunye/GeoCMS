@@ -48,6 +48,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     fetchValidationData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeFrame])
 
   const fetchValidationData = async () => {

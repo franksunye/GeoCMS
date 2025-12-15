@@ -144,6 +144,7 @@ export default function ConversationConfigPage() {
     if (activeTab === 'tags') {
       fetchTags()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, filterState])
 
   const fetchTags = async () => {
@@ -1292,7 +1293,7 @@ export default function ConversationConfigPage() {
                     <span className="text-xs text-red-700 block mt-0.5">
                         若未触发此标签，该维度评分将被拉低（计入分母但分子为0）。
                         <br/>
-                        若未勾选（默认），则为"加分项"，未触发时不影响平均分。
+                        若未勾选（默认），则为&quot;加分项&quot;，未触发时不影响平均分。
                     </span>
                   </div>
                 </label>

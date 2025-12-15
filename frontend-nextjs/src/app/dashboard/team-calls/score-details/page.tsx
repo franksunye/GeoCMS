@@ -114,6 +114,7 @@ export default function ScoreDetailsPage() {
 
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, dimension, tagName, limit])
 
   const fetchData = async () => {
@@ -331,7 +332,7 @@ export default function ScoreDetailsPage() {
                                             )}
                                             <div className="flex-1">
                                               <span className={`px-1.5 py-0.5 rounded ${isActive ? 'bg-blue-50 text-blue-900 font-medium' : 'bg-gray-50 text-gray-700'}`}>
-                                                "{contextText.trim()}"
+                                                &quot;{contextText.trim()}&quot;
                                               </span>
                                               {timestampSec !== undefined && (
                                                 <span className="ml-2 text-[10px] text-gray-400 font-mono">
@@ -352,7 +353,7 @@ export default function ScoreDetailsPage() {
                                         {assessment.context_text.split(' | ').map((text: string, idx: number) => (
                                           <div key={idx} className="flex items-start gap-2">
                                             <span className="bg-gray-50 px-1.5 py-0.5 rounded text-gray-700">
-                                              "{text.trim()}"
+                                              &quot;{text.trim()}&quot;
                                             </span>
                                           </div>
                                         ))}

@@ -311,7 +311,7 @@ export default function AiAuditPage() {
                                                                 )}
                                                                 <span>Confidence: {s.confidence ?? '-'}</span>
                                                             </div>
-                                                            <div className={`${isActive ? 'text-blue-900 font-medium' : 'text-gray-800'}`}>"{s.contextText}"</div>
+                                                            <div className={`${isActive ? 'text-blue-900 font-medium' : 'text-gray-800'}`}>&quot;{s.contextText}&quot;</div>
                                                         </li>
                                                         )
                                                     })}
@@ -348,7 +348,7 @@ export default function AiAuditPage() {
                                                                 <span>Confidence: {typeof e === 'object' ? e.confidence : '-'}</span>
                                                             </div>
                                                             <div className={`${isActive ? 'text-blue-900 font-medium' : 'text-gray-800'}`}>
-                                                                "{typeof e === 'object' ? e.context_text : e}"
+                                                                &quot;{typeof e === 'object' ? e.context_text : e}&quot;
                                                             </div>
                                                         </li>
                                                         )

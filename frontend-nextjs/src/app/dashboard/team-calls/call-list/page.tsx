@@ -968,7 +968,7 @@ export default function ConversationCallListPage() {
                                                 <div className="flex flex-col gap-1">
                                                   <div className="flex items-start justify-between gap-2">
                                                     <p className={`whitespace-pre-wrap italic flex-1 transition-colors ${isCurrentSegment ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
-                                                      "{text}"
+                                                      &quot;{text}&quot;
                                                     </p>
                                                     {hasTimestamp ? (
                                                       <span className={`text-xs font-mono px-1.5 py-0.5 rounded transition-all whitespace-nowrap flex items-center gap-1 ${
@@ -1018,7 +1018,7 @@ export default function ConversationCallListPage() {
                                               <h5 className="text-sm font-semibold text-gray-900">Context</h5>
                                             </div>
                                             <div className="bg-white rounded border border-gray-200 p-3 text-sm text-gray-700 shadow-sm">
-                                              <p className="whitespace-pre-wrap italic">"{item.context}"</p>
+                                              <p className="whitespace-pre-wrap italic">&quot;{item.context}&quot;</p>
                                             </div>
                                           </div>
                                        )
