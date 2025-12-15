@@ -48,6 +48,7 @@ async function runETL() {
 
   // 2. Clear existing data
   console.log('\nClearing existing calls, assessments, and signals...')
+  await prisma.promptExecutionLog.deleteMany({})
   await prisma.callAssessment.deleteMany({})
   await prisma.callSignal.deleteMany({})
   await prisma.call.deleteMany({})

@@ -65,7 +65,7 @@ const SYNC_JOBS: SyncJob[] = [
   {
     // cardId: 1937, // AI Analysis Logs V1
     cardId: 1942, // AI Analysis Logs V2
-    tableName: 'ai_analysis_logs',
+    tableName: 'sync_ai_analysis',
     mapping: {
       '_id': 'id',
       'outId': 'transcriptId',
@@ -78,7 +78,7 @@ const SYNC_JOBS: SyncJob[] = [
   },
   {
     cardId: 1938, // audioURL & Transcripts
-    tableName: 'transcripts',
+    tableName: 'sync_transcripts',
     mapping: {
       '_id': 'id',
       'serviceAppointmentId': 'dealId',
@@ -90,7 +90,7 @@ const SYNC_JOBS: SyncJob[] = [
   },
   {
     cardId: 1939, // Deals
-    tableName: 'deals',
+    tableName: 'sync_deals',
     mapping: {
       '_id': 'id',
       'supervisorId': 'agentId',
@@ -100,7 +100,7 @@ const SYNC_JOBS: SyncJob[] = [
   },
   {
     cardId: 1940, // Agents
-    tableName: 'agents',
+    tableName: 'sync_agents',
     mapping: {
       '_id': 'id',
       'name': 'name',
@@ -231,13 +231,13 @@ async function runSync() {
             }
 
             // Specific check for transcripts
-            if (job.tableName === 'transcripts' && !params['dealId']) {
+            if (job.tableName === 'sync_transcripts' && !params['dealId']) {
                // console.warn('Skipping transcript missing dealId');
                continue;
             }
 
             // Specific check for deals
-            if (job.tableName === 'deals' && !params['agentId']) {
+            if (job.tableName === 'sync_deals' && !params['agentId']) {
                console.warn('Skipping deal missing agentId (supervisorId)');
                continue;
             }

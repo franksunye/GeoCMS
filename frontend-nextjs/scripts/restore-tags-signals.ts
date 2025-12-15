@@ -81,13 +81,13 @@ async function restoreTags() {
         console.log('═══════════════════════════════════════════')
 
         // 检查 tags 表是否存在，存在则删除重建以确保结构一致
-        const tagsTableCheck = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='tags'`)
+        const tagsTableCheck = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='cfg_tags'`)
         const tagsTableExists = tagsTableCheck.get()
 
         if (tagsTableExists) {
             console.log('⚠️  Tags table exists. Dropping to apply new schema...')
             db.pragma('foreign_keys = OFF')
-            db.prepare('DROP TABLE tags').run()
+            db.prepare('DROP TABLE cfg_tags').run()
             db.pragma('foreign_keys = ON')
         }
 
@@ -95,7 +95,7 @@ async function restoreTags() {
 
         // 创建 tags 表（匹配 db.ts 中的定义）
         db.exec(`
-            CREATE TABLE tags (
+            CREATE TABLE cfg_tags (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 code TEXT NOT NULL UNIQUE,
@@ -114,7 +114,7 @@ async function restoreTags() {
 
         // 准备插入语句
         const insertTag = db.prepare(`
-            INSERT INTO tags (id, name, code, category, dimension, polarity, severity, scoreRange, description, active, createdAt, updatedAt)
+            INSERT INTO cfg_tags (id, name, code, category, dimension, polarity, severity, scoreRange, description, active, createdAt, updatedAt)
             VALUES (@id, @name, @code, @category, @dimension, @polarity, @severity, @scoreRange, @description, @active, @createdAt, @updatedAt)
             ON CONFLICT(code) DO UPDATE SET
                 name = excluded.name,
@@ -159,13 +159,13 @@ async function restoreTags() {
         console.log('✅ Tags data restored successfully')
 
         // 验证 Tags 恢复结果
-        const tagCountResult = db.prepare('SELECT COUNT(*) as count FROM tags').get() as { count: number }
+        const tagCountResult = db.prepare('SELECT COUNT(*) as count FROM cfg_tags').get() as { count: number }
         console.log(`📊 Total tags in database: ${tagCountResult.count}`)
 
         // 按分类统计 Tags
         const tagCategoryStats = db.prepare(`
             SELECT category, COUNT(*) as count 
-            FROM tags 
+            FROM cfg_tags 
             GROUP BY category 
             ORDER BY count DESC
         `).all()
@@ -182,13 +182,13 @@ async function restoreTags() {
         console.log('═══════════════════════════════════════════')
 
         // 检查 signals 表是否存在，存在则删除重建
-        const signalsTableCheck = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='signals'`)
+        const signalsTableCheck = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='cfg_signals'`)
         const signalsTableExists = signalsTableCheck.get()
 
         if (signalsTableExists) {
             console.log('⚠️  Signals table exists. Dropping to apply new schema...')
             db.pragma('foreign_keys = OFF')
-            db.prepare('DROP TABLE signals').run()
+            db.prepare('DROP TABLE cfg_signals').run()
             db.pragma('foreign_keys = ON')
         }
 
@@ -196,7 +196,7 @@ async function restoreTags() {
 
         // 创建 signals 表（匹配 db.ts 中的定义）
         db.exec(`
-            CREATE TABLE signals (
+            CREATE TABLE cfg_signals (
                 id TEXT PRIMARY KEY,
                 code TEXT NOT NULL UNIQUE,
                 name TEXT NOT NULL,
@@ -214,7 +214,7 @@ async function restoreTags() {
 
         // 准备插入语句
         const insertSignal = db.prepare(`
-            INSERT INTO signals (id, code, name, category, dimension, targetTagCode, aggregationMethod, description, active, createdAt, updatedAt)
+            INSERT INTO cfg_signals (id, code, name, category, dimension, targetTagCode, aggregationMethod, description, active, createdAt, updatedAt)
             VALUES (@id, @code, @name, @category, @dimension, @targetTagCode, @aggregationMethod, @description, @active, @createdAt, @updatedAt)
             ON CONFLICT(code) DO UPDATE SET
                 name = excluded.name,
@@ -251,13 +251,13 @@ async function restoreTags() {
         console.log('✅ Signals data restored successfully')
 
         // 验证 Signals 恢复结果
-        const signalCountResult = db.prepare('SELECT COUNT(*) as count FROM signals').get() as { count: number }
+        const signalCountResult = db.prepare('SELECT COUNT(*) as count FROM cfg_signals').get() as { count: number }
         console.log(`📊 Total signals in database: ${signalCountResult.count}`)
 
         // 按分类统计 Signals
         const signalCategoryStats = db.prepare(`
             SELECT category, COUNT(*) as count 
-            FROM signals 
+            FROM cfg_signals 
             GROUP BY category 
             ORDER BY count DESC
         `).all()
@@ -276,8 +276,8 @@ async function restoreTags() {
         // 检查所有 signal 的 targetTagCode 是否都有对应的 tag
         const orphanSignals = db.prepare(`
             SELECT s.code as signalCode, s.targetTagCode
-            FROM signals s
-            LEFT JOIN tags t ON s.targetTagCode = t.code
+            FROM cfg_signals s
+            LEFT JOIN cfg_tags t ON s.targetTagCode = t.code
             WHERE t.code IS NULL
         `).all() as { signalCode: string; targetTagCode: string }[]
 
@@ -293,7 +293,7 @@ async function restoreTags() {
         // 统计聚合关系
         const aggregationStats = db.prepare(`
             SELECT targetTagCode, COUNT(*) as signalCount
-            FROM signals
+            FROM cfg_signals
             GROUP BY targetTagCode
             HAVING signalCount > 1
             ORDER BY signalCount DESC
