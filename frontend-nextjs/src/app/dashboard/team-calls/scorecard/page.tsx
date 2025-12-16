@@ -247,6 +247,19 @@ export default function ScorecardPage() {
     window.open(url, '_blank')
   }
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedAgent(null)
+      }
+    }
+    if (selectedAgent) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedAgent])
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -479,7 +492,7 @@ export default function ScorecardPage() {
             <button
               key={agent.id}
               onClick={() => setSelectedAgent(agent)}
-              className={`w-full text-left cursor-pointer rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow ${getScoreBgColor(
+              className={`w-full text-left cursor-pointer rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${getScoreBgColor(
                 agent.overallScore
               )}`}
             >
@@ -642,24 +655,24 @@ export default function ScorecardPage() {
                                     )}
                                   </div>
                                 </td>
-                                <TooltipProvider>
-                                  <Tooltip delayDuration={0}>
-                                    <TooltipTrigger asChild>
-                                      <td 
-                                        className={`px-6 py-3.5 text-center cursor-pointer relative hover:bg-white transition-all duration-200 border-x border-transparent hover:border-gray-100 hover:shadow-sm`}
-                                        onClick={() => handleViewRecordings(selectedAgent.id, detail.tagId)}
-                                      >
-                                          <div className={`text-sm font-bold inline-flex items-center gap-1.5 ${getScoreColor(detail.score)}`}>
-                                            {Math.round(detail.score)}
-                                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-gray-400 transition-all transform translate-y-0.5" />
-                                          </div>
-                                      </td>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="flex items-center bg-gray-900 text-white border-gray-800">
-                                      <p className="text-xs font-medium">点击查看相关录音</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                <td 
+                                  className={`px-6 py-3.5 text-center cursor-pointer transition-colors hover:bg-white group/cell relative ${getScoreColor(detail.score)}`}
+                                  onClick={() => handleViewRecordings(selectedAgent.id, detail.tagId)}
+                                >
+                                  <TooltipProvider>
+                                    <Tooltip delayDuration={0}>
+                                      <TooltipTrigger asChild>
+                                        <div className="flex items-center justify-center gap-1.5 font-bold w-full h-full">
+                                          {Math.round(detail.score)}
+                                          <ExternalLink className="h-3 w-3 opacity-0 group-hover/cell:opacity-100 text-gray-500 transition-opacity" />
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="flex items-center bg-gray-900 text-white border-gray-800">
+                                        <p className="text-xs font-medium">点击查看相关录音</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </td>
                                 <td className="px-6 py-3.5 text-center text-sm font-medium text-gray-500">
                                   {teamAvg}
                                 </td>
