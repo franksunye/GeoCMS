@@ -6,12 +6,13 @@ interface AgentAvatarProps {
   agentId: string
   name?: string
   avatarUrl?: string
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   showStatus?: boolean
   status?: 'active' | 'idle' | 'scheduled' | 'waiting'
 }
 
 const sizeClasses = {
+  xs: 'h-6 w-6',
   sm: 'h-8 w-8',
   md: 'h-12 w-12',
   lg: 'h-16 w-16',
@@ -19,6 +20,7 @@ const sizeClasses = {
 }
 
 const statusDotSizes = {
+  xs: 'h-1.5 w-1.5',
   sm: 'h-2 w-2',
   md: 'h-3 w-3',
   lg: 'h-4 w-4',
@@ -26,6 +28,7 @@ const statusDotSizes = {
 }
 
 const sizePixels = {
+  xs: 24,
   sm: 32,
   md: 48,
   lg: 64,

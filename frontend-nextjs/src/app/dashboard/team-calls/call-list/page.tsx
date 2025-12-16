@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import React, { useState, useRef, useEffect } from 'react'
 import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle, TrendingUp, TrendingDown, MinusCircle } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
@@ -10,6 +10,14 @@ import { getScoreColor, getScoreBgColor, getScoreBadgeClass, getScoreBarColor } 
 import { MOCK_CALLS, type CallRecord, type RawSignal } from './mock-data'
 import { PageHeader } from '@/components/ui/page-header'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Skeleton } from "@/components/ui/skeleton"
+import { CallListFilters } from './CallListFilters'
 
 /**
  * 获取维度颜色（用于进度条和图标）
@@ -292,7 +300,15 @@ export default function ConversationCallListPage() {
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'summary' | 'transcript' | 'analysis' | 'metadata'>('summary')
   const [expandedTagKey, setExpandedTagKey] = useState<string | null>(null)
+  
+  // Filter States
   const [filterAgent, setFilterAgent] = useState<string>('all')
+  const [filterOutcome, setFilterOutcome] = useState<string[]>([]) // 支持多选: 'won', 'lost', 'in_progress'
+  const [filterStartDate, setFilterStartDate] = useState<string>('') // ISO date string
+  const [filterEndDate, setFilterEndDate] = useState<string>('')
+  const [filterIncludeTags, setFilterIncludeTags] = useState<string[]>([])
+  const [filterExcludeTags, setFilterExcludeTags] = useState<string[]>([])
+  const [filterDuration, setFilterDuration] = useState<{min: number | null, max: number | null}>({min: null, max: null})
   const [sortBy, setSortBy] = useState<'recent' | 'score' | 'duration'>('recent')
   
   // Link Transcript with Audio
@@ -310,10 +326,43 @@ export default function ConversationCallListPage() {
     setIsPlayerPlaying(false)
   }, [selectedCallId]) // Reset when call ID changes
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1)
+  }, [filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration])
 
   // Pagination state
   const [page, setPage] = useState(1)
   const pageSize = 5
+
+  // Helper: Check if any filter is active (for "Clear All" button)
+  const hasActiveFilters = filterAgent !== 'all' || 
+    filterOutcome.length > 0 || 
+    filterStartDate || 
+    filterEndDate || 
+    filterIncludeTags.length > 0 || 
+    filterExcludeTags.length > 0 ||
+    filterDuration.min !== null || 
+    filterDuration.max !== null
+
+  // Helper: Clear all filters
+  const clearAllFilters = () => {
+    setFilterAgent('all')
+    setFilterOutcome([])
+    setFilterStartDate('')
+    setFilterEndDate('')
+    setFilterIncludeTags([])
+    setFilterExcludeTags([])
+    setFilterDuration({min: null, max: null})
+    setPage(1)
+  }
+
+  // Outcome options with labels
+  const outcomeOptions = [
+    { value: 'won', label: '赢单', className: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200' },
+    { value: 'lost', label: '输单', className: 'bg-rose-100 text-rose-800 border-rose-200 hover:bg-rose-200' },
+    { value: 'in_progress', label: '进行中', className: 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200' }
+  ]
 
   // API Response type
   interface CallsApiResponse {
@@ -327,20 +376,40 @@ export default function ConversationCallListPage() {
     }
   }
 
-  const { data: callsResponse, isLoading } = useQuery<CallsApiResponse>({
-    queryKey: ['calls', page, pageSize, filterAgent],
+  // Fetch Tags for filter
+  const { data: tags = [] } = useQuery<{ id: string, name: string, category: string }[]>({
+    queryKey: ['tags-config'],
+    queryFn: async () => {
+      const res = await fetch('/api/team-calls/config/tags')
+      if (!res.ok) return []
+      return res.json()
+    }
+  })
+
+  // Fetch Calls
+  const { data: callsResponse, isLoading, isFetching } = useQuery<CallsApiResponse>({
+    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
         pageSize: String(pageSize),
-        ...(filterAgent !== 'all' && { agentId: filterAgent })
       })
+      if (filterAgent !== 'all') params.set('agentId', filterAgent)
+      if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
+      if (filterStartDate) params.set('startDate', filterStartDate)
+      if (filterEndDate) params.set('endDate', filterEndDate)
+      if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
+      if (filterExcludeTags.length > 0) params.set('excludeTags', filterExcludeTags.join(','))
+      if (filterDuration.min !== null) params.set('durationMin', String(filterDuration.min))
+      if (filterDuration.max !== null) params.set('durationMax', String(filterDuration.max))
+      
       const res = await fetch(`/api/team-calls/calls?${params}`)
       if (!res.ok) {
         throw new Error('Failed to fetch calls')
       }
       return res.json()
-    }
+    },
+    placeholderData: keepPreviousData,
   })
 
   const calls = callsResponse?.data || []
@@ -388,13 +457,7 @@ export default function ConversationCallListPage() {
     return 0
   })
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Loading...</div>
-      </div>
-    )
-  }
+
 
   return (
     <div>
@@ -405,148 +468,173 @@ export default function ConversationCallListPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="space-y-6">
         {/* Calls List */}
-        <div className="lg:col-span-1">
-          {/* Filter Bar */}
-          <div className="bg-white shadow rounded-lg p-4 mb-4 space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2">成员筛选</label>
-              <select
-                value={filterAgent}
-                onChange={(e) => setFilterAgent(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="all">所有成员</option>
-                {agents?.map((agent) => (
-                  <option key={agent.id} value={agent.id}>
-                    {agent.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-2">排序方式</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'recent' | 'score' | 'duration')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="recent">最新通话</option>
-                <option value="score">最高评分</option>
-                <option value="duration">时长最长</option>
-              </select>
-            </div>
+        <div>
+          {/* Filter Bar - Redesigned Component */}
+          <div className="bg-white shadow rounded-lg p-4 mb-4">
+            <CallListFilters
+              agents={agents || []}
+              tags={tags || []}
+              filterAgent={filterAgent}
+              setFilterAgent={setFilterAgent}
+              filterStartDate={filterStartDate}
+              setFilterStartDate={setFilterStartDate}
+              filterEndDate={filterEndDate}
+              setFilterEndDate={setFilterEndDate}
+              filterOutcome={filterOutcome}
+              setFilterOutcome={setFilterOutcome}
+              filterIncludeTags={filterIncludeTags}
+              setFilterIncludeTags={setFilterIncludeTags}
+              filterExcludeTags={filterExcludeTags}
+              setFilterExcludeTags={setFilterExcludeTags}
+              filterDuration={filterDuration}
+              setFilterDuration={setFilterDuration}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              onClearAll={clearAllFilters}
+            />
           </div>
 
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="divide-y divide-gray-200">
-              {sortedCalls?.map((call) => (
-                <div
-                  key={call.id}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 flex items-start gap-3 ${
-                    selectedCallId === call.id ? 'bg-blue-50' : ''
-                  }`}
-                  onClick={() => setSelectedCallId(String(call.id))}
-                >
-                  <div className="mt-1">
-                    <AgentAvatar 
-                      agentId={call.agentId || 'default-avatar'} 
-                      name={call.agentName}
-                      avatarUrl={call.agentAvatarId ? `https://api.dicebear.com/9.x/notionists/svg?seed=${call.agentAvatarId}&backgroundColor=e5e7eb&backgroundType=gradientLinear` : undefined}
-                      size="sm" 
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
-                        {call.title}
-                      </h3>
-                      <span className="text-xs text-gray-500">
-                        {formatRelativeTime(call.timestamp)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      {call.customer_name} · {call.duration_minutes} 分钟
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getScoreBadgeClass(call.overallQualityScore)}`}
-                      >
-                        质量分 {call.overallQualityScore}
-                      </span>
-                      {/* Won/Lost Status Badge */}
-                      {(() => {
-                        const outcome = getOutcomeBadge(call.business_grade)
-                        const OutcomeIcon = outcome.icon
-                        return (
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${outcome.className}`}>
-                            <OutcomeIcon className={`h-3 w-3 ${outcome.iconClassName}`} />
-                            {outcome.label}
+          {isLoading ? (
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+               <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                        <th key={i} className="px-6 py-3 text-left">
+                          <Skeleton className="h-4 w-24" />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <tr key={i}>
+                        <td className="px-6 py-4">
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                             <Skeleton className="h-6 w-6 rounded-full" />
+                             <Skeleton className="h-4 w-20" />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                           <Skeleton className="h-4 w-16" />
+                        </td>
+                        <td className="px-6 py-4">
+                           <Skeleton className="h-4 w-32" />
+                        </td>
+                         <td className="px-6 py-4">
+                           <Skeleton className="h-6 w-20 rounded-full" />
+                        </td>
+                         <td className="px-6 py-4">
+                           <Skeleton className="h-8 w-12 rounded" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+               </div>
+            </div>
+          ) : (
+          <div className={`bg-white shadow rounded-lg overflow-hidden transition-opacity duration-200 ${isFetching ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Title / Customer
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Rep
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Score
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {sortedCalls?.map((call) => (
+                    <tr 
+                      key={call.id}
+                      onClick={() => setSelectedCallId(String(call.id))}
+                      className={`hover:bg-blue-50/50 cursor-pointer transition-colors ${selectedCallId === String(call.id) ? 'bg-blue-50' : ''}`}
+                    >
+                      {/* Title Column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900 truncate max-w-[200px] lg:max-w-[300px]" title={call.title}>
+                            {call.title}
                           </span>
-                        )
-                      })()}
-                      {/* Sales KPI Indicators */}
-                      {call.events?.includes('customer_solution_request') && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                          客户请求方案
-                        </span>
-                      )}
-                      {call.events?.includes('customer_schedule_request') && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                          已预约演示
-                        </span>
-                      )}
-                      {call.service_issues?.some(s => s.severity === 'high') && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                          ⚠ 流程违规
-                        </span>
-                      )}
-                    </div>
-                    
-                    {/* Dimension Scores */}
-                    <div className="mt-2 space-y-1.5">
-                      {/* Process */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">流程</span>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${getScoreBarColor(call.processScore)}`}
-                            style={{ width: `${call.processScore}%` }}
-                          />
+                          <span className="text-xs text-gray-500">
+                            {call.customer_name}
+                          </span>
                         </div>
-                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.processScore}</span>
-                      </div>
-                      
-                      {/* Skills */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">技巧</span>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${getScoreBarColor(call.skillsScore)}`}
-                            style={{ width: `${call.skillsScore}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.skillsScore}</span>
-                      </div>
-                      
-                      {/* Communication */}
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-700 w-12">沟通</span>
-                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full ${getScoreBarColor(call.communicationScore)}`}
-                            style={{ width: `${call.communicationScore}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-900 w-10 text-right">{call.communicationScore}</span>
-                      </div>
-                    </div>
-                    
+                      </td>
 
-                  </div>
-                </div>
-              ))}
+                      {/* Rep Column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <AgentAvatar 
+                            agentId={call.agentId || 'default-avatar'} 
+                            name={call.agentName}
+                            avatarUrl={call.agentAvatarId ? `https://api.dicebear.com/9.x/notionists/svg?seed=${call.agentAvatarId}&backgroundColor=e5e7eb&backgroundType=gradientLinear` : undefined}
+                            size="xs" 
+                          />
+                          <span className="ml-2 text-sm text-gray-700">{call.agentName}</span>
+                        </div>
+                      </td>
+
+                      {/* Duration Column */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {call.duration_minutes}m
+                      </td>
+
+                      {/* Date Column */}
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(call.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+                      </td>
+
+                      {/* Status (Outcome) Column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {(() => {
+                           const badge = getOutcomeBadge(call.business_grade)
+                           const Icon = badge.icon
+                           return (
+                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.className.replace('border', '')} ${badge.className.includes('emerald') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : badge.className.includes('rose') ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                               {/* Simplified badge style for table */}
+                               <Icon className="h-3 w-3" />
+                               {badge.label}
+                             </span>
+                           )
+                        })()}
+                      </td>
+
+                      {/* Score Column */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs font-bold ${getScoreBadgeClass(call.overallQualityScore)}`}>
+                          {call.overallQualityScore}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
             
             {/* Pagination */}
@@ -577,16 +665,53 @@ export default function ConversationCallListPage() {
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Call Details */}
-        <div className="lg:col-span-2">
+        {/* Call Details Dialog */}
+        <Dialog open={!!selectedCallId} onOpenChange={(open) => !open && setSelectedCallId(null)}>
+          <DialogContent className="max-w-5xl h-[90vh] p-0 flex flex-col gap-0 bg-white">
           {isLoadingDetail ? (
-            <div className="bg-white shadow rounded-lg p-8 flex items-center justify-center h-64">
-              <div className="text-gray-500">加载通话详情中...</div>
+            <div className="flex flex-col h-full overflow-hidden animate-in fade-in duration-300">
+              {/* Header Skeleton */}
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-start gap-3 mb-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2 flex-1 pt-1">
+                    <Skeleton className="h-7 w-1/3" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-4 mt-4">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                </div>
+              </div>
+
+              {/* Player & Tabs Skeleton */}
+              <div className="border-b border-gray-200 bg-gray-50 px-6 pt-6 pb-0">
+                <Skeleton className="h-14 w-full rounded-lg mb-6" />
+                <div className="flex gap-6 pb-0">
+                  <Skeleton className="h-9 w-24 rounded-t-lg rounded-b-none" />
+                  <Skeleton className="h-9 w-24 rounded-t-lg rounded-b-none" />
+                  <Skeleton className="h-9 w-24 rounded-t-lg rounded-b-none" />
+                </div>
+              </div>
+
+              {/* Content Skeleton */}
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                  <Skeleton className="h-24 w-full rounded-lg" />
+                </div>
+                <Skeleton className="h-40 w-full rounded-lg" />
+              </div>
             </div>
           ) : selectedCall ? (
-            <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="flex flex-col h-full overflow-hidden">
               {/* Header */}
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-start gap-3 mb-4">
@@ -655,7 +780,7 @@ export default function ConversationCallListPage() {
               </div>
 
               {/* Tab Content */}
-              <div className="p-6">
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                 {activeTab === 'summary' && (
                   <div className="space-y-6">
                     {/* Call Overview */}
@@ -1119,18 +1244,9 @@ export default function ConversationCallListPage() {
                 )}
               </div>
             </div>
-          ) : (
-            <div className="bg-white shadow rounded-lg p-12 text-center">
-              <PhoneCall className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
-                请选择通话
-              </h3>
-              <p className="mt-1 text-sm text-gray-500">
-                从左侧列表选择一个通话以查看详情
-              </p>
-            </div>
-          )}
-        </div>
+          ) : null}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

@@ -16,6 +16,7 @@ const logger = createLogger('Calls')
  *   - agentId: 按坐席过滤
  *   - startDate: 开始日期过滤 (ISO string)
  *   - endDate: 结束日期过滤 (ISO string)
+ *   - outcome: 按赢单状态过滤 (won, lost, in_progress, 支持逗号分隔多值)
  *   - includeDetails: 是否包含详情数据 (默认 false, 用于向后兼容)
  * 
  * Response:
@@ -37,11 +38,20 @@ export async function GET(request: NextRequest) {
     const agentId = searchParams.get('agentId')
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const outcome = searchParams.get('outcome')
+    const durationMin = searchParams.get('durationMin') ? parseInt(searchParams.get('durationMin')!, 10) : null
+    const durationMax = searchParams.get('durationMax') ? parseInt(searchParams.get('durationMax')!, 10) : null
+    const includeTags = searchParams.get('includeTags')
+    const excludeTags = searchParams.get('excludeTags')
 
     // Backward compatibility: if includeDetails=true, load full data (for migration period)
     const includeDetails = searchParams.get('includeDetails') === 'true'
 
-    logger.info('Request received', { page, pageSize, agentId, startDate, endDate, includeDetails })
+    logger.info('Request received', {
+      page, pageSize, agentId, startDate, endDate, outcome,
+      durationMin, durationMax, includeTags, excludeTags,
+      includeDetails
+    })
 
     // Build where clause
     const where: any = {}
@@ -52,6 +62,57 @@ export async function GET(request: NextRequest) {
       where.startedAt = {}
       if (startDate) where.startedAt.gte = startDate
       if (endDate) where.startedAt.lte = endDate
+    }
+    // Outcome filter
+    if (outcome) {
+      const outcomes = outcome.split(',').map(o => o.trim()).filter(Boolean)
+      if (outcomes.length === 1) {
+        where.outcome = outcomes[0]
+      } else if (outcomes.length > 1) {
+        where.outcome = { in: outcomes }
+      }
+    }
+    // Duration filter (in seconds)
+    if (durationMin !== null || durationMax !== null) {
+      where.duration = {}
+      if (durationMin !== null) where.duration.gte = durationMin
+      if (durationMax !== null) where.duration.lte = durationMax
+    }
+
+    // Tags filter
+    // Include tags: Call must have at least one of these tags (OR logic for now, or AND? Usually OR for "includes any of")
+    // Let's implement OR for now: assessments some tagId in list
+    if (includeTags) {
+      const tagIds = includeTags.split(',').map(t => t.trim()).filter(Boolean)
+      if (tagIds.length > 0) {
+        where.assessments = {
+          some: {
+            tagId: { in: tagIds }
+          }
+        }
+      }
+    }
+    // Exclude tags: Call must NOT have any of these tags
+    if (excludeTags) {
+      const tagIds = excludeTags.split(',').map(t => t.trim()).filter(Boolean)
+      if (tagIds.length > 0) {
+        // Correct Prisma syntax for "none of these tags" depends on relation
+        // We want: AND { assessments: { none: { tagId: { in: tagIds } } } }
+        // If where.assessments already exists (from includeTags), we need to merge carefully.
+        // Prisma allows multiple conditions on relations usually via AND.
+        if (where.assessments) {
+          where.AND = [
+            ...(where.AND || []),
+            { assessments: { none: { tagId: { in: tagIds } } } }
+          ]
+        } else {
+          where.assessments = {
+            none: {
+              tagId: { in: tagIds }
+            }
+          }
+        }
+      }
     }
 
     // 1. Get total count for pagination
