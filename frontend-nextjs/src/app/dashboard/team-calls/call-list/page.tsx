@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle, TrendingUp, TrendingDown, MinusCircle } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
@@ -298,7 +298,7 @@ const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerPr
 )
 CallRecordingPlayer.displayName = 'CallRecordingPlayer'
 
-export default function ConversationCallListPage() {
+function CallListContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -1304,6 +1304,14 @@ export default function ConversationCallListPage() {
         </Dialog>
       </div>
     </div>
+  )
+}
+
+export default function ConversationCallListPage() {
+  return (
+    <Suspense fallback={<div className="flex h-[50vh] items-center justify-center text-muted-foreground">Loading...</div>}>
+      <CallListContent />
+    </Suspense>
   )
 }
 
