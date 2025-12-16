@@ -264,7 +264,7 @@ export function CallListFilters({
                   <label className="text-xs font-medium text-gray-500">开始日期</label>
                   <input
                     type="date"
-                    value={filterStartDate}
+                    value={filterStartDate?.split('T')[0] || ''}
                     onChange={(e) => setFilterStartDate(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />
@@ -273,7 +273,7 @@ export function CallListFilters({
                   <label className="text-xs font-medium text-gray-500">结束日期</label>
                   <input
                     type="date"
-                    value={filterEndDate}
+                    value={filterEndDate?.split('T')[0] || ''}
                     onChange={(e) => setFilterEndDate(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
                   />

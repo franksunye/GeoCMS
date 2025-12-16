@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronDown, TrendingUp, Loader2 } from 'lucide-react'
+import { ChevronDown, TrendingUp, Loader2, ExternalLink, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import { AgentId } from '@/types'
 import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
@@ -14,6 +16,7 @@ type SortBy = 'overall' | 'process' | 'skills' | 'communication'
 interface SubcategoryScore {
   name: string
   score: number
+  tagId?: string
   is_mandatory?: boolean
 }
 
@@ -41,6 +44,7 @@ interface Agent {
 }
 
 export default function ScorecardPage() {
+  const router = useRouter()
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('7d')
   const [selectedTeam, setSelectedTeam] = useState<string>('9055771909563658940')
   const [showOnlyActive, setShowOnlyActive] = useState<boolean>(true)
@@ -189,7 +193,59 @@ export default function ScorecardPage() {
     })
   }, [filteredAgents, sortBy])
 
+
   const activeCategory = categories.find(c => c.name === expandedCategory)
+
+  const handleViewRecordings = (targetAgentId?: string, targetTagId?: string) => {
+    const params = new URLSearchParams()
+    
+    // Calculate Date Range
+    const now = new Date()
+    let startDate: Date | null = null
+    
+    switch (timeFrame) {
+      case 'today':
+        startDate = new Date(now)
+        startDate.setHours(0, 0, 0, 0)
+        break
+      case 'week':
+        startDate = new Date(now)
+        const day = startDate.getDay()
+        const diff = startDate.getDate() - day + (day === 0 ? -6 : 1)
+        startDate.setDate(diff)
+        startDate.setHours(0, 0, 0, 0)
+        break
+      case '7d':
+        startDate = new Date(now)
+        startDate.setDate(now.getDate() - 7)
+        startDate.setHours(0, 0, 0, 0)
+        break
+      case '30d':
+        startDate = new Date(now)
+        startDate.setDate(now.getDate() - 30)
+        startDate.setHours(0, 0, 0, 0)
+        break
+      case 'all':
+        startDate = null
+        break
+    }
+
+    if (startDate) {
+      params.set('startDate', startDate.toISOString())
+      params.set('endDate', now.toISOString())
+    }
+
+    if (targetAgentId) {
+      params.set('agentId', targetAgentId)
+    }
+
+    if (targetTagId) {
+      params.set('includeTags', targetTagId)
+    }
+    
+    const url = `/dashboard/team-calls/call-list?${params.toString()}`
+    window.open(url, '_blank')
+  }
 
   return (
     <div className="space-y-6">
@@ -338,7 +394,10 @@ export default function ScorecardPage() {
               </div>
             </div>
           </div>
-          <button className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-4 py-2 rounded-lg transition-colors">
+          <button 
+            onClick={() => handleViewRecordings()}
+            className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
             查看录音 →
           </button>
         </div>
@@ -460,143 +519,176 @@ export default function ScorecardPage() {
       {/* Agent Detail Modal */}
       {selectedAgent && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-start justify-between p-8 border-b border-gray-200 bg-gray-900 text-white">
-              <div className="flex gap-6 items-center">
-                <div className="bg-white rounded-full p-1">
+      {/* Agent Detail Modal */}
+      {selectedAgent && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden">
+            {/* 1. Fixed Header */}
+            <div className="flex items-start justify-between p-6 border-b border-gray-100 bg-white z-10">
+              <div className="flex gap-5 items-center">
+                <div className="p-1 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full">
                   <AgentAvatar agentId={selectedAgent.avatarId} size="xl" />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-bold">{selectedAgent.name}</h2>
-                  <div className="flex items-center gap-4 mt-4">
-                    <div>
-                      <p className="text-sm text-gray-400">录音数量</p>
-                      <p className="text-lg font-semibold">{selectedAgent.recordings}</p>
+                  <h2 className="text-2xl font-bold text-gray-900">{selectedAgent.name}</h2>
+                  <div className="flex items-center gap-6 mt-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      <span>{selectedAgent.recordings} 条录音</span>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-400">赢单率</p>
-                      <p className="text-lg font-semibold">{selectedAgent.winRate}%</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                      <span>{selectedAgent.winRate}% 赢单率</span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-4xl font-bold">{selectedAgent.overallScore}</p>
-                <button
-                  onClick={() => setSelectedAgent(null)}
-                  className="text-gray-400 hover:text-white text-3xl mt-2"
-                >
-                  ×
-                </button>
+              
+              <div className="flex flex-col items-end gap-3">
+                <div className="flex gap-2">
+                    <button
+                    onClick={() => handleViewRecordings(selectedAgent.id)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-yellow-950 rounded-lg transition-colors text-sm font-semibold shadow-sm"
+                  >
+                    查看全部录音
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                    <button
+                      onClick={() => setSelectedAgent(null)}
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">综合评分</span>
+                  <span className={`text-3xl font-bold ${getScoreColor(selectedAgent.overallScore)}`}>{selectedAgent.overallScore}</span>
+                </div>
               </div>
             </div>
 
-            <div className="p-8 space-y-8">
-              {[
-                {
-                  title: '流程遵循度',
-                  score: selectedAgent.process,
-                  details: selectedAgent.processDetails,
-                },
-                {
-                  title: '销售技巧',
-                  score: selectedAgent.skills,
-                  details: selectedAgent.skillsDetails,
-                },
-                {
-                  title: '沟通能力',
-                  score: selectedAgent.communication,
-                  details: selectedAgent.communicationDetails,
-                },
-              ].map((dimension, dimIdx) => (
-                <div key={dimIdx}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-gray-900">{dimension.title}</h3>
-                    <p className={`text-3xl font-bold ${getScoreColor(dimension.score)}`}>
-                      {dimension.score}
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-4">权重: {categories[dimIdx].weight}%</p>
+            {/* 2. Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50 custom-scrollbar">
+              <div className="space-y-6">
+                {[
+                  {
+                    title: '流程遵循度',
+                    score: selectedAgent.process,
+                    details: selectedAgent.processDetails,
+                  },
+                  {
+                    title: '销售技巧',
+                    score: selectedAgent.skills,
+                    details: selectedAgent.skillsDetails,
+                  },
+                  {
+                    title: '沟通能力',
+                    score: selectedAgent.communication,
+                    details: selectedAgent.communicationDetails,
+                  },
+                ].map((dimension, dimIdx) => (
+                  <div key={dimIdx} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/30 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-bold text-gray-900">{dimension.title}</h3>
+                        <span className="text-sm px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                          权重 {categories[dimIdx].weight}%
+                        </span>
+                      </div>
+                      <div className={`text-2xl font-bold ${getScoreColor(dimension.score)}`}>
+                        {dimension.score}
+                      </div>
+                    </div>
 
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b-2 border-gray-300">
-                        <th className="text-left px-4 py-3 font-semibold text-gray-900">子分类</th>
-                        <th className="text-center px-4 py-3 font-semibold text-gray-900">个人</th>
-                        <th className="text-center px-4 py-3 font-semibold text-gray-900">团队</th>
-                        <th className="text-center px-4 py-3 font-semibold text-gray-900">差值</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dimension.details.map((detail, idx) => {
-                        // Filter agents to get only those in the same team as the selected agent
-                        const teamAgents = selectedAgent.teamId 
-                          ? agents.filter(a => a.teamId === selectedAgent.teamId)
-                          : agents;
-                          
-                        const teamAvg = teamAgents.length > 0 ? Math.round(
-                          teamAgents.reduce(
-                            (sum, agent) =>
-                              sum +
-                              (dimIdx === 0
-                                ? agent.processDetails[idx]?.score || 0
-                                : dimIdx === 1
-                                ? agent.skillsDetails[idx]?.score || 0
-                                : agent.communicationDetails[idx]?.score || 0),
-                            0
-                          ) / teamAgents.length
-                        ) : 0;
-                        const diff = Math.round(detail.score) - teamAvg;
-                        return (
-                          <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                              <div className="flex items-center gap-2">
-                                {detail.name}
-                                {detail.is_mandatory && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                    必选
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className={`px-4 py-3 text-center text-sm font-bold ${getScoreColor(detail.score)}`}>
-                              {Math.round(detail.score)}
-                            </td>
-                            <td className={`px-4 py-3 text-center text-sm font-bold ${getScoreColor(teamAvg)}`}>
-                              {teamAvg}
-                            </td>
-                            <td
-                              className={`px-4 py-3 text-center text-sm font-bold ${
-                                diff > 0
-                                  ? 'text-green-600'
-                                  : diff < 0
-                                  ? 'text-red-600'
-                                  : 'text-gray-600'
-                              }`}
-                            >
-                              {diff > 0 ? '+' : ''}{diff}
-                            </td>
+                    <div className="p-0">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
+                            <th className="text-left px-6 py-3 font-medium">评估项</th>
+                            <th className="text-center px-6 py-3 font-medium w-32">个人得分</th>
+                            <th className="text-center px-6 py-3 font-medium w-32">团队平均</th>
+                            <th className="text-center px-6 py-3 font-medium w-24">差异</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ))}
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {dimension.details.map((detail, idx) => {
+                            // Filter agents to get only those in the same team as the selected agent
+                            const teamAgents = selectedAgent.teamId 
+                              ? agents.filter(a => a.teamId === selectedAgent.teamId)
+                              : agents;
+                              
+                            const teamAvg = teamAgents.length > 0 ? Math.round(
+                              teamAgents.reduce(
+                                (sum, agent) =>
+                                  sum +
+                                  (dimIdx === 0
+                                    ? agent.processDetails[idx]?.score || 0
+                                    : dimIdx === 1
+                                    ? agent.skillsDetails[idx]?.score || 0
+                                    : agent.communicationDetails[idx]?.score || 0),
+                                0
+                              ) / teamAgents.length
+                            ) : 0;
+                            const diff = Math.round(detail.score) - teamAvg;
+                            return (
+                              <tr key={idx} className="hover:bg-blue-50/30 transition-colors group">
+                                <td className="px-6 py-3.5 text-sm text-gray-900">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    {detail.name}
+                                    {detail.is_mandatory && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] uppercase font-bold bg-amber-50 text-amber-700 border border-amber-100 tracking-wide">
+                                        Required
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <TooltipProvider>
+                                  <Tooltip delayDuration={0}>
+                                    <TooltipTrigger asChild>
+                                      <td 
+                                        className={`px-6 py-3.5 text-center cursor-pointer relative hover:bg-white transition-all duration-200 border-x border-transparent hover:border-gray-100 hover:shadow-sm`}
+                                        onClick={() => handleViewRecordings(selectedAgent.id, detail.tagId)}
+                                      >
+                                          <div className={`text-sm font-bold inline-flex items-center gap-1.5 ${getScoreColor(detail.score)}`}>
+                                            {Math.round(detail.score)}
+                                            <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 text-gray-400 transition-all transform translate-y-0.5" />
+                                          </div>
+                                      </td>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="flex items-center bg-gray-900 text-white border-gray-800">
+                                      <p className="text-xs font-medium">点击查看相关录音</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                                <td className="px-6 py-3.5 text-center text-sm font-medium text-gray-500">
+                                  {teamAvg}
+                                </td>
+                                <td
+                                  className={`px-6 py-3.5 text-center text-sm font-bold ${
+                                    diff > 0
+                                      ? 'text-emerald-600'
+                                      : diff < 0
+                                      ? 'text-rose-600'
+                                      : 'text-gray-400'
+                                  }`}
+                                >
+                                  {diff > 0 ? '+' : ''}{diff}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-
-            <div className="flex justify-end gap-2 p-6 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => setSelectedAgent(null)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition-colors font-medium"
-              >
-                关闭
-              </button>
-              <button className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-gray-900 rounded-lg transition-colors font-medium">
-                View Recordings →
-              </button>
-            </div>
+            
+            {/* No footer needed as button is in header */}
           </div>
+        </div>
+      )}
         </div>
       )}
         </>

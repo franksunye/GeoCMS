@@ -2,6 +2,7 @@
 
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import React, { useState, useRef, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle, TrendingUp, TrendingDown, MinusCircle } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
@@ -298,20 +299,44 @@ const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerPr
 CallRecordingPlayer.displayName = 'CallRecordingPlayer'
 
 export default function ConversationCallListPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'summary' | 'transcript' | 'analysis' | 'metadata'>('summary')
   const [expandedTagKey, setExpandedTagKey] = useState<string | null>(null)
   
-  // Filter States
-  const [filterAgent, setFilterAgent] = useState<string>('all')
-  const [filterOutcome, setFilterOutcome] = useState<string[]>([]) // 支持多选: 'won', 'lost', 'in_progress'
-  const [filterStartDate, setFilterStartDate] = useState<string>('') // ISO date string
-  const [filterEndDate, setFilterEndDate] = useState<string>('')
-  const [filterIncludeTags, setFilterIncludeTags] = useState<string[]>([])
-  const [filterExcludeTags, setFilterExcludeTags] = useState<string[]>([])
-  const [filterDuration, setFilterDuration] = useState<{min: number | null, max: number | null}>({min: null, max: null})
-  const [filterScore, setFilterScore] = useState<{min: number | null, max: number | null}>({min: null, max: null})
-  const [sortBy, setSortBy] = useState<'recent' | 'score' | 'score_asc' | 'duration'>('recent')
+  // Filter States - Initialize from URL if present
+  const [filterAgent, setFilterAgent] = useState<string>(searchParams.get('agentId') || 'all')
+  const [filterOutcome, setFilterOutcome] = useState<string[]>(
+    searchParams.get('outcome') ? searchParams.get('outcome')!.split(',') : []
+  )
+  const [filterStartDate, setFilterStartDate] = useState<string>(searchParams.get('startDate') || '')
+  const [filterEndDate, setFilterEndDate] = useState<string>(searchParams.get('endDate') || '')
+  
+  const [filterIncludeTags, setFilterIncludeTags] = useState<string[]>(
+    searchParams.get('includeTags') ? searchParams.get('includeTags')!.split(',') : []
+  )
+  const [filterExcludeTags, setFilterExcludeTags] = useState<string[]>(
+    searchParams.get('excludeTags') ? searchParams.get('excludeTags')!.split(',') : []
+  )
+  
+  const [filterDuration, setFilterDuration] = useState<{min: number | null, max: number | null}>({
+    min: searchParams.get('durationMin') ? Number(searchParams.get('durationMin')) : null,
+    max: searchParams.get('durationMax') ? Number(searchParams.get('durationMax')) : null
+  })
+  
+  const [filterScore, setFilterScore] = useState<{min: number | null, max: number | null}>({
+    min: searchParams.get('scoreMin') ? Number(searchParams.get('scoreMin')) : null,
+    max: searchParams.get('scoreMax') ? Number(searchParams.get('scoreMax')) : null
+  })
+
+  // Provide a safe casting for sortBy from string to union type
+  const validSortMap: Record<string, boolean> = { 'recent': true, 'score': true, 'score_asc': true, 'duration': true }
+  const urlSort = searchParams.get('sort')
+  const initialSort = (urlSort && validSortMap[urlSort]) ? (urlSort as 'recent' | 'score' | 'score_asc' | 'duration') : 'recent'
+  
+  const [sortBy, setSortBy] = useState<'recent' | 'score' | 'score_asc' | 'duration'>(initialSort)
   
   // Link Transcript with Audio
   const playerRef = useRef<PlayerHandle>(null)
@@ -328,10 +353,28 @@ export default function ConversationCallListPage() {
     setIsPlayerPlaying(false)
   }, [selectedCallId]) // Reset when call ID changes
 
-  // Reset page when filters change
+  // Sync filters to URL and reset page
   useEffect(() => {
     setPage(1)
-  }, [filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration])
+
+    // Debounce or just update URL
+    const params = new URLSearchParams()
+    if (filterAgent !== 'all') params.set('agentId', filterAgent)
+    if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
+    if (filterStartDate) params.set('startDate', filterStartDate)
+    if (filterEndDate) params.set('endDate', filterEndDate)
+    if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
+    if (filterExcludeTags.length > 0) params.set('excludeTags', filterExcludeTags.join(','))
+    if (filterDuration.min !== null) params.set('durationMin', String(filterDuration.min))
+    if (filterDuration.max !== null) params.set('durationMax', String(filterDuration.max))
+    if (filterScore.min !== null) params.set('scoreMin', String(filterScore.min))
+    if (filterScore.max !== null) params.set('scoreMax', String(filterScore.max))
+    if (sortBy !== 'recent') params.set('sort', sortBy)
+
+    // Shallow update
+    router.replace(`?${params.toString()}`, { scroll: false })
+
+  }, [filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortBy, router])
 
   // Pagination state
   const [page, setPage] = useState(1)

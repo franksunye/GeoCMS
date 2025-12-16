@@ -136,6 +136,7 @@ export async function GET(request: NextRequest) {
       const buildDetails = (refTags: typeof allTags) => {
         return refTags.map(tag => ({
           name: tag.name,
+          tagId: tag.id, // Include TagId for deep linking
           is_mandatory: Boolean(tag.isMandatory),
           score: Math.round(agentScores.get(tag.id) || 0)
         }))
