@@ -69,8 +69,10 @@ async function migrate() {
     console.log('   - [全量] biz_calls (本地通话数据)')
     console.log('   - [关联] biz_call_* (通话详情)')
     console.log('   - [关联] sync_agents (被引用坐席)')
+    console.log('   - [关联] sync_deals (关联交易)')
+    console.log('   - [关联] sync_transcripts (通话文本)')
     console.log('   - [跳过] log_* (日志)')
-    console.log('   - [跳过] sync_deals, sync_transcripts (其他同步数据)\n')
+    console.log('   - [跳过] sync_ai_analysis (其他同步数据)\n')
 
     const client = await pgPool.connect();
     let total = 0;
@@ -173,6 +175,45 @@ async function migrate() {
             const aCount = await batchInsert(client, 'biz_call_tags', ['id', 'call_id', 'tag_id', 'score', 'confidence', 'context_text', 'timestamp_sec', 'reasoning', 'context_events', 'created_at'], assessments);
             console.log(`   ✅ ${aCount} 行\n`);
             total += aCount;
+
+            // 新增: 同步关联的 deals (满足 transcript 外键约束)
+            console.log('📂 sync_deals (关联同步)');
+            try {
+                const deals = sqlite.prepare(`
+                    SELECT id, agent_id, outcome, created_at 
+                    FROM sync_deals 
+                    WHERE id IN (${callIds.map(() => '?').join(',')})
+                `).all(...callIds) as any[];
+
+                deals.forEach(d => { d.outcome = d.outcome || 'unknown'; });
+
+                const dealCount = await batchInsert(client, 'sync_deals', ['id', 'agent_id', 'outcome', 'created_at'], deals);
+                console.log(`   ✅ ${dealCount} 行\n`);
+                total += dealCount;
+            } catch (e) {
+                console.log('   ⚠️ 同步 deals 失败或无数据:', e);
+            }
+
+            // 新增: 同步关联的 transcripts (deal_id = call_id)
+            console.log('📂 sync_transcripts (关联同步)');
+            try {
+                const transcripts = sqlite.prepare(`
+                    SELECT id, deal_id, agent_id, content, created_at, audio_url 
+                    FROM sync_transcripts 
+                    WHERE deal_id IN (${callIds.map(() => '?').join(',')})
+                `).all(...callIds) as any[];
+
+                transcripts.forEach(t => {
+                    t.content = t.content || '';
+                    t.audio_url = t.audio_url || '';
+                });
+
+                const transCount = await batchInsert(client, 'sync_transcripts', ['id', 'deal_id', 'agent_id', 'content', 'created_at', 'audio_url'], transcripts);
+                console.log(`   ✅ ${transCount} 行\n`);
+                total += transCount;
+            } catch (e) {
+                console.log('   ⚠️ 同步 transcript 失败或无数据:', e);
+            }
         }
 
     } finally {
@@ -180,7 +221,7 @@ async function migrate() {
     }
 
     console.log(`\n✨ 完成! 共同步 ${total} 行核心数据`);
-    console.log(`⚠️ 已跳过: sync_deals, sync_transcripts, sync_ai_analysis, log_*`);
+    console.log(`⚠️ 已跳过: sync_ai_analysis, log_*`);
     sqlite.close();
     await pgPool.end();
 }
