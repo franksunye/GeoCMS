@@ -39,17 +39,20 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     const outcome = searchParams.get('outcome')
-    const durationMin = searchParams.get('durationMin') ? parseInt(searchParams.get('durationMin')!, 10) : null
-    const durationMax = searchParams.get('durationMax') ? parseInt(searchParams.get('durationMax')!, 10) : null
-    const includeTags = searchParams.get('includeTags')
-    const excludeTags = searchParams.get('excludeTags')
+    const durationMin = searchParams.get('durationMin') ? parseInt(searchParams.get('durationMin')!) : undefined
+    const durationMax = searchParams.get('durationMax') ? parseInt(searchParams.get('durationMax')!) : undefined
+    const scoreMin = searchParams.get('scoreMin') ? parseInt(searchParams.get('scoreMin')!) : undefined
+    const scoreMax = searchParams.get('scoreMax') ? parseInt(searchParams.get('scoreMax')!) : undefined
+    const includeTagsParam = searchParams.get('includeTags')
+    const excludeTagsParam = searchParams.get('excludeTags')
 
     // Backward compatibility: if includeDetails=true, load full data (for migration period)
     const includeDetails = searchParams.get('includeDetails') === 'true'
 
     logger.info('Request received', {
       page, pageSize, agentId, startDate, endDate, outcome,
-      durationMin, durationMax, includeTags, excludeTags,
+      durationMin, durationMax, scoreMin, scoreMax,
+      includeTags: includeTagsParam, excludeTags: excludeTagsParam,
       includeDetails
     })
 
@@ -60,8 +63,8 @@ export async function GET(request: NextRequest) {
     }
     if (startDate || endDate) {
       where.startedAt = {}
-      if (startDate) where.startedAt.gte = startDate
-      if (endDate) where.startedAt.lte = endDate
+      if (startDate) where.startedAt.gte = new Date(startDate)
+      if (endDate) where.startedAt.lte = new Date(endDate)
     }
     // Outcome filter
     if (outcome) {
@@ -73,17 +76,18 @@ export async function GET(request: NextRequest) {
       }
     }
     // Duration filter (in seconds)
-    if (durationMin !== null || durationMax !== null) {
+    if (durationMin !== undefined || durationMax !== undefined) {
       where.duration = {}
       if (durationMin !== null) where.duration.gte = durationMin
       if (durationMax !== null) where.duration.lte = durationMax
     }
 
     // Tags filter
-    // Include tags: Call must have at least one of these tags (OR logic for now, or AND? Usually OR for "includes any of")
-    // Let's implement OR for now: assessments some tagId in list
-    if (includeTags) {
-      const tagIds = includeTags.split(',').map(t => t.trim()).filter(Boolean)
+
+
+    // Tags filter
+    if (includeTagsParam) {
+      const tagIds = includeTagsParam.split(',').map((t: string) => t.trim()).filter(Boolean)
       if (tagIds.length > 0) {
         where.assessments = {
           some: {
@@ -93,8 +97,8 @@ export async function GET(request: NextRequest) {
       }
     }
     // Exclude tags: Call must NOT have any of these tags
-    if (excludeTags) {
-      const tagIds = excludeTags.split(',').map(t => t.trim()).filter(Boolean)
+    if (excludeTagsParam) {
+      const tagIds = excludeTagsParam.split(',').map((t: string) => t.trim()).filter(Boolean)
       if (tagIds.length > 0) {
         // Correct Prisma syntax for "none of these tags" depends on relation
         // We want: AND { assessments: { none: { tagId: { in: tagIds } } } }
@@ -115,6 +119,17 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Sorting
+    const sort = searchParams.get('sort') || 'recent'
+    let orderBy: any = { startedAt: 'desc' }
+
+    if (sort === 'duration') {
+      orderBy = { duration: 'desc' }
+    } else {
+      // default 'recent'
+      orderBy = { startedAt: 'desc' }
+    }
+
     // 1. Get total count for pagination
     const total = await logger.time('Query: Count', () =>
       prisma.call.count({ where })
@@ -129,7 +144,7 @@ export async function GET(request: NextRequest) {
             select: { name: true, avatarId: true }
           }
         },
-        orderBy: { startedAt: 'desc' },
+        orderBy, // Apply the dynamic orderBy
         skip,
         take: pageSize
       })

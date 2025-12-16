@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Plus, X, Search, Tag as TagIcon, Clock, ArrowUpDown, Check } from 'lucide-react'
+import { Plus, X, Search, Tag as TagIcon, Clock, ArrowUpDown, Check, Star } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import AgentAvatar from '@/components/team/AgentAvatar'
 
@@ -34,9 +34,10 @@ interface CallListFiltersProps {
   setFilterExcludeTags: (tags: string[]) => void
   filterDuration: { min: number | null, max: number | null }
   setFilterDuration: (duration: { min: number | null, max: number | null }) => void
-  sortBy: string
-  setSortBy: (sort: 'recent' | 'score' | 'duration') => void
+  filterScore: { min: number | null, max: number | null }
+  setFilterScore: (score: { min: number | null, max: number | null }) => void
   onClearAll: () => void
+  children?: React.ReactNode
 }
 
 export function CallListFilters({
@@ -56,14 +57,16 @@ export function CallListFilters({
   setFilterExcludeTags,
   filterDuration,
   setFilterDuration,
-  sortBy,
-  setSortBy,
-  onClearAll
+  filterScore,
+  setFilterScore,
+  onClearAll,
+  children
 }: CallListFiltersProps) {
   const [outcomeOpen, setOutcomeOpen] = React.useState(false)
   const [includeTagsOpen, setIncludeTagsOpen] = React.useState(false)
   const [excludeTagsOpen, setExcludeTagsOpen] = React.useState(false)
   const [durationOpen, setDurationOpen] = React.useState(false)
+  const [scoreOpen, setScoreOpen] = React.useState(false)
   const [agentSearch, setAgentSearch] = React.useState('')
   const [tagSearch, setTagSearch] = React.useState('')
   const [agentOpen, setAgentOpen] = React.useState(false)
@@ -75,7 +78,9 @@ export function CallListFilters({
     filterIncludeTags.length > 0 || 
     filterExcludeTags.length > 0 ||
     filterDuration.min !== null ||
-    filterDuration.max !== null
+    filterDuration.max !== null ||
+    filterScore.min !== null ||
+    filterScore.max !== null
 
   const activeAgent = agents.find(a => a.id === filterAgent)
 
@@ -453,6 +458,98 @@ export function CallListFilters({
           </PopoverContent>
         </Popover>
 
+        {/* --- 评分筛选 (Score Filter) --- */}
+        <Popover open={scoreOpen} onOpenChange={setScoreOpen}>
+          <PopoverTrigger asChild>
+            <div className={`${chipBaseClass} ${(filterScore.min !== null || filterScore.max !== null) ? activeChipClass : inactiveChipClass}`}>
+              {(filterScore.min !== null || filterScore.max !== null) ? (
+                <>
+                  <Star className="h-3 w-3 mr-1 fill-current" />
+                  <span>
+                    评分: {
+                      filterScore.min !== null && filterScore.max !== null
+                        ? `${filterScore.min}-${filterScore.max}`
+                        : filterScore.min !== null
+                          ? `> ${filterScore.min}`
+                          : `< ${filterScore.max}`
+                    }
+                  </span>
+                  <div 
+                    role="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setFilterScore({min: null, max: null})
+                    }}
+                    className="ml-1 p-0.5 rounded-full hover:bg-amber-200/50 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3 text-gray-400 group-hover:text-gray-600" />
+                  <span>评分</span>
+                </>
+              )}
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-72 p-4 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
+            <div className="space-y-4">
+              <h4 className="font-medium text-sm text-gray-900">评分范围 (0-100)</h4>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">最低分</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className="w-full px-2 py-1.5 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="0"
+                    value={filterScore.min === null ? '' : filterScore.min}
+                    onChange={(e) => {
+                      const val = e.target.value ? parseInt(e.target.value) : null
+                      setFilterScore({ ...filterScore, min: val })
+                    }}
+                  />
+                </div>
+                <div className="pt-5 text-gray-400">-</div>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">最高分</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    className="w-full px-2 py-1.5 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="100"
+                    value={filterScore.max === null ? '' : filterScore.max}
+                    onChange={(e) => {
+                      const val = e.target.value ? parseInt(e.target.value) : null
+                      setFilterScore({ ...filterScore, max: val })
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-between pt-2">
+                <button
+                  onClick={() => {
+                    setFilterScore({min: null, max: null})
+                    setScoreOpen(false)
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  清除
+                </button>
+                <button
+                  onClick={() => setScoreOpen(false)}
+                  className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                >
+                  应用
+                </button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
         {/* --- 时长筛选 (Duration Filter) --- */}
         <Popover open={durationOpen} onOpenChange={setDurationOpen}>
           <PopoverTrigger asChild>
@@ -549,39 +646,10 @@ export function CallListFilters({
           </PopoverContent>
         </Popover>
 
-        {/* --- 排序 (Sort) --- */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <div className={`${chipBaseClass} bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 ml-auto mr-2`}>
-              <ArrowUpDown className="h-3 w-3" />
-              <span>
-                {sortBy === 'recent' && '最新通话'}
-                {sortBy === 'score' && '最高评分'}
-                {sortBy === 'duration' && '时长最长'}
-              </span>
-            </div>
-          </PopoverTrigger>
-          <PopoverContent className="w-40 p-1 bg-white border border-gray-200 shadow-xl rounded-lg" align="end">
-            <div className="space-y-0.5">
-              {[
-                { value: 'recent', label: '最新通话' },
-                { value: 'score', label: '最高评分' },
-                { value: 'duration', label: '时长最长' },
-              ].map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setSortBy(opt.value as any)}
-                  className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center justify-between ${
-                    sortBy === opt.value ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span>{opt.label}</span>
-                  {sortBy === opt.value && <Check className="h-3 w-3" />}
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+
+        {/* --- 分割线和排序 (Divider & Sort via Children) --- */}
+        <div className="h-6 w-px bg-gray-200 mx-2" />
+        {children}
       </div>
     </div>
   )

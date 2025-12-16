@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CallListFilters } from './CallListFilters'
+import { CallListSort } from './CallListSort'
 
 /**
  * 获取维度颜色（用于进度条和图标）
@@ -309,7 +310,8 @@ export default function ConversationCallListPage() {
   const [filterIncludeTags, setFilterIncludeTags] = useState<string[]>([])
   const [filterExcludeTags, setFilterExcludeTags] = useState<string[]>([])
   const [filterDuration, setFilterDuration] = useState<{min: number | null, max: number | null}>({min: null, max: null})
-  const [sortBy, setSortBy] = useState<'recent' | 'score' | 'duration'>('recent')
+  const [filterScore, setFilterScore] = useState<{min: number | null, max: number | null}>({min: null, max: null})
+  const [sortBy, setSortBy] = useState<'recent' | 'score' | 'score_asc' | 'duration'>('recent')
   
   // Link Transcript with Audio
   const playerRef = useRef<PlayerHandle>(null)
@@ -354,6 +356,7 @@ export default function ConversationCallListPage() {
     setFilterIncludeTags([])
     setFilterExcludeTags([])
     setFilterDuration({min: null, max: null})
+    setFilterScore({min: null, max: null})
     setPage(1)
   }
 
@@ -388,7 +391,7 @@ export default function ConversationCallListPage() {
 
   // Fetch Calls
   const { data: callsResponse, isLoading, isFetching } = useQuery<CallsApiResponse>({
-    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration],
+    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortBy],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -402,6 +405,9 @@ export default function ConversationCallListPage() {
       if (filterExcludeTags.length > 0) params.set('excludeTags', filterExcludeTags.join(','))
       if (filterDuration.min !== null) params.set('durationMin', String(filterDuration.min))
       if (filterDuration.max !== null) params.set('durationMax', String(filterDuration.max))
+      if (filterScore.min !== null) params.set('scoreMin', String(filterScore.min))
+      if (filterScore.max !== null) params.set('scoreMax', String(filterScore.max))
+      if (sortBy) params.set('sort', sortBy)
       
       const res = await fetch(`/api/team-calls/calls?${params}`)
       if (!res.ok) {
@@ -443,7 +449,7 @@ export default function ConversationCallListPage() {
     }
   })
 
-  // Sort calls (filtering is now done server-side)
+  // Sort calls locally (Filtering is done server-side, but score sorting must be client-side due to missing DB column)
   const sortedCalls = [...calls].sort((a, b) => {
     if (sortBy === 'recent') {
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -451,11 +457,15 @@ export default function ConversationCallListPage() {
     if (sortBy === 'score') {
       return b.overallQualityScore - a.overallQualityScore
     }
+    if (sortBy === 'score_asc') {
+      return a.overallQualityScore - b.overallQualityScore
+    }
     if (sortBy === 'duration') {
       return b.duration_minutes - a.duration_minutes
     }
     return 0
   })
+
 
 
 
@@ -490,10 +500,12 @@ export default function ConversationCallListPage() {
               setFilterExcludeTags={setFilterExcludeTags}
               filterDuration={filterDuration}
               setFilterDuration={setFilterDuration}
-              sortBy={sortBy}
-              setSortBy={setSortBy}
+              filterScore={filterScore}
+              setFilterScore={setFilterScore}
               onClearAll={clearAllFilters}
-            />
+            >
+              <CallListSort sortBy={sortBy} setSortBy={setSortBy} />
+            </CallListFilters>
           </div>
 
           {isLoading ? (
