@@ -131,6 +131,19 @@ export async function getTagMap(): Promise<Map<string, string>> {
 }
 
 /**
+ * 获取 Signal ID 映射表
+ * code -> id
+ */
+export async function getSignalMap(): Promise<Map<string, string>> {
+  const allSignals = await prisma.signal.findMany({
+    select: { id: true, code: true }
+  })
+  const signalMap = new Map<string, string>()
+  allSignals.forEach(s => signalMap.set(s.code, s.id))
+  return signalMap
+}
+
+/**
  * 处理单个通话的 AI 分析结果
  * 
  * @param input ETL 输入数据
@@ -155,9 +168,13 @@ export async function processCallAnalysis(
   }
 
   try {
-    // Get tag mapping
+    // Get tag and signal mappings
     const tagMap = await getTagMap()
+    const signalMap = await getSignalMap()
     const now = createdAt || new Date().toISOString()
+
+    // Track missing signal codes
+    const missingSignalCodes: string[] = []
 
     // Use transaction for atomicity
     await prisma.$transaction(async (tx) => {
@@ -184,17 +201,24 @@ export async function processCallAnalysis(
       }
 
       // 3. Process Signal Events -> call_signals
+      // 使用 signalId 外键关联 cfg_signals (与 tags 模式一致)
       if (analysisResult.signal_events && Array.isArray(analysisResult.signal_events)) {
         for (const signal of analysisResult.signal_events) {
+          const signalId = signalMap.get(signal.signal_name)
+
+          if (!signalId) {
+            if (!missingSignalCodes.includes(signal.signal_name)) {
+              missingSignalCodes.push(signal.signal_name)
+            }
+            continue // Skip signals not defined in cfg_signals
+          }
+
           try {
             await tx.callSignal.create({
               data: {
                 id: `sig_${callId}_${result.insertedSignals}_${Date.now()}`,
                 callId: callId,
-                signalCode: signal.signal_name,
-                category: signal.category || null,
-                dimension: signal.dimension || null,
-                polarity: signal.polarity || null,
+                signalId: signalId,
                 timestampSec: signal.timestamp_sec || null,
                 confidence: signal.confidence || 0,
                 contextText: signal.context_text || null,
@@ -207,6 +231,11 @@ export async function processCallAnalysis(
             result.errors.push(`Failed to insert signal ${signal.signal_name}: ${e}`)
           }
         }
+      }
+
+      // Log missing signals if any
+      if (missingSignalCodes.length > 0) {
+        console.warn(`  - Missing Signals: ${missingSignalCodes.join(', ')}`)
       }
 
       // 4. Process Tags -> call_assessments
@@ -253,7 +282,8 @@ export async function processCallAnalysis(
                 reasoning: tag.reasoning || null,
                 contextText: context_text,
                 timestampSec: timestamp_sec,
-                contextEvents: JSON.stringify(tag.context_events || [])
+                contextEvents: JSON.stringify(tag.context_events || []),
+                createdAt: now
               }
             })
             result.insertedAssessments++

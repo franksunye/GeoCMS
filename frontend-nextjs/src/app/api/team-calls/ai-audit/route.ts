@@ -41,10 +41,11 @@ export async function GET(request: NextRequest) {
                 where: { callId: call.id },
                 select: {
                     id: true,
-                    signalCode: true,
+                    signalId: true,
                     contextText: true,
                     timestampSec: true,
-                    confidence: true
+                    confidence: true,
+                    signal: { select: { code: true, name: true } }
                 }
             });
 
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
                 const tagCode = tagAssessment.tag.code;
 
                 // A. Count expected signals (Raw Signals matching this Tag Code)
-                const matchedSignals = signals.filter(s => s.signalCode === tagCode);
+                const matchedSignals = signals.filter(s => s.signal.code === tagCode);
 
                 // B. Count aggregated events (From Tag's JSON context)
                 let aggregatedEvents: any[] = [];
@@ -94,7 +95,13 @@ export async function GET(request: NextRequest) {
                     diff,
                     status: diff === 0 ? 'ok' : (diff > 0 ? 'missing_aggregation' : 'extra_aggregation'),
                     details: {
-                        signals: matchedSignals,
+                        signals: matchedSignals.map(s => ({
+                            id: s.id,
+                            signalCode: s.signal.code,
+                            contextText: s.contextText,
+                            timestampSec: s.timestampSec,
+                            confidence: s.confidence
+                        })),
                         events: aggregatedEvents
                     }
                 };

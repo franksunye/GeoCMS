@@ -1,5 +1,6 @@
 // Prisma Schema for SQLite (Local Development)
 // Usage: npm run db:generate
+// Column naming: snake_case (consistent with PostgreSQL)
 
 generator client {
   provider = "prisma-client-js"
@@ -14,9 +15,9 @@ datasource db {
 model Agent {
   id          String       @id
   name        String
-  avatarId    String
-  createdAt   String
-  teamId      String?
+  avatarId    String       @map("avatar_id")
+  createdAt   String       @map("created_at")
+  teamId      String?      @map("team_id")
   calls       Call[]
   deals       Deal[]
   transcripts Transcript[]
@@ -27,11 +28,11 @@ model Agent {
 /// 通话记录
 model Call {
   id                  String               @id
-  agentId             String
-  startedAt           String
+  agentId             String               @map("agent_id")
+  startedAt           String               @map("started_at")
   duration            Int
   outcome             String
-  audioUrl            String?
+  audioUrl            String?              @map("audio_url")
   assessments         CallAssessment[]
   signals             CallSignal[]
   agent               Agent                @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -43,37 +44,37 @@ model Call {
 /// 通话评估（Tag 级别的打分）
 model CallAssessment {
   id            String  @id
-  callId        String
-  tagId         String
+  callId        String  @map("call_id")
+  tagId         String  @map("tag_id")
   score         Int
   confidence    Float?  @default(0)
   contextText   String? @map("context_text")
-  timestampSec  Int?    @map("timestamp_sec")
+  timestampSec  Float?  @map("timestamp_sec")
   reasoning     String?
   contextEvents String? @map("context_events")
+  createdAt     String  @map("created_at")
   tag           Tag     @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   call          Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@map("biz_call_assessments")
+  @@map("biz_call_tags")
 }
 
 /// 通话信号（事件级别的检测）
+/// 注意：category/dimension/polarity 通过 signalId JOIN cfg_signals 获取
 model CallSignal {
   id           String  @id
-  callId       String
-  signalCode   String
-  category     String?
-  dimension    String?
-  polarity     String?
+  callId       String  @map("call_id")
+  signalId     String  @map("signal_id")
   timestampSec Float?  @map("timestamp_sec")
   confidence   Float?  @default(0)
   contextText  String? @map("context_text")
   reasoning    String?
-  createdAt    String
+  createdAt    String  @map("created_at")
   call         Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signal       Signal  @relation(fields: [signalId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([callId], map: "idx_biz_call_signals_callId")
-  @@index([signalCode], map: "idx_biz_call_signals_signalCode")
+  @@index([callId], map: "idx_biz_call_signals_call_id")
+  @@index([signalId], map: "idx_biz_call_signals_signal_id")
   @@map("biz_call_signals")
 }
 
@@ -81,16 +82,16 @@ model CallSignal {
 model Tag {
   id          String           @id @default(cuid())
   name        String
-  code        String           @unique(map: "sqlite_autoindex_tags_2")
+  code        String           @unique
   category    String
   dimension   String
   polarity    String
   severity    String?
-  scoreRange  String
+  scoreRange  String           @map("score_range")
   description String
   active      Int?             @default(1)
-  createdAt   String
-  updatedAt   String
+  createdAt   String           @map("created_at")
+  updatedAt   String           @map("updated_at")
   isMandatory Boolean?         @default(false) @map("is_mandatory")
   assessments CallAssessment[]
 
@@ -99,17 +100,18 @@ model Tag {
 
 /// 信号定义（事件级别的行为检测）
 model Signal {
-  id                String  @id @default(cuid())
-  code              String  @unique(map: "sqlite_autoindex_signals_2")
+  id                String       @id @default(cuid())
+  code              String       @unique
   name              String
   category          String
   dimension         String
-  targetTagCode     String
-  aggregationMethod String
+  targetTagCode     String       @map("target_tag_code")
+  aggregationMethod String       @map("aggregation_method")
   description       String
-  active            Int?    @default(1)
-  createdAt         String
-  updatedAt         String
+  active            Int?         @default(1)
+  createdAt         String       @map("created_at")
+  updatedAt         String       @map("updated_at")
+  callSignals       CallSignal[]
 
   @@map("cfg_signals")
 }
@@ -118,16 +120,16 @@ model Signal {
 model ScoringRule {
   id              String  @id @default(cuid())
   name            String
-  appliesTo       String
+  appliesTo       String  @map("applies_to")
   description     String
   active          Int?    @default(1)
-  ruleType        String
-  tagCode         String
-  targetDimension String
-  scoreAdjustment Float
+  ruleType        String  @map("rule_type")
+  tagCode         String  @map("tag_code")
+  targetDimension String  @map("target_dimension")
+  scoreAdjustment Float   @map("score_adjustment")
   weight          Float
-  createdAt       String
-  updatedAt       String
+  createdAt       String  @map("created_at")
+  updatedAt       String  @map("updated_at")
 
   @@map("cfg_scoring_rules")
 }
@@ -135,14 +137,14 @@ model ScoringRule {
 /// 评分配置
 model ScoreConfig {
   id                  String  @id
-  aggregationMethod   String
-  processWeight       Int
-  skillsWeight        Int
-  communicationWeight Int
-  customFormula       String?
+  aggregationMethod   String  @map("aggregation_method")
+  processWeight       Int     @map("process_weight")
+  skillsWeight        Int     @map("skills_weight")
+  communicationWeight Int     @map("communication_weight")
+  customFormula       String? @map("custom_formula")
   description         String
-  createdAt           String
-  updatedAt           String
+  createdAt           String  @map("created_at")
+  updatedAt           String  @map("updated_at")
 
   @@map("cfg_score_config")
 }
@@ -156,8 +158,8 @@ model Prompt {
   description   String?
   isDefault     Boolean?             @default(false) @map("is_default")
   active        Int?                 @default(1)
-  createdAt     String
-  updatedAt     String
+  createdAt     String               @map("created_at")
+  updatedAt     String               @map("updated_at")
   promptType    String?              @default("quality_check") @map("prompt_type")
   variables     String?
   outputSchema  String?              @map("output_schema")
@@ -169,8 +171,8 @@ model Prompt {
 /// 提示词执行日志
 model PromptExecutionLog {
   id              String  @id @default(cuid())
-  promptId        String
-  callId          String
+  promptId        String  @map("prompt_id")
+  callId          String  @map("call_id")
   inputVariables  String? @map("input_variables")
   rawOutput       String? @map("raw_output")
   parsedOutput    String? @map("parsed_output")
@@ -178,21 +180,21 @@ model PromptExecutionLog {
   status          String
   errorMessage    String? @map("error_message")
   isDryRun        Int?    @default(0) @map("is_dry_run")
-  createdAt       String
+  createdAt       String  @map("created_at")
   call            Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   prompt          Prompt  @relation(fields: [promptId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([promptId], map: "idx_log_prompt_execution_promptId")
-  @@index([callId], map: "idx_log_prompt_execution_callId")
+  @@index([promptId], map: "idx_log_prompt_execution_prompt_id")
+  @@index([callId], map: "idx_log_prompt_execution_call_id")
   @@map("log_prompt_execution")
 }
 
 /// 交易/案例
 model Deal {
   id          String       @id
-  agentId     String
+  agentId     String       @map("agent_id")
   outcome     String
-  createdAt   String
+  createdAt   String       @map("created_at")
   agent       Agent        @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   transcripts Transcript[]
 
@@ -202,11 +204,11 @@ model Deal {
 /// 通话转录文本
 model Transcript {
   id        String  @id
-  dealId    String
-  agentId   String
+  dealId    String  @map("deal_id")
+  agentId   String  @map("agent_id")
   content   String
-  createdAt String
-  audioUrl  String?
+  createdAt String  @map("created_at")
+  audioUrl  String? @map("audio_url")
   agent     Agent   @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   deal      Deal    @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -217,11 +219,11 @@ model Transcript {
 model AIAnalysisLog {
   id           String  @id @default(cuid())
   signals      String
-  createdAt    String
-  transcriptId String?
-  agentId      String?
-  dealId       String?
-  teamId       String?
+  createdAt    String  @map("created_at")
+  transcriptId String? @map("transcript_id")
+  agentId      String? @map("agent_id")
+  dealId       String? @map("deal_id")
+  teamId       String? @map("team_id")
 
   @@map("sync_ai_analysis")
 }
@@ -232,8 +234,8 @@ model AuditLog {
   timestamp  String
   user       String
   action     String
-  objectType String
-  objectName String
+  objectType String  @map("object_type")
+  objectName String  @map("object_name")
   changes    String
   details    String
 

@@ -60,9 +60,10 @@ export default function AiAuditPage() {
       setLoading(true)
       const res = await fetch('/api/team-calls/ai-audit')
       const json = await res.json()
-      setData(json.data)
+      setData(json.data || [])  // 添加默认空数组防止 undefined
     } catch (err) {
       console.error(err)
+      setData([])  // 出错时设置为空数组
     } finally {
       setLoading(false)
     }

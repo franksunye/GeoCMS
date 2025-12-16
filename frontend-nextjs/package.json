@@ -15,6 +15,7 @@
     "db:studio": "prisma studio --schema=prisma/schema.sqlite.prisma",
     "db:studio:pg": "prisma studio --schema=prisma/schema.postgres.prisma",
     "db:migrate-data": "npx tsx scripts/migrate-to-supabase.ts",
+    "db:migrate-columns": "npx tsx scripts/migrate-sqlite-columns.ts",
     "postinstall": "prisma generate --schema=prisma/schema.sqlite.prisma"
   },
   "dependencies": {
