@@ -47,10 +47,10 @@ interface ScoreDetailsData {
 export default function ScoreDetailsPage() {
   const [data, setData] = useState<ScoreDetailsData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [category, setCategory] = useState('all')
-  const [dimension, setDimension] = useState('all')
+  const [category, setCategory] = useState('Sales')
+  const [dimension, setDimension] = useState('Process')
   const [tagName, setTagName] = useState('all')
-  const [limit, setLimit] = useState('10')
+  const [limit, setLimit] = useState('3')
 
   // Audio Player State
   const audioRef = useRef<HTMLAudioElement>(null)

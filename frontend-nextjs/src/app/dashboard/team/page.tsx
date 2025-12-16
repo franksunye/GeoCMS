@@ -107,10 +107,10 @@ export default function TeamPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center">
           <Users className="h-8 w-8 mr-3 text-primary" />
-          AI Content Team
+          Agent Team
         </h1>
         <p className="mt-2 text-gray-600">
-          Your virtual content production team working 24/7
+          Your virtual agent team working 24/7
         </p>
       </div>
 
