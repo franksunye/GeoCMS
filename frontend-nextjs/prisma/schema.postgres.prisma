@@ -49,32 +49,32 @@ model CallAssessment {
   score         Int
   confidence    Float?  @default(0)
   contextText   String? @map("context_text")
-  timestampSec  Int?    @map("timestamp_sec")
+  timestampSec  Float?  @map("timestamp_sec")
   reasoning     String?
   contextEvents String? @map("context_events")
+  createdAt     String  @map("created_at")
   tag           Tag     @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   call          Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@map("biz_call_assessments")
+  @@map("biz_call_tags")
 }
 
 /// 通话信号（事件级别的检测）
+/// 注意：category/dimension/polarity 通过 signalId JOIN cfg_signals 获取
 model CallSignal {
   id           String  @id @default(cuid())
   callId       String  @map("call_id")
-  signalCode   String  @map("signal_code")
-  category     String?
-  dimension    String?
-  polarity     String?
+  signalId     String  @map("signal_id")
   timestampSec Float?  @map("timestamp_sec")
   confidence   Float?  @default(0)
   contextText  String? @map("context_text")
   reasoning    String?
   createdAt    String  @map("created_at")
   call         Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signal       Signal  @relation(fields: [signalId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([callId])
-  @@index([signalCode])
+  @@index([signalId])
   @@map("biz_call_signals")
 }
 
@@ -100,17 +100,18 @@ model Tag {
 
 /// 信号定义（事件级别的行为检测）
 model Signal {
-  id                String  @id @default(cuid())
-  code              String  @unique
+  id                String       @id @default(cuid())
+  code              String       @unique
   name              String
   category          String
   dimension         String
-  targetTagCode     String  @map("target_tag_code")
-  aggregationMethod String  @map("aggregation_method")
+  targetTagCode     String       @map("target_tag_code")
+  aggregationMethod String       @map("aggregation_method")
   description       String
-  active            Int?    @default(1)
-  createdAt         String  @map("created_at")
-  updatedAt         String  @map("updated_at")
+  active            Int?         @default(1)
+  createdAt         String       @map("created_at")
+  updatedAt         String       @map("updated_at")
+  callSignals       CallSignal[]
 
   @@map("cfg_signals")
 }

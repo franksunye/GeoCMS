@@ -36,6 +36,9 @@ model Call {
   agent               Agent                @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promptExecutionLogs PromptExecutionLog[]
 
+  @@index([startedAt], map: "idx_biz_calls_started_at")
+  @@index([agentId], map: "idx_biz_calls_agent_id")
+  @@index([agentId, startedAt], map: "idx_biz_calls_agent_started")
   @@map("biz_calls")
 }
 
@@ -54,6 +57,8 @@ model CallAssessment {
   tag           Tag     @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   call          Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([callId], map: "idx_biz_call_tags_call_id")
+  @@index([tagId], map: "idx_biz_call_tags_tag_id")
   @@map("biz_call_assessments")
 }
 
@@ -62,19 +67,17 @@ model CallAssessment {
 model CallSignal {
   id           String  @id
   callId       String
-  signalCode   String
-  category     String?
-  dimension    String?
-  polarity     String?
+  signalId     String  @map("signal_id")
   timestampSec Float?  @map("timestamp_sec")
   confidence   Float?  @default(0)
   contextText  String? @map("context_text")
   reasoning    String?
   createdAt    String
   call         Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signal       Signal  @relation(fields: [signalId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([callId], map: "idx_biz_call_signals_callId")
-  @@index([signalCode], map: "idx_biz_call_signals_signalCode")
+  @@index([callId], map: "idx_biz_call_signals_call_id")
+  @@index([signalId], map: "idx_biz_call_signals_signal_id")
   @@map("biz_call_signals")
 }
 
@@ -111,6 +114,7 @@ model Signal {
   active            Int?    @default(1)
   createdAt         String
   updatedAt         String
+  callSignals       CallSignal[]
 
   @@map("cfg_signals")
 }

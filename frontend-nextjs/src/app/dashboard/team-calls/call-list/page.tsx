@@ -289,7 +289,7 @@ const CallRecordingPlayer = React.forwardRef<PlayerHandle, CallRecordingPlayerPr
 CallRecordingPlayer.displayName = 'CallRecordingPlayer'
 
 export default function ConversationCallListPage() {
-  const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null)
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'summary' | 'transcript' | 'analysis' | 'metadata'>('summary')
   const [expandedTagKey, setExpandedTagKey] = useState<string | null>(null)
   const [filterAgent, setFilterAgent] = useState<string>('all')
@@ -308,18 +308,54 @@ export default function ConversationCallListPage() {
     }
     setCurrentPlaybackTime(0)
     setIsPlayerPlaying(false)
-  }, [selectedCall?.id]) // Reset when call ID changes
+  }, [selectedCallId]) // Reset when call ID changes
 
 
-  const { data: calls, isLoading } = useQuery<CallRecord[]>({
-    queryKey: ['calls'],
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const pageSize = 5
+
+  // API Response type
+  interface CallsApiResponse {
+    data: CallRecord[]
+    pagination: {
+      page: number
+      pageSize: number
+      total: number
+      totalPages: number
+      hasMore: boolean
+    }
+  }
+
+  const { data: callsResponse, isLoading } = useQuery<CallsApiResponse>({
+    queryKey: ['calls', page, pageSize, filterAgent],
     queryFn: async () => {
-      const res = await fetch('/api/team-calls/calls')
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        ...(filterAgent !== 'all' && { agentId: filterAgent })
+      })
+      const res = await fetch(`/api/team-calls/calls?${params}`)
       if (!res.ok) {
         throw new Error('Failed to fetch calls')
       }
       return res.json()
     }
+  })
+
+  const calls = callsResponse?.data || []
+  const pagination = callsResponse?.pagination
+
+  // Fetch call detail when selected
+  const { data: selectedCall, isLoading: isLoadingDetail } = useQuery<CallRecord>({
+    queryKey: ['call-detail', selectedCallId],
+    queryFn: async () => {
+      if (!selectedCallId) throw new Error('No call selected')
+      const res = await fetch(`/api/team-calls/calls/${selectedCallId}`)
+      if (!res.ok) throw new Error('Failed to fetch call detail')
+      return res.json()
+    },
+    enabled: !!selectedCallId
   })
 
   // Fetch agents for filter
@@ -338,14 +374,8 @@ export default function ConversationCallListPage() {
     }
   })
 
-  // Filter calls
-  const filteredCalls = calls?.filter(call => {
-    if (filterAgent !== 'all' && call.agentId !== filterAgent) return false
-    return true
-  })
-
-  // Sort calls
-  const sortedCalls = filteredCalls?.sort((a, b) => {
+  // Sort calls (filtering is now done server-side)
+  const sortedCalls = [...calls].sort((a, b) => {
     if (sortBy === 'recent') {
       return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     }
@@ -415,9 +445,9 @@ export default function ConversationCallListPage() {
                 <div
                   key={call.id}
                   className={`p-4 cursor-pointer hover:bg-gray-50 flex items-start gap-3 ${
-                    selectedCall?.id === call.id ? 'bg-blue-50' : ''
+                    selectedCallId === call.id ? 'bg-blue-50' : ''
                   }`}
-                  onClick={() => setSelectedCall(call)}
+                  onClick={() => setSelectedCallId(String(call.id))}
                 >
                   <div className="mt-1">
                     <AgentAvatar 
@@ -518,12 +548,44 @@ export default function ConversationCallListPage() {
                 </div>
               ))}
             </div>
+            
+            {/* Pagination */}
+            {pagination && (
+              <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  共 {pagination.total} 条通话
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    上一页
+                  </button>
+                  <span className="text-sm text-gray-600">
+                    {page} / {pagination.totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                    disabled={!pagination.hasMore}
+                    className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    下一页
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Call Details */}
         <div className="lg:col-span-2">
-          {selectedCall ? (
+          {isLoadingDetail ? (
+            <div className="bg-white shadow rounded-lg p-8 flex items-center justify-center h-64">
+              <div className="text-gray-500">加载通话详情中...</div>
+            </div>
+          ) : selectedCall ? (
             <div className="bg-white shadow rounded-lg overflow-hidden">
               {/* Header */}
               <div className="p-6 border-b border-gray-200">

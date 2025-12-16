@@ -81,47 +81,41 @@ export async function GET(request: NextRequest) {
       if (existing) existing.wonCalls = s._count.id
     })
 
-    // 5. Batch Query: Tag Scores per Agent (HEAVIEST QUERY)
-    const allTagScores = await logger.time('Query: All Tag Scores', () =>
-      prisma.callAssessment.findMany({
-        where: {
-          call: { startedAt: { gte: cutoffIso } }
-        },
-        select: {
-          tagId: true,
-          score: true,
-          call: { select: { agentId: true } }
-        }
-      }),
-      { timeframe } // 附加数据用于日志分析
+    // 5. Optimized: Use SQL aggregation for tag scores per agent
+    // This replaces loading all 5000-10000 rows into memory
+    interface AgentTagAvg {
+      agentId: string
+      tagId: string
+      avgScore: number
+    }
+
+    const aggregatedScores = await logger.time('Query: Aggregated Tag Scores', () =>
+      prisma.$queryRaw<AgentTagAvg[]>`
+        SELECT 
+          c.agent_id as "agentId",
+          ct.tag_id as "tagId", 
+          ROUND(AVG(ct.score), 2) as "avgScore"
+        FROM biz_call_tags ct
+        INNER JOIN biz_calls c ON ct.call_id = c.id
+        WHERE c.started_at >= ${cutoffIso}
+        GROUP BY c.agent_id, ct.tag_id
+      `
     )
 
-    logger.info('Tag Scores fetched', { count: allTagScores.length })
-
-    // Map: AgentId -> TagId -> Scores Array
-    const computeTimer = logger.startTimer('Compute: Aggregate Scores')
-
-    const agentTagScoresMap = new Map<string, Map<string, number[]>>()
-    allTagScores.forEach((row) => {
-      const agentId = row.call.agentId
-      if (!agentTagScoresMap.has(agentId)) {
-        agentTagScoresMap.set(agentId, new Map())
-      }
-      const tagMap = agentTagScoresMap.get(agentId)!
-      if (!tagMap.has(row.tagId)) {
-        tagMap.set(row.tagId, [])
-      }
-      tagMap.get(row.tagId)!.push(row.score)
+    logger.info('Aggregated Tag Scores fetched', {
+      count: aggregatedScores.length,
+      note: 'Using SQL GROUP BY instead of memory aggregation'
     })
 
-    // Calculate averages
+    // Build Map: AgentId -> TagId -> AvgScore (already aggregated!)
+    const computeTimer = logger.startTimer('Compute: Build Score Map')
+
     const agentTagAvgMap = new Map<string, Map<string, number>>()
-    agentTagScoresMap.forEach((tagMap, agentId) => {
-      const avgMap = new Map<string, number>()
-      tagMap.forEach((scores, tagId) => {
-        avgMap.set(tagId, scores.reduce((a, b) => a + b, 0) / scores.length)
-      })
-      agentTagAvgMap.set(agentId, avgMap)
+    aggregatedScores.forEach((row) => {
+      if (!agentTagAvgMap.has(row.agentId)) {
+        agentTagAvgMap.set(row.agentId, new Map())
+      }
+      agentTagAvgMap.get(row.agentId)!.set(row.tagId, Number(row.avgScore))
     })
 
     computeTimer.end({ agentCount: agentTagAvgMap.size })
@@ -207,7 +201,7 @@ export async function GET(request: NextRequest) {
 
     const totalDuration = totalTimer.end({
       agentCount: formattedAgents.length,
-      tagScoreCount: allTagScores.length
+      tagScoreCount: aggregatedScores.length
     })
 
     logger.info('Response ready', {

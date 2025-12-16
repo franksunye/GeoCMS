@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronDown, TrendingUp } from 'lucide-react'
+import { ChevronDown, TrendingUp, Loader2 } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import { AgentId } from '@/types'
 import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
@@ -48,6 +48,7 @@ export default function ScorecardPage() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null)
   const [agents, setAgents] = useState<Agent[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [scoreConfig, setScoreConfig] = useState({
     processWeight: 30,
     skillsWeight: 50,
@@ -56,6 +57,7 @@ export default function ScorecardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true)
       try {
         const agentsRes = await fetch(`/api/team-calls/scorecard/agents?timeframe=${timeFrame}`)
         if (agentsRes.ok) {
@@ -74,6 +76,8 @@ export default function ScorecardPage() {
       } catch (e) {
         console.error('Error fetching data:', e)
         setAgents([])
+      } finally {
+        setIsLoading(false)
       }
     }
     fetchData()
@@ -264,6 +268,59 @@ export default function ScorecardPage() {
       </div>
     </div>
 
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="space-y-6">
+          {/* Team Overview Skeleton */}
+          <div className="bg-white shadow rounded-lg p-8 animate-pulse">
+            <div className="flex items-start justify-between mb-8">
+              <div className="flex items-center gap-6">
+                <div>
+                  <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20"></div>
+                </div>
+              </div>
+              <div className="h-10 bg-gray-200 rounded w-32"></div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-32 bg-gray-100 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Agent Cards Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white shadow rounded-xl p-5 animate-pulse">
+                <div className="flex justify-between items-start mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                    <div>
+                      <div className="h-5 bg-gray-200 rounded w-24 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-16"></div>
+                    </div>
+                  </div>
+                  <div className="w-16 h-16 bg-gray-200 rounded-full"></div>
+                </div>
+                <div className="space-y-2.5">
+                  {[1, 2, 3].map((j) => (
+                    <div key={j} className="h-10 bg-gray-100 rounded-lg"></div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Loading indicator */}
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <span className="ml-3 text-gray-600">加载评分数据中...</span>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Team Overview Card */}
       <div className="bg-white shadow rounded-lg p-8">
         <div className="flex items-start justify-between mb-8">
@@ -541,6 +598,8 @@ export default function ScorecardPage() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )
