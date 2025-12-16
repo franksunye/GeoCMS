@@ -38,6 +38,9 @@ model Call {
   agent               Agent                @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promptExecutionLogs PromptExecutionLog[]
 
+  @@index([startedAt], map: "idx_biz_calls_started_at")
+  @@index([agentId], map: "idx_biz_calls_agent_id")
+  @@index([agentId, startedAt], map: "idx_biz_calls_agent_started")
   @@map("biz_calls")
 }
 
@@ -56,6 +59,8 @@ model CallAssessment {
   tag           Tag     @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   call          Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([callId], map: "idx_biz_call_tags_call_id")
+  @@index([tagId], map: "idx_biz_call_tags_tag_id")
   @@map("biz_call_tags")
 }
 
@@ -73,8 +78,8 @@ model CallSignal {
   call         Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   signal       Signal  @relation(fields: [signalId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([callId])
-  @@index([signalId])
+  @@index([callId], map: "idx_biz_call_signals_call_id")
+  @@index([signalId], map: "idx_biz_call_signals_signal_id")
   @@map("biz_call_signals")
 }
 

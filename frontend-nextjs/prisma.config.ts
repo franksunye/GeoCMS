@@ -30,10 +30,19 @@ export default defineConfig({
   },
 
   datasource: {
-    // For PostgreSQL (Supabase/Vercel), use DATABASE_URL from environment
-    // For SQLite (local dev), use local file
+    // For PostgreSQL (Supabase/Vercel):
+    // - Use DIRECT_URL (port 5432) for migrations (db push/migrate) to avoid P1017
+    // - Use DATABASE_URL (port 6543) for application runtime
     url: isPostgres
-      ? process.env.DATABASE_URL || "postgresql://localhost:5432/postgres"
+      ? getPostgresUrl()
       : "file:./team-calls.db",
   },
 });
+
+function getPostgresUrl() {
+  const isMigration = process.argv.some(arg => arg.includes('push') || arg.includes('migrate'));
+  if (isMigration && process.env.DIRECT_URL) {
+    return process.env.DIRECT_URL;
+  }
+  return process.env.DATABASE_URL || "postgresql://localhost:5432/postgres";
+}
