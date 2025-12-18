@@ -105,7 +105,7 @@ function generateMockResponse(transcript: string): string {
             }
         ],
         summary: {
-            overall_assessment: "Mock: 这是一次模拟的分析结果。"
+            overall_summary: "Mock: 这是一次模拟的分析结果。"
         }
     }, null, 2);
 }
@@ -281,6 +281,7 @@ export async function analyzeCall(callId: string, promptContent: string, isPing:
             parsedOutput.signals = parsedOutput.signal_events;
             delete parsedOutput.signal_events;
         }
+
 
         // Normalize Signals
         if (Array.isArray(parsedOutput.signals)) {

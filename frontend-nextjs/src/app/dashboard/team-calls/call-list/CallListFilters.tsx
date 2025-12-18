@@ -158,13 +158,13 @@ export function CallListFilters({
       {/* Filters Container - Flex wrap for responsive layout */}
       <div className="flex flex-wrap gap-2 items-center">
         
-        {/* --- 坐席筛选 (Agent Filter) --- */}
+        {/* --- 销售筛选 (Agent Filter) --- */}
         <Popover open={agentOpen} onOpenChange={setAgentOpen}>
           <PopoverTrigger asChild>
             <div className={`${chipBaseClass} ${filterAgent !== 'all' ? activeChipClass : inactiveChipClass}`}>
               {filterAgent !== 'all' ? (
                 <>
-                  <span>坐席: {activeAgent?.name || filterAgent}</span>
+                  <span>销售: {activeAgent?.name || filterAgent}</span>
                   <div 
                     role="button"
                     onClick={(e) => {
@@ -179,7 +179,7 @@ export function CallListFilters({
               ) : (
                 <>
                   <Plus className="h-3 w-3" />
-                  <span>坐席</span>
+                  <span>销售</span>
                 </>
               )}
             </div>
@@ -189,7 +189,7 @@ export function CallListFilters({
               <Search className="h-3 w-3 text-gray-400" />
               <input 
                 className="flex-1 text-sm outline-none placeholder:text-gray-400"
-                placeholder="搜索坐席..."
+                placeholder="搜索销售..."
                 value={agentSearch}
                 onChange={(e) => setAgentSearch(e.target.value)}
                 autoFocus
@@ -204,7 +204,7 @@ export function CallListFilters({
                 className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${filterAgent === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
               >
                 <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-600">全</div>
-                <span>所有坐席</span>
+                <span>所有销售</span>
               </button>
               {agents
                 .filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase()))

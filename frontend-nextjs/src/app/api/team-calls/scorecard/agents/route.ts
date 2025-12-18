@@ -10,10 +10,13 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const timeframe = searchParams.get('timeframe') || '7d'
+    const customStartDate = searchParams.get('startDate')
+    const customEndDate = searchParams.get('endDate')
 
-    logger.info('Request received', { timeframe })
+    logger.info('Request received', { timeframe, customStartDate, customEndDate })
 
     let cutoffDate = new Date()
+    let endDate: Date | null = null  // For custom range
     cutoffDate.setHours(0, 0, 0, 0)
 
     if (timeframe === '3m') {
@@ -26,11 +29,25 @@ export async function GET(request: NextRequest) {
       cutoffDate.setDate(cutoffDate.getDate() - 1)
     } else if (timeframe === 'all') {
       cutoffDate = new Date(0) // Epoch
-    } else if (timeframe === 'custom') {
-      cutoffDate.setDate(cutoffDate.getDate() - 7)
+    } else if (timeframe === 'custom' && customStartDate) {
+      // 自定义日期范围
+      cutoffDate = new Date(customStartDate)
+      if (customEndDate) {
+        endDate = new Date(customEndDate)
+      }
     }
 
     const cutoffIso = cutoffDate.toISOString()
+    const endIso = endDate ? endDate.toISOString() : null
+
+    // 构建日期范围查询条件
+    const callDateFilter = endIso
+      ? { startedAt: { gte: cutoffIso, lte: endIso } }
+      : { startedAt: { gte: cutoffIso } }
+
+    const dealDateFilter = endIso
+      ? { createdAt: { gte: cutoffIso, lte: endIso } }
+      : { createdAt: { gte: cutoffIso } }
 
     // 1. Get Agents
     const agents = await logger.time('Query: Agents', () => prisma.agent.findMany())
@@ -54,34 +71,48 @@ export async function GET(request: NextRequest) {
     const skillsRefTags = allTags.filter(t => t.dimension === 'Skills' || t.dimension === 'Sales.Skills')
     const commRefTags = allTags.filter(t => t.dimension === 'Communication' || t.dimension === 'Sales.Communication')
 
-    // 4. Batch Query: Call Stats per Agent
+    // 4. Batch Query: Call Stats per Agent (通话分析数据)
     const agentCallStats = await logger.time('Query: Call Stats', () =>
       prisma.call.groupBy({
         by: ['agentId'],
-        where: { startedAt: { gte: cutoffIso } },
+        where: callDateFilter,
         _count: { id: true },
       })
     )
 
-    // Get won calls separately
-    const wonCallStats = await logger.time('Query: Won Call Stats', () =>
-      prisma.call.groupBy({
-        by: ['agentId'],
-        where: { startedAt: { gte: cutoffIso }, outcome: 'won' },
-        _count: { id: true },
-      })
-    )
-
-    const statsMap = new Map<string, { totalCalls: number; wonCalls: number }>()
+    const callStatsMap = new Map<string, number>()
     agentCallStats.forEach(s => {
-      statsMap.set(s.agentId, { totalCalls: s._count.id, wonCalls: 0 })
-    })
-    wonCallStats.forEach(s => {
-      const existing = statsMap.get(s.agentId)
-      if (existing) existing.wonCalls = s._count.id
+      callStatsMap.set(s.agentId, s._count.id)
     })
 
-    // 5. Optimized: Use SQL aggregation for tag scores per agent
+    // 5. Query: Deal Stats from CRM (sync_deals) for Win Rate
+    // 赢单率从 CRM 工单数据计算，而不是从通话分析结果
+    const agentDealStats = await logger.time('Query: Deal Stats (CRM)', () =>
+      prisma.deal.groupBy({
+        by: ['agentId'],
+        where: dealDateFilter,
+        _count: { id: true },
+      })
+    )
+
+    const wonDealStats = await logger.time('Query: Won Deal Stats (CRM)', () =>
+      prisma.deal.groupBy({
+        by: ['agentId'],
+        where: { ...dealDateFilter, outcome: 'won' },
+        _count: { id: true },
+      })
+    )
+
+    const dealStatsMap = new Map<string, { totalDeals: number; wonDeals: number }>()
+    agentDealStats.forEach(s => {
+      dealStatsMap.set(s.agentId, { totalDeals: s._count.id, wonDeals: 0 })
+    })
+    wonDealStats.forEach(s => {
+      const existing = dealStatsMap.get(s.agentId)
+      if (existing) existing.wonDeals = s._count.id
+    })
+
+    // 6. Optimized: Use SQL aggregation for tag scores per agent
     // This replaces loading all 5000-10000 rows into memory
     interface AgentTagAvg {
       agentId: string
@@ -89,18 +120,33 @@ export async function GET(request: NextRequest) {
       avgScore: number
     }
 
-    const aggregatedScores = await logger.time('Query: Aggregated Tag Scores', () =>
-      prisma.$queryRaw<AgentTagAvg[]>`
-        SELECT 
-          c.agent_id as "agentId",
-          ct.tag_id as "tagId", 
-          ROUND(AVG(ct.score), 2) as "avgScore"
-        FROM biz_call_tags ct
-        INNER JOIN biz_calls c ON ct.call_id = c.id
-        WHERE c.started_at >= ${cutoffIso}
-        GROUP BY c.agent_id, ct.tag_id
-      `
-    )
+    const aggregatedScores = await logger.time('Query: Aggregated Tag Scores', async () => {
+      if (endIso) {
+        // 有结束日期的情况
+        return prisma.$queryRaw<AgentTagAvg[]>`
+          SELECT 
+            c.agent_id as "agentId",
+            ct.tag_id as "tagId", 
+            ROUND(AVG(ct.score), 2) as "avgScore"
+          FROM biz_call_tags ct
+          INNER JOIN biz_calls c ON ct.call_id = c.id
+          WHERE c.started_at >= ${cutoffIso} AND c.started_at <= ${endIso}
+          GROUP BY c.agent_id, ct.tag_id
+        `
+      } else {
+        // 只有开始日期的情况
+        return prisma.$queryRaw<AgentTagAvg[]>`
+          SELECT 
+            c.agent_id as "agentId",
+            ct.tag_id as "tagId", 
+            ROUND(AVG(ct.score), 2) as "avgScore"
+          FROM biz_call_tags ct
+          INNER JOIN biz_calls c ON ct.call_id = c.id
+          WHERE c.started_at >= ${cutoffIso}
+          GROUP BY c.agent_id, ct.tag_id
+        `
+      }
+    })
 
     logger.info('Aggregated Tag Scores fetched', {
       count: aggregatedScores.length,
@@ -120,19 +166,21 @@ export async function GET(request: NextRequest) {
 
     computeTimer.end({ agentCount: agentTagAvgMap.size })
 
-    // 6. Process each agent
+    // 7. Process each agent
     const formatTimer = logger.startTimer('Compute: Format Agents')
 
     const formattedAgents = agents.map((agent) => {
-      // A. Get Call Stats from Map
-      const stats = statsMap.get(agent.id) || { totalCalls: 0, wonCalls: 0 }
-      const recordings = stats.totalCalls
-      const winRate = recordings > 0 ? Math.round((stats.wonCalls / recordings) * 100) : 0
+      // A. Get Call Stats (通话分析数据)
+      const recordings = callStatsMap.get(agent.id) || 0
 
-      // B. Get Tag Scores from Map
+      // B. Get Win Rate from CRM Deal Stats (CRM工单数据)
+      const dealStats = dealStatsMap.get(agent.id) || { totalDeals: 0, wonDeals: 0 }
+      const winRate = dealStats.totalDeals > 0 ? Math.round((dealStats.wonDeals / dealStats.totalDeals) * 100) : 0
+
+      // C. Get Tag Scores from Map
       const agentScores = agentTagAvgMap.get(agent.id) || new Map()
 
-      // C. Helper to build details array ensuring consistent order/length
+      // D. Helper to build details array ensuring consistent order/length
       const buildDetails = (refTags: typeof allTags) => {
         return refTags.map(tag => ({
           name: tag.name,
@@ -146,7 +194,7 @@ export async function GET(request: NextRequest) {
       const skillsDetails = buildDetails(skillsRefTags)
       const communicationDetails = buildDetails(commRefTags)
 
-      // D. Calculate Dimension Scores (Hybrid: Assessed OR Mandatory)
+      // E. Calculate Dimension Scores (Hybrid: Assessed OR Mandatory)
       const calculateAverage = (refTags: typeof allTags) => {
         let totalScore = 0
         let denominator = 0
@@ -171,7 +219,7 @@ export async function GET(request: NextRequest) {
       const skillsScore = calculateAverage(skillsRefTags)
       const commScore = calculateAverage(commRefTags)
 
-      // E. Calculate Overall Score
+      // F. Calculate Overall Score
       const overallScore = Math.round(
         (processScore * weights.process +
           skillsScore * weights.skills +
@@ -185,6 +233,7 @@ export async function GET(request: NextRequest) {
         name: agent.name,
         overallScore,
         recordings,
+        totalDeals: dealStats.totalDeals,
         winRate,
         process: processScore,
         skills: skillsScore,

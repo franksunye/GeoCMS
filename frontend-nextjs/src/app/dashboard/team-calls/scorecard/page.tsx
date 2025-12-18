@@ -10,8 +10,23 @@ import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
 import { PageHeader } from '@/components/ui/page-header'
 import { TimeRangeSelector } from '@/components/ui/time-range-selector'
 
-type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all'
-type SortBy = 'overall' | 'process' | 'skills' | 'communication'
+type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all' | 'custom'
+type SortBy = 'overall' | 'process' | 'skills' | 'communication' | 'winRate'
+
+// 生成最近12个月的选项
+const generateMonthOptions = () => {
+  const options = []
+  const now = new Date()
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const label = `${date.getFullYear()}年${date.getMonth() + 1}月`
+    options.push({ value, label })
+  }
+  return options
+}
+
+const MONTH_OPTIONS = generateMonthOptions()
 
 interface SubcategoryScore {
   name: string
@@ -34,6 +49,7 @@ interface Agent {
   name: string
   overallScore: number
   recordings: number
+  totalDeals: number
   winRate: number
   process: number
   skills: number
@@ -46,6 +62,7 @@ interface Agent {
 export default function ScorecardPage() {
   const router = useRouter()
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('7d')
+  const [selectedMonth, setSelectedMonth] = useState<string>('') // 如 '2025-07'
   const [selectedTeam, setSelectedTeam] = useState<string>('9055771909563658940')
   const [showOnlyActive, setShowOnlyActive] = useState<boolean>(true)
   const [sortBy, setSortBy] = useState<SortBy>('overall')
@@ -63,7 +80,18 @@ export default function ScorecardPage() {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const agentsRes = await fetch(`/api/team-calls/scorecard/agents?timeframe=${timeFrame}`)
+        // 构建 API 请求参数
+        let apiUrl = `/api/team-calls/scorecard/agents?timeframe=${timeFrame}`
+        
+        // 如果是自定义月份，添加日期参数
+        if (timeFrame === 'custom' && selectedMonth) {
+          const [year, month] = selectedMonth.split('-').map(Number)
+          const startDate = new Date(year, month - 1, 1)
+          const endDate = new Date(year, month, 0, 23, 59, 59) // 月末最后一秒
+          apiUrl = `/api/team-calls/scorecard/agents?timeframe=custom&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+        }
+        
+        const agentsRes = await fetch(apiUrl)
         if (agentsRes.ok) {
           const data = await agentsRes.json()
           setAgents(data)
@@ -85,7 +113,7 @@ export default function ScorecardPage() {
       }
     }
     fetchData()
-  }, [timeFrame])
+  }, [timeFrame, selectedMonth])
 
   const teams = useMemo(() => {
     const uniqueTeams = new Set(agents.map(a => a.teamId).filter(Boolean) as string[])
@@ -188,6 +216,7 @@ export default function ScorecardPage() {
         case 'process': return b.process - a.process
         case 'skills': return b.skills - a.skills
         case 'communication': return b.communication - a.communication
+        case 'winRate': return b.winRate - a.winRate
         case 'overall': default: return b.overallScore - a.overallScore
       }
     })
@@ -294,8 +323,37 @@ export default function ScorecardPage() {
             <span className="text-sm font-medium text-gray-700">时间范围</span>
             <TimeRangeSelector
               value={timeFrame}
-              onChange={(v) => setTimeFrame(v as TimeFrame)}
+              onChange={(v) => {
+                setTimeFrame(v as TimeFrame)
+                // 如果选择了"按月"，默认选择上个月
+                if (v === 'custom' && !selectedMonth) {
+                  setSelectedMonth(MONTH_OPTIONS[1]?.value || '')
+                }
+              }}
+              presets={[
+                { value: '7d', label: '近7天' },
+                { value: '30d', label: '近30天' },
+                { value: 'custom', label: '按月' },
+                { value: 'all', label: '全部' },
+              ]}
             />
+            {/* 月份选择下拉框 */}
+            {timeFrame === 'custom' && (
+              <div className="relative">
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
+                >
+                  {MONTH_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <ChevronDown className="h-4 w-4" />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -325,6 +383,7 @@ export default function ScorecardPage() {
                 className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
               >
                 <option value="overall">综合评分</option>
+                <option value="winRate">转化率</option>
                 <option value="process">流程遵循</option>
                 <option value="skills">销售技巧</option>
                 <option value="communication">沟通能力</option>
@@ -403,7 +462,7 @@ export default function ScorecardPage() {
               </div>
               <div className="mt-2 text-sm text-gray-600 space-y-1">
                 <p>{teamStats.recordings} 条录音</p>
-                <p>{teamStats.winRate}% 赢单率</p>
+                <p>{teamStats.winRate}% 转化率</p>
               </div>
             </div>
           </div>
@@ -502,8 +561,8 @@ export default function ScorecardPage() {
                   <div>
                     <h4 className="font-bold text-gray-900 text-lg">{agent.name}</h4>
                     <div className="mt-1 space-y-0.5 text-xs font-medium text-gray-500">
-                <p>{agent.recordings} 条录音</p>
-                <p>{agent.winRate}% 赢单率</p>
+                <p>录音 {agent.recordings} · 单 {agent.totalDeals}</p>
+                <p>转化率 {agent.winRate}%</p>
               </div>
                   </div>
                 </div>
@@ -550,8 +609,12 @@ export default function ScorecardPage() {
                       <span>{selectedAgent.recordings} 条录音</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                      <span>{selectedAgent.totalDeals} 单</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                      <span>{selectedAgent.winRate}% 赢单率</span>
+                      <span>{selectedAgent.winRate}% 转化率</span>
                     </div>
                   </div>
                 </div>
@@ -617,7 +680,7 @@ export default function ScorecardPage() {
                       <table className="w-full">
                         <thead>
                           <tr className="bg-gray-50/50 border-b border-gray-100 text-xs uppercase tracking-wider text-gray-500">
-                            <th className="text-left px-6 py-3 font-medium">评估项</th>
+                            <th className="text-left px-6 py-3 font-medium">打分项</th>
                             <th className="text-center px-6 py-3 font-medium w-32">个人得分</th>
                             <th className="text-center px-6 py-3 font-medium w-32">团队平均</th>
                             <th className="text-center px-6 py-3 font-medium w-24">差异</th>
@@ -626,9 +689,10 @@ export default function ScorecardPage() {
                         <tbody className="divide-y divide-gray-50">
                           {dimension.details.map((detail, idx) => {
                             // Filter agents to get only those in the same team as the selected agent
+                            // 使用 filteredAgents 而不是 agents，确保与页面筛选条件一致
                             const teamAgents = selectedAgent.teamId 
-                              ? agents.filter(a => a.teamId === selectedAgent.teamId)
-                              : agents;
+                              ? filteredAgents.filter(a => a.teamId === selectedAgent.teamId)
+                              : filteredAgents;
                               
                             const teamAvg = teamAgents.length > 0 ? Math.round(
                               teamAgents.reduce(

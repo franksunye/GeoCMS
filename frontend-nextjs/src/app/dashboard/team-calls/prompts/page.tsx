@@ -685,8 +685,8 @@ export default function PromptsPage() {
                                                             
                                                             {testResult.parsedOutput.summary && (
                                                                 <div className="mt-6 pt-4 border-t border-gray-100">
-                                                                    <h4 className="font-bold text-gray-900 mb-2">整体评估</h4>
-                                                                    <p className="text-sm text-gray-700">{testResult.parsedOutput.summary.overall_assessment || JSON.stringify(testResult.parsedOutput.summary)}</p>
+                                                                    <h4 className="font-bold text-gray-900 mb-2">分析总结</h4>
+                                                                    <p className="text-sm text-gray-700">{testResult.parsedOutput.summary.overall_summary || JSON.stringify(testResult.parsedOutput.summary)}</p>
                                                                 </div>
                                                             )}
                                                         </div>

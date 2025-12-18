@@ -166,14 +166,14 @@ async function migrate() {
             total += csCount;
 
             console.log('📂 biz_call_tags (关联同步)');
-            const assessments = sqlite.prepare(`
+            const tagsData = sqlite.prepare(`
                 SELECT id, call_id, tag_id, score, confidence, context_text, timestamp_sec, reasoning, context_events, created_at 
                 FROM biz_call_tags 
                 WHERE call_id IN (${callIds.map(() => '?').join(',')})
             `).all(...callIds) as any[];
-            assessments.forEach(a => { a.score = a.score || 0; });
-            const aCount = await batchInsert(client, 'biz_call_tags', ['id', 'call_id', 'tag_id', 'score', 'confidence', 'context_text', 'timestamp_sec', 'reasoning', 'context_events', 'created_at'], assessments);
-            console.log(`   ✅ ${aCount} 行\n`);
+            tagsData.forEach(a => { a.score = a.score || 0; });
+            const aCount = await batchInsert(client, 'biz_call_tags', ['id', 'call_id', 'tag_id', 'score', 'confidence', 'context_text', 'timestamp_sec', 'reasoning', 'context_events', 'created_at'], tagsData);
+            console.log(`   ✅ ${aCount} 行 (关联标签)\n`);
             total += aCount;
 
             // 新增: 同步关联的 deals (满足 transcript 外键约束)

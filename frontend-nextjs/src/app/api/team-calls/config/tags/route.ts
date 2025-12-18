@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const { id, name, code, category, dimension, polarity, severity, scoreRange, description, active } = body
+    const { id, name, code, category, dimension, polarity, severity, scoreRange, description, active, is_mandatory } = body
 
     if (!id) {
       return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 })
@@ -114,6 +114,7 @@ export async function PUT(request: Request) {
         scoreRange: scoreRange || '1-5',
         description: description || '',
         active: active ? 1 : 0,
+        isMandatory: is_mandatory ? true : false,
         updatedAt: now,
       }
     })

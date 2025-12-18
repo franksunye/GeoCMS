@@ -47,7 +47,17 @@ export type CallRecord = {
   skillsScore: number
   communicationScore: number
   overallQualityScore: number
-  business_grade: 'High' | 'Medium' | 'Low'
+  outcome?: 'won' | 'lost' | 'in_progress' | 'unknown'  // 实际结果
+  business_grade: 'High' | 'Medium' | 'Low'  // 基于 outcome 的映射
+  predictedIntent?: {  // 意向研判
+    score: number
+    grade: 'High' | 'Medium' | 'Low'
+    confidence: number
+    factors: {
+      positive: string[]
+      negative: string[]
+    }
+  }
   tags: string[]
   events: string[]
   behaviors: string[]

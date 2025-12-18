@@ -16,7 +16,7 @@ interface QuartileBarChartProps {
 export default function QuartileBarChart({ quartileAnalysis }: QuartileBarChartProps) {
   const data = Object.values(quartileAnalysis).map(quartile => ({
     name: quartile.range,
-    赢单率: quartile.avgWinRate,
+    转化率: quartile.avgWinRate,
     平均分数: quartile.avgScore,
     样本数: quartile.sampleSize,
     // 为不同分数段设置不同颜色
@@ -39,7 +39,7 @@ export default function QuartileBarChart({ quartileAnalysis }: QuartileBarChartP
       return (
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-md">
           <p className="font-semibold">{data.name}</p>
-          <p className="text-sm">赢单率: <span className="font-medium">{data.赢单率}%</span></p>
+          <p className="text-sm">转化率: <span className="font-medium">{data.转化率}%</span></p>
           <p className="text-sm">平均分数: <span className="font-medium">{data.平均分数}</span></p>
           <p className="text-sm">样本数: <span className="font-medium">{data.样本数}人</span></p>
         </div>
@@ -59,7 +59,7 @@ export default function QuartileBarChart({ quartileAnalysis }: QuartileBarChartP
         <XAxis 
           type="number" 
           domain={[0, 100]}
-          label={{ value: '赢单率 (%)', position: 'insideBottom', offset: -5 }}
+          label={{ value: '转化率 (%)', position: 'insideBottom', offset: -5 }}
         />
         <YAxis 
           type="category" 
@@ -70,12 +70,12 @@ export default function QuartileBarChart({ quartileAnalysis }: QuartileBarChartP
         <Tooltip content={<CustomTooltip />} />
         
         <Bar 
-          dataKey="赢单率" 
+          dataKey="转化率" 
           radius={[0, 4, 4, 0]}
           background={{ fill: '#f3f4f6', radius: 4 }}
         >
           <LabelList 
-            dataKey="赢单率" 
+            dataKey="转化率" 
             position="right" 
             formatter={(value: any) => `${value}%`}
             style={{ fill: '#374151', fontSize: '12px' }}

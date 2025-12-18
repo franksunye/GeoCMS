@@ -52,7 +52,7 @@ export function ScoreValidationDashboard({ validationResult, className }: ScoreV
             Score验证结果总览
           </CardTitle>
           <CardDescription>
-            基于{sampleSize}个销售人员的数据分析评分系统与赢单率的关系
+            基于{sampleSize}个销售人员的数据分析评分系统与转化率的关系
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -93,7 +93,7 @@ export function ScoreValidationDashboard({ validationResult, className }: ScoreV
                 </Badge>
               )}
               <div className="text-sm text-muted-foreground">
-                {correlation > 0.3 ? '评分系统有效' : '需要重新评估模型'}
+                {correlation > 0.3 ? '评分系统有效' : '需要重新优化模型'}
               </div>
             </div>
           </div>
@@ -105,7 +105,7 @@ export function ScoreValidationDashboard({ validationResult, className }: ScoreV
         <CardHeader>
           <CardTitle>分阶梯表现分析</CardTitle>
           <CardDescription>
-            按评分分组显示不同水平销售人员的赢单率表现
+            按评分分组显示不同水平销售人员的转化率表现
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -119,7 +119,7 @@ export function ScoreValidationDashboard({ validationResult, className }: ScoreV
                       平均分: {quartile.avgScore}
                     </span>
                     <span className="font-semibold">
-                      赢单率: {quartile.avgWinRate}%
+                      转化率: {quartile.avgWinRate}%
                     </span>
                   </div>
                 </div>
@@ -165,7 +165,7 @@ export function ScoreValidationDashboard({ validationResult, className }: ScoreV
                   <div>
                     <div className="font-medium">{threshold.description}</div>
                     <div className="text-sm text-muted-foreground">
-                      评分{threshold.minScore}+分 → 期望赢单率{threshold.expectedWinRate}%
+                      评分{threshold.minScore}+分 → 期望转化率{threshold.expectedWinRate}%
                     </div>
                   </div>
                 </div>
@@ -193,7 +193,7 @@ export function ScoreValidationDashboard({ validationResult, className }: ScoreV
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-green-500" />
               <span>
-                <strong>评分每提高10分</strong>，赢单率平均提升
+                <strong>评分每提高10分</strong>，转化率平均提升
                 <strong className="text-green-600"> {Math.round(correlation * 8)}% </strong>
               </span>
             </div>
@@ -201,7 +201,7 @@ export function ScoreValidationDashboard({ validationResult, className }: ScoreV
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-blue-500" />
               <span>
-                精英销售（前25%）的赢单率是后25%的
+                精英销售（前25%）的转化率是后25%的
                 <strong className="text-blue-600"> 
                   {Math.round(quartileAnalysis.q4.avgWinRate / quartileAnalysis.q1.avgWinRate)}倍
                 </strong>

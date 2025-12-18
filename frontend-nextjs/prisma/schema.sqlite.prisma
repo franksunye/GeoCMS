@@ -33,7 +33,7 @@ model Call {
   duration            Int
   outcome             String
   audioUrl            String?              @map("audio_url")
-  assessments         CallAssessment[]
+  tags                CallTag[]
   signals             CallSignal[]
   agent               Agent                @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   promptExecutionLogs PromptExecutionLog[]
@@ -44,8 +44,8 @@ model Call {
   @@map("biz_calls")
 }
 
-/// 通话评估（Tag 级别的打分）
-model CallAssessment {
+/// 通话标签打分（Tag 级别的打分）
+model CallTag {
   id            String  @id
   callId        String  @map("call_id")
   tagId         String  @map("tag_id")
@@ -98,7 +98,7 @@ model Tag {
   createdAt   String           @map("created_at")
   updatedAt   String           @map("updated_at")
   isMandatory Boolean?         @default(false) @map("is_mandatory")
-  assessments CallAssessment[]
+  callTags    CallTag[]
 
   @@map("cfg_tags")
 }
@@ -199,6 +199,7 @@ model Deal {
   id          String       @id
   agentId     String       @map("agent_id")
   outcome     String
+  orderNumber String?      @map("order_number")
   createdAt   String       @map("created_at")
   agent       Agent        @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   transcripts Transcript[]
@@ -245,4 +246,17 @@ model AuditLog {
   details    String
 
   @@map("log_audit")
+}
+
+/// 合同/签约记录
+model Contract {
+  id        String  @id
+  dealId    String  @map("deal_id")  // serviceAppointmentId
+  agentId   String  @map("agent_id") // serviceHousekeeperId
+  channel   String?
+  teamId    String? @map("team_id")  // orgId
+  createdAt String  @map("created_at")
+  signedAt  String? @map("signed_at") // signedDate
+
+  @@map("sync_contracts")
 }

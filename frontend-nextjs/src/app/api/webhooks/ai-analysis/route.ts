@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         details: {
           callId: result.callId,
           insertedSignals: result.insertedSignals,
-          insertedAssessments: result.insertedAssessments,
+          insertedTags: result.insertedTags,
           missingTagCodes: result.missingTagCodes
         }
       })

@@ -48,7 +48,7 @@ export function KnowledgeCompletenessCard({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg">Content Completeness</CardTitle>
-            <CardDescription>Knowledge base content quality assessment</CardDescription>
+            <CardDescription>Knowledge base content quality evaluation</CardDescription>
           </div>
           <Badge variant={getScoreBadgeVariant(data.completeness_score)}>
             {getScoreLabel(data.completeness_score)}

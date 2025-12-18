@@ -63,7 +63,7 @@ export default function CorrelationScatterChart({ validationResult }: Correlatio
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-md">
           <p className="font-semibold">{data.name}</p>
           <p className="text-sm">平均分数: <span className="font-medium">{data.x}</span></p>
-          <p className="text-sm">赢单率: <span className="font-medium">{data.y}%</span></p>
+          <p className="text-sm">转化率: <span className="font-medium">{data.y}%</span></p>
           <p className="text-sm">样本数: <span className="font-medium">{data.z}人</span></p>
         </div>
       )
@@ -88,9 +88,9 @@ export default function CorrelationScatterChart({ validationResult }: Correlatio
         <YAxis 
           type="number" 
           dataKey="y" 
-          name="赢单率"
+          name="转化率"
           domain={[0, 100]}
-          label={{ value: '赢单率 (%)', angle: -90, position: 'left', offset: 0 }}
+          label={{ value: '转化率 (%)', angle: -90, position: 'left', offset: 0 }}
         />
         <ZAxis type="number" dataKey="z" range={[100, 500]} name="样本数" />
         <Tooltip content={<CustomTooltip />} />
@@ -98,12 +98,13 @@ export default function CorrelationScatterChart({ validationResult }: Correlatio
         {/* 趋势线 */}
         <Scatter
           data={trendLineData}
-          line={{ stroke: '#666', strokeWidth: 2, strokeDasharray: '5 5', pointerEvents: 'none' }}
+          line={{ stroke: '#666', strokeWidth: 2, strokeDasharray: '5 5' }}
           shape={false}
           name="趋势线"
           legendType="none"
           isAnimationActive={false}
-          style={{ pointerEvents: 'none' }}
+          activeIndex={-1}
+          activeShape={false}
         />
         
         {/* 数据点 */}

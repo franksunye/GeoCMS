@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, AlertTriangle, CheckCircle, Search, XCircle, Play, Pause, RotateCcw, Volume2 } from 'lucide-react'
 import { PageHeader } from '@/components/ui/page-header'
+import { AiAuditFilters } from './AiAuditFilters'
 
 interface Signal {
   id: string
@@ -29,6 +31,7 @@ interface TagAnalysis {
 interface AuditRecord {
   id: string
   startedAt: string
+  agentId: string
   agentName: string
   duration: number
   audioUrl?: string
@@ -39,10 +42,24 @@ interface AuditRecord {
   analysis: TagAnalysis[]
 }
 
+interface Agent {
+  id: string
+  name: string
+  avatarId?: string
+}
+
 export default function AiAuditPage() {
-  const [data, setData] = useState<AuditRecord[]>([])
-  const [loading, setLoading] = useState(true)
   const [selectedRecord, setSelectedRecord] = useState<AuditRecord | null>(null)
+  
+  // Filter States
+  const [filterAgent, setFilterAgent] = useState<string>('all')
+  const [filterStartDate, setFilterStartDate] = useState<string>('')
+  const [filterEndDate, setFilterEndDate] = useState<string>('')
+  
+  // Pagination States
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const pageSizeOptions = [10, 20, 50]
   
   // Audio Player State
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -51,23 +68,63 @@ export default function AiAuditPage() {
   const [volume, setVolume] = useState(100)
   const [activeSegmentTime, setActiveSegmentTime] = useState<number | null>(null)
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  // Fetch agents for filter
+  const { data: agents = [] } = useQuery<Agent[]>({
+    queryKey: ['agents'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/team-calls/agents')
+        if (res.ok) {
+          return res.json()
+        }
+      } catch (e) {
+        console.error('Failed to fetch agents:', e)
+      }
+      return []
+    }
+  })
 
-  const fetchData = async () => {
-    try {
-      setLoading(true)
-      const res = await fetch('/api/team-calls/ai-audit')
-      const json = await res.json()
-      setData(json.data || [])  // 添加默认空数组防止 undefined
-    } catch (err) {
-      console.error(err)
-      setData([])  // 出错时设置为空数组
-    } finally {
-      setLoading(false)
+  // API Response Type
+  interface AuditApiResponse {
+    data: AuditRecord[]
+    pagination: {
+      page: number
+      pageSize: number
+      total: number
+      totalPages: number
+      hasMore: boolean
     }
   }
+
+  // Fetch audit data with react-query
+  const { data: response, isLoading, refetch } = useQuery<AuditApiResponse>({
+    queryKey: ['ai-audit', filterAgent, filterStartDate, filterEndDate, page, pageSize],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize)
+      })
+      if (filterAgent !== 'all') params.set('agentId', filterAgent)
+      if (filterStartDate) params.set('startDate', filterStartDate)
+      if (filterEndDate) params.set('endDate', filterEndDate)
+      
+      const res = await fetch(`/api/team-calls/ai-audit?${params}`)
+      const json = await res.json()
+      return json
+    }
+  })
+
+  const auditData = response?.data || []
+  const pagination = response?.pagination
+
+  // Helper: Clear all filters
+  const clearAllFilters = () => {
+    setFilterAgent('all')
+    setFilterStartDate('')
+    setFilterEndDate('')
+    setPage(1)
+  }
+
 
   const getStatusColor = (score: number) => {
     if (score === 100) return 'text-green-600 bg-green-50 border-green-200'
@@ -150,45 +207,112 @@ export default function AiAuditPage() {
         title="AI 审计 & 调试"
         description="检查 Signal 到 Tag 聚合过程中的数据一致性与丢包情况"
         actions={
-          <button onClick={fetchData} className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">
+          <button onClick={() => refetch()} className="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">
             刷新数据
           </button>
         }
       />
 
+      {/* Filter Bar */}
+      <div className="bg-white shadow rounded-lg p-4">
+        <AiAuditFilters
+          agents={agents}
+          filterAgent={filterAgent}
+          setFilterAgent={(v) => { setFilterAgent(v); setPage(1) }}
+          filterStartDate={filterStartDate}
+          setFilterStartDate={(v) => { setFilterStartDate(v); setPage(1) }}
+          filterEndDate={filterEndDate}
+          setFilterEndDate={(v) => { setFilterEndDate(v); setPage(1) }}
+          onClearAll={clearAllFilters}
+        />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Call List */}
         <div className="lg:col-span-1 space-y-4">
-           {loading ? (
+           {isLoading ? (
              <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>
+           ) : auditData.length === 0 ? (
+             <div className="text-center p-8 text-gray-500">
+               暂无符合条件的审计记录
+             </div>
            ) : (
-             data.map(record => (
-               <div 
-                 key={record.id}
-                 onClick={() => setSelectedRecord(record)}
-                 className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedRecord?.id === record.id ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-300'}`}
-               >
-                 <div className="flex justify-between items-start mb-2">
-                    <div>
-                        <h3 className="font-semibold text-gray-900">{record.agentName}</h3>
-                        <p className="text-xs text-gray-500">{new Date(record.startedAt).toLocaleString()}</p>
-                    </div>
-                    <div className={`px-2 py-1 rounded text-xs font-bold border ${getStatusColor(record.totalConsistencyScore)}`}>
-                        {record.totalConsistencyScore}% 一致
-                    </div>
+             <>
+               {auditData.map(record => (
+                 <div 
+                   key={record.id}
+                   onClick={() => setSelectedRecord(record)}
+                   className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedRecord?.id === record.id ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-300'}`}
+                 >
+                   <div className="flex justify-between items-start mb-2">
+                      <div>
+                          <h3 className="font-semibold text-gray-900">{record.agentName}</h3>
+                          <p className="text-xs text-gray-500">{new Date(record.startedAt).toLocaleString()}</p>
+                      </div>
+                      <div className={`px-2 py-1 rounded text-xs font-bold border ${getStatusColor(record.totalConsistencyScore)}`}>
+                          {record.totalConsistencyScore}% 一致
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-4 text-xs text-gray-600">
+                      <span>Signals: {record.signalCount}</span>
+                      <span>Tags: {record.tagCount}</span>
+                      {record.issuesCount > 0 && (
+                          <span className="flex items-center text-red-600 font-medium">
+                              <AlertTriangle className="w-3 h-3 mr-1" />
+                              {record.issuesCount} 异常
+                          </span>
+                      )}
+                   </div>
                  </div>
-                 <div className="flex items-center gap-4 text-xs text-gray-600">
-                    <span>Signals: {record.signalCount}</span>
-                    <span>Tags: {record.tagCount}</span>
-                    {record.issuesCount > 0 && (
-                        <span className="flex items-center text-red-600 font-medium">
-                            <AlertTriangle className="w-3 h-3 mr-1" />
-                            {record.issuesCount} 异常
-                        </span>
-                    )}
+               ))}
+
+               {/* Pagination */}
+               {pagination && (
+                 <div className="p-4 border border-gray-200 bg-gray-50 rounded-lg">
+                   <div className="flex flex-col gap-3">
+                     <div className="flex items-center justify-between">
+                       <span className="text-sm text-gray-600">
+                         共 {pagination.total} 条记录
+                       </span>
+                       <div className="flex items-center gap-2">
+                         <span className="text-sm text-gray-500">每页</span>
+                         <select
+                           value={pageSize}
+                           onChange={(e) => {
+                             setPageSize(Number(e.target.value))
+                             setPage(1)
+                           }}
+                           className="px-2 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                         >
+                           {pageSizeOptions.map(size => (
+                             <option key={size} value={size}>{size} 条</option>
+                           ))}
+                         </select>
+                       </div>
+                     </div>
+                     <div className="flex items-center justify-center gap-2">
+                       <button
+                         onClick={() => setPage(p => Math.max(1, p - 1))}
+                         disabled={page === 1}
+                         className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                       >
+                         上一页
+                       </button>
+                       <span className="text-sm text-gray-600">
+                         {page} / {pagination.totalPages}
+                       </span>
+                       <button
+                         onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                         disabled={!pagination.hasMore}
+                         className="px-3 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                       >
+                         下一页
+                       </button>
+                     </div>
+                   </div>
                  </div>
-               </div>
-             ))
+               )}
+             </>
            )}
         </div>
 

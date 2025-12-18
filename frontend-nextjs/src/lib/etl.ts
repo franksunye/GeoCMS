@@ -7,7 +7,7 @@
  * 数据流:
  * ai_analysis_logs.signals (JSON) 
  *   → signal_events → call_signals 表
- *   → tags → call_assessments 表
+ *   → tags → call_tags 表
  */
 
 import prisma from './prisma'
@@ -17,42 +17,40 @@ import { v4 as uuidv4 } from 'uuid'
 // Type Definitions
 // ============================================
 
-/**
- * Signal Event - 事件级信号
- * 记录通话中的具体事件："发生了什么"
- */
 export interface SignalEvent {
   signal_name: string
-  category: string
-  dimension: string
-  polarity: string
-  severity: string | null
-  context_text: string
-  timestamp_sec: number
+  category?: string
+  dimension?: string
+  polarity?: string
+  severity?: string | null
+  context_text?: string
+  ts_range?: [number, number] // 支持新格式：时间区间
+  timestamp_sec?: number
   confidence: number
   reasoning: string
 }
 
 /**
  * Context Event - 上下文事件
- * Tag 评估中引用的具体文本片段
+ * Tag 打分中引用的具体文本片段
  */
 export interface ContextEvent {
-  timestamp_sec: number
-  context_text: string
+  timestamp_sec?: number
+  ts_range?: [number, number] // 支持新格式：时间区间
+  context_text?: string
   confidence: number
 }
 
 /**
  * Tag Event - 通话级标签
- * 信号的聚合与质量评估："做得好不好"
+ * 信号的聚合与质量打分："做得好不好"
  */
 export interface TagEvent {
   tag: string
-  category: string
-  dimension: string
-  polarity: string
-  severity: string | null
+  category?: string
+  dimension?: string
+  polarity?: string
+  severity?: string | null
   score: number // 1-5 scale
   reasoning: string
   context_events: ContextEvent[]
@@ -86,8 +84,13 @@ export interface ETLResult {
   success: boolean
   callId: string
   insertedSignals: number
-  insertedAssessments: number
+  insertedTags: number
   missingTagCodes: string[]
+  anomalies: {
+    type: 'INVERSE_RANGE' | 'EMPTY_RECONSTRUCTION' | 'ABNORMAL_DURATION' | 'OUT_OF_BOUNDS'
+    item: string
+    details: string
+  }[]
   errors: string[]
 }
 
@@ -131,6 +134,105 @@ export async function getTagMap(): Promise<Map<string, string>> {
 }
 
 /**
+ * 获取转录片段
+ */
+export async function getTranscriptSegments(dealId: string): Promise<any[]> {
+  const transcript = await prisma.transcript.findFirst({
+    where: { dealId },
+    select: { content: true }
+  })
+
+  if (!transcript || !transcript.content) return []
+
+  try {
+    const parsed = JSON.parse(transcript.content)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (e) {
+    return []
+  }
+}
+
+/**
+ * 校验 AI 输出的时间区间并记录异常
+ */
+export function validateTsRange(
+  ts_range: [number, number] | undefined,
+  callId: string,
+  itemName: string,
+  anomalies: ETLResult['anomalies'],
+  maxTime: number
+): [number, number] | undefined {
+  if (!ts_range || !Array.isArray(ts_range) || ts_range.length !== 2) return ts_range
+
+  const [start, end] = ts_range
+
+  // 1. 越界检测 (AI 产生幻觉或写错小数点)
+  if (start > maxTime || end > maxTime) {
+    anomalies.push({
+      type: 'OUT_OF_BOUNDS',
+      item: itemName,
+      details: `Timestamp [${start}, ${end}] exceeds call duration (${Math.round(maxTime)}s).`
+    })
+  }
+
+  // 2. 逆序检测
+  if (start > end) {
+    anomalies.push({
+      type: 'INVERSE_RANGE',
+      item: itemName,
+      details: `Start time (${start}) is greater than end time (${end}).`
+    })
+  }
+
+  // 3. 负数检测
+  if (start < 0 || end < 0) {
+    anomalies.push({
+      type: 'OUT_OF_BOUNDS',
+      item: itemName,
+      details: `Negative timestamp detected: [${start}, ${end}]`
+    })
+  }
+
+  return ts_range
+}
+
+/**
+ * 根据 ts_range 从转录片段中恢复文本
+ */
+export function reconstructTextFromSegments(
+  ts_range: [number, number] | undefined,
+  segments: any[],
+  itemName: string,
+  anomalies: ETLResult['anomalies']
+): string {
+  if (!ts_range || ts_range.length !== 2) return ''
+
+  // 仅在重构时处理逆序以防止逻辑崩溃，但数据入库保持原样
+  let [start, end] = ts_range
+  if (start > end) [start, end] = [end, start]
+
+  const startMs = start * 1000
+  const endMs = end * 1000
+
+  const filtered = segments.filter(s =>
+    (s.BeginTime >= startMs - 100 && s.BeginTime <= endMs + 100) ||
+    (s.EndTime >= startMs && s.EndTime <= endMs + 100)
+  )
+
+  const text = filtered.map(s => s.Text).join(' ')
+
+  if (!text && ts_range[1] > 0) {
+    anomalies.push({
+      type: 'EMPTY_RECONSTRUCTION',
+      item: itemName,
+      details: `TsRange [${ts_range[0]}, ${ts_range[1]}] matched no transcript segments.`
+    })
+  }
+
+  return text
+}
+
+/**
  * 获取 Signal ID 映射表
  * code -> id
  */
@@ -149,7 +251,7 @@ export async function getSignalMap(): Promise<Map<string, string>> {
  * @param input ETL 输入数据
  * @param options 选项
  *   - createCall: 是否创建 call 记录（默认 false）
- *   - clearExisting: 是否清除已有的 signals 和 assessments（默认 true）
+ *   - clearExisting: 是否清除已有的 signals 和 tags（默认 true）
  */
 export async function processCallAnalysis(
   input: ETLInput,
@@ -162,8 +264,9 @@ export async function processCallAnalysis(
     success: false,
     callId,
     insertedSignals: 0,
-    insertedAssessments: 0,
+    insertedTags: 0,
     missingTagCodes: [],
+    anomalies: [],
     errors: []
   }
 
@@ -197,11 +300,16 @@ export async function processCallAnalysis(
       // 2. Clear existing data if requested
       if (clearExisting) {
         await tx.callSignal.deleteMany({ where: { callId } })
-        await tx.callAssessment.deleteMany({ where: { callId } })
+        await tx.callTag.deleteMany({ where: { callId } })
       }
 
       // 3. Process Signal Events -> call_signals
-      // 使用 signalId 外键关联 cfg_signals (与 tags 模式一致)
+      // 获取转录文本备份，用于重构 ts_range 文本
+      const segments = await getTranscriptSegments(callId)
+      // 计算本场通话的最大时间戳 (秒)
+      const maxTimeMs = segments.length > 0 ? Math.max(...segments.map(s => s.EndTime)) : 0
+      const maxTime = maxTimeMs / 1000
+
       if (analysisResult.signal_events && Array.isArray(analysisResult.signal_events)) {
         for (const signal of analysisResult.signal_events) {
           const signalId = signalMap.get(signal.signal_name)
@@ -213,15 +321,25 @@ export async function processCallAnalysis(
             continue // Skip signals not defined in cfg_signals
           }
 
+          // 核心重构逻辑：如果只有区间没有文本，则进行恢复
+          let finalContext = signal.context_text
+          let finalTs = signal.timestamp_sec
+
+          if (!finalContext && signal.ts_range) {
+            validateTsRange(signal.ts_range, callId, signal.signal_name, result.anomalies, maxTime)
+            finalContext = reconstructTextFromSegments(signal.ts_range, segments, signal.signal_name, result.anomalies)
+            finalTs = signal.ts_range ? signal.ts_range[0] : signal.timestamp_sec
+          }
+
           try {
             await tx.callSignal.create({
               data: {
                 id: `sig_${callId}_${result.insertedSignals}_${Date.now()}`,
                 callId: callId,
                 signalId: signalId,
-                timestampSec: signal.timestamp_sec || null,
+                timestampSec: finalTs || null,
                 confidence: signal.confidence || 0,
-                contextText: signal.context_text || null,
+                contextText: finalContext || null,
                 reasoning: signal.reasoning || null,
                 createdAt: now
               }
@@ -238,7 +356,7 @@ export async function processCallAnalysis(
         console.warn(`  - Missing Signals: ${missingSignalCodes.join(', ')}`)
       }
 
-      // 4. Process Tags -> call_assessments
+      // 4. Process Tags -> call_tags
       if (analysisResult.tags && Array.isArray(analysisResult.tags)) {
         for (const tag of analysisResult.tags) {
           const tagId = tagMap.get(tag.tag)
@@ -253,28 +371,45 @@ export async function processCallAnalysis(
           // Convert score 1-5 to 0-100
           const normalizedScore = Math.min(100, Math.max(0, Math.round(tag.score * 20)))
 
-          // Get earliest timestamp from context_events
-          let timestamp_sec: number | null = null
-          if (tag.context_events && tag.context_events.length > 0) {
-            timestamp_sec = Math.min(...tag.context_events.map(e => e.timestamp_sec))
-          }
-
-          // Get max confidence from context_events
-          let confidence = 0
-          if (tag.context_events && tag.context_events.length > 0) {
-            confidence = Math.max(...tag.context_events.map(e => e.confidence))
-          }
-
           // Combine context_text from all events
           let context_text: string | null = null
-          if (tag.context_events && tag.context_events.length > 0) {
-            context_text = tag.context_events.map(e => e.context_text).join(' | ')
+          let timestamp_sec: number | null = null
+          let confidence = 0
+
+          const processedContextEvents = (tag.context_events || []).map(ce => {
+            let finalContext = ce.context_text
+            let finalTs = ce.timestamp_sec
+
+            // 同样重构 Tags 的上下文
+            if (!finalContext && ce.ts_range) {
+              validateTsRange(ce.ts_range, callId, tag.tag, result.anomalies, maxTime)
+              finalContext = reconstructTextFromSegments(ce.ts_range, segments, tag.tag, result.anomalies)
+              finalTs = ce.ts_range ? ce.ts_range[0] : ce.timestamp_sec
+            }
+
+            return {
+              ...ce,
+              context_text: finalContext,
+              timestamp_sec: finalTs
+            }
+          })
+
+          if (processedContextEvents.length > 0) {
+            // 获取最早时间戳
+            const validTs = processedContextEvents.map(e => e.timestamp_sec).filter(ts => ts !== undefined && ts !== null) as number[]
+            timestamp_sec = validTs.length > 0 ? Math.min(...validTs) : null
+
+            // 获取最大置信度
+            confidence = Math.max(...processedContextEvents.map(e => e.confidence))
+
+            // 聚合所有事件文本
+            context_text = processedContextEvents.map(e => e.context_text).filter(Boolean).join(' | ')
           }
 
           try {
-            await tx.callAssessment.create({
+            await tx.callTag.create({
               data: {
-                id: `assess_${callId}_${tagId}_${Date.now()}`,
+                id: `tag_${callId}_${tagId}_${Date.now()}`,
                 callId: callId,
                 tagId: tagId,
                 score: normalizedScore,
@@ -282,13 +417,13 @@ export async function processCallAnalysis(
                 reasoning: tag.reasoning || null,
                 contextText: context_text,
                 timestampSec: timestamp_sec,
-                contextEvents: JSON.stringify(tag.context_events || []),
+                contextEvents: JSON.stringify(processedContextEvents),
                 createdAt: now
               }
             })
-            result.insertedAssessments++
+            result.insertedTags++
           } catch (e) {
-            result.errors.push(`Failed to insert assessment for tag ${tag.tag}: ${e}`)
+            result.errors.push(`Failed to insert tag ${tag.tag}: ${e}`)
           }
         }
       }
@@ -298,7 +433,7 @@ export async function processCallAnalysis(
 
     console.log(`ETL Complete for Call ${callId}:`)
     console.log(`  - Inserted Signals: ${result.insertedSignals}`)
-    console.log(`  - Inserted Assessments: ${result.insertedAssessments}`)
+    console.log(`  - Inserted Tags: ${result.insertedTags}`)
 
     if (result.missingTagCodes.length > 0) {
       console.warn(`  - Missing Tags: ${result.missingTagCodes.join(', ')}`)

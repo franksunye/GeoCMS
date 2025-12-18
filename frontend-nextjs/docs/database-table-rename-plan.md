@@ -41,7 +41,7 @@
 | 原表名 | 新表名 | 说明 |
 |--------|--------|------|
 | `calls` | `biz_calls` | 通话记录（ETL 产物） |
-| `call_assessments` | `biz_call_assessments` | 通话评估（ETL 产物） |
+| `call_assessments` | `biz_call_tags` | 通话标签打分（ETL 产物） |
 | `call_signals` | `biz_call_signals` | 通话信号（ETL 产物） |
 
 ### 日志表 (log_)
@@ -111,7 +111,7 @@ ALTER TABLE prompts RENAME TO cfg_prompts;
 
 -- ==================== 业务数据表 ====================
 ALTER TABLE calls RENAME TO biz_calls;
-ALTER TABLE call_assessments RENAME TO biz_call_assessments;
+ALTER TABLE call_assessments RENAME TO biz_call_tags;
 ALTER TABLE call_signals RENAME TO biz_call_signals;
 
 -- ==================== 日志表 ====================

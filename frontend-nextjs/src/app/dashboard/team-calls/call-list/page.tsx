@@ -3,7 +3,7 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import React, { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle, TrendingUp, TrendingDown, MinusCircle } from 'lucide-react'
+import { PhoneCall, Clock, Tag, Gauge, Calendar, Brain, MessageSquare, ChevronDown, Play, Pause, RotateCcw, Volume2, MessageCircle, TrendingUp, TrendingDown, MinusCircle, Hash, Copy, Check, Target, Zap, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import AgentBadge from '@/components/team/AgentBadge'
 import { formatRelativeTime } from '@/lib/utils'
@@ -331,17 +331,26 @@ function CallListContent() {
     max: searchParams.get('scoreMax') ? Number(searchParams.get('scoreMax')) : null
   })
 
-  // Provide a safe casting for sortBy from string to union type
-  const validSortMap: Record<string, boolean> = { 'recent': true, 'score': true, 'score_asc': true, 'duration': true }
-  const urlSort = searchParams.get('sort')
-  const initialSort = (urlSort && validSortMap[urlSort]) ? (urlSort as 'recent' | 'score' | 'score_asc' | 'duration') : 'recent'
-  
-  const [sortBy, setSortBy] = useState<'recent' | 'score' | 'score_asc' | 'duration'>(initialSort)
+  // Sort State
+  const [sortConfig, setSortConfig] = useState<{ key: 'timestamp' | 'score' | 'intent', direction: 'asc' | 'desc' }>({ 
+    key: 'timestamp', 
+    direction: 'desc' 
+  })
+
+  const handleSort = (key: 'timestamp' | 'score' | 'intent') => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc'
+    }))
+  }
   
   // Link Transcript with Audio
   const playerRef = useRef<PlayerHandle>(null)
   const [currentPlaybackTime, setCurrentPlaybackTime] = useState(0)
   const [isPlayerPlaying, setIsPlayerPlaying] = useState(false)
+  
+  // Deal ID copy feedback
+  const [isCopied, setIsCopied] = useState(false)
 
   // Reset player when switching calls
   useEffect(() => {
@@ -369,16 +378,21 @@ function CallListContent() {
     if (filterDuration.max !== null) params.set('durationMax', String(filterDuration.max))
     if (filterScore.min !== null) params.set('scoreMin', String(filterScore.min))
     if (filterScore.max !== null) params.set('scoreMax', String(filterScore.max))
-    if (sortBy !== 'recent') params.set('sort', sortBy)
+    if (sortConfig.key !== 'timestamp' || sortConfig.direction !== 'desc') {
+      params.set('sort', `${sortConfig.key}_${sortConfig.direction}`)
+    }
 
     // Shallow update
     router.replace(`?${params.toString()}`, { scroll: false })
 
-  }, [filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortBy, router])
+  }, [filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig, router])
 
   // Pagination state
   const [page, setPage] = useState(1)
-  const pageSize = 5
+  const [pageSize, setPageSize] = useState(20)
+
+  // Page size options
+  const pageSizeOptions = [10, 20, 50]
 
   // Helper: Check if any filter is active (for "Clear All" button)
   const hasActiveFilters = filterAgent !== 'all' || 
@@ -434,7 +448,7 @@ function CallListContent() {
 
   // Fetch Calls
   const { data: callsResponse, isLoading, isFetching } = useQuery<CallsApiResponse>({
-    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortBy],
+    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -450,7 +464,9 @@ function CallListContent() {
       if (filterDuration.max !== null) params.set('durationMax', String(filterDuration.max))
       if (filterScore.min !== null) params.set('scoreMin', String(filterScore.min))
       if (filterScore.max !== null) params.set('scoreMax', String(filterScore.max))
-      if (sortBy) params.set('sort', sortBy)
+      if (sortConfig.key !== 'timestamp' || sortConfig.direction !== 'desc') {
+        params.set('sort', `${sortConfig.key}_${sortConfig.direction}`)
+      }
       
       const res = await fetch(`/api/team-calls/calls?${params}`)
       if (!res.ok) {
@@ -493,18 +509,21 @@ function CallListContent() {
   })
 
   // Sort calls locally (Filtering is done server-side, but score sorting must be client-side due to missing DB column)
+  // Sort calls locally
   const sortedCalls = [...calls].sort((a, b) => {
-    if (sortBy === 'recent') {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    const { key, direction } = sortConfig
+    const modifier = direction === 'asc' ? 1 : -1
+    
+    if (key === 'timestamp') {
+      return (new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()) * modifier
     }
-    if (sortBy === 'score') {
-      return b.overallQualityScore - a.overallQualityScore
+    if (key === 'score') {
+      return (a.overallQualityScore - b.overallQualityScore) * modifier
     }
-    if (sortBy === 'score_asc') {
-      return a.overallQualityScore - b.overallQualityScore
-    }
-    if (sortBy === 'duration') {
-      return b.duration_minutes - a.duration_minutes
+    if (key === 'intent') {
+      const scoreA = a.predictedIntent?.score || 0
+      const scoreB = b.predictedIntent?.score || 0
+      return (scoreA - scoreB) * modifier
     }
     return 0
   })
@@ -546,9 +565,7 @@ function CallListContent() {
               filterScore={filterScore}
               setFilterScore={setFilterScore}
               onClearAll={clearAllFilters}
-            >
-              <CallListSort sortBy={sortBy} setSortBy={setSortBy} />
-            </CallListFilters>
+            />
           </div>
 
           {isLoading ? (
@@ -612,14 +629,44 @@ function CallListContent() {
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Duration
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Date
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                      onClick={() => handleSort('timestamp')}
+                    >
+                      <div className="flex items-center gap-1 group-hover:text-gray-700">
+                        Date
+                        {sortConfig.key === 'timestamp' && (
+                           sortConfig.direction === 'asc' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />
+                        )}
+                      </div>
                     </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                      onClick={() => handleSort('intent')}
+                    >
+                      <div className="flex items-center gap-1 group-hover:text-gray-700">
+                        Intent <Brain className="h-3 w-3" />
+                        {sortConfig.key === 'intent' && (
+                           sortConfig.direction === 'asc' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      scope="col" 
+                      className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors select-none group"
+                      onClick={() => handleSort('score')}
+                    >
+                      <div className="flex items-center justify-center gap-1 group-hover:text-gray-700">
+                        Score
+                        {sortConfig.key === 'score' && (
+                           sortConfig.direction === 'asc' ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />
+                        )}
+                      </div>
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Score
+                      Status
                     </th>
                   </tr>
                 </thead>
@@ -665,26 +712,42 @@ function CallListContent() {
                         {new Date(call.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
                       </td>
 
-                      {/* Status (Outcome) Column */}
+                      {/* Intent Column */}
                       <td className="px-6 py-4 whitespace-nowrap">
+                        {call.predictedIntent ? (
+                          <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                            call.predictedIntent.grade === 'High' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+                            call.predictedIntent.grade === 'Medium' ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                            'bg-slate-50 border-slate-200 text-slate-700'
+                          }`}>
+                            {call.predictedIntent.grade}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
+                      </td>
+
+                      {/* Score Column */}
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs font-bold ${getScoreBadgeClass(call.overallQualityScore)}`}>
+                          {call.overallQualityScore}
+                        </span>
+                      </td>
+
+                      {/* Status (Outcome) Column */}
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
                         {(() => {
                            const badge = getOutcomeBadge(call.business_grade)
                            const Icon = badge.icon
                            return (
-                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.className.replace('border', '')} ${badge.className.includes('emerald') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : badge.className.includes('rose') ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
-                               {/* Simplified badge style for table */}
-                               <Icon className="h-3 w-3" />
-                               {badge.label}
-                             </span>
+                             <div className="flex justify-end">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.className.replace('border', '')} ${badge.className.includes('emerald') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : badge.className.includes('rose') ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
+                                <Icon className="h-3 w-3" />
+                                {badge.label}
+                              </span>
+                             </div>
                            )
                         })()}
-                      </td>
-
-                      {/* Score Column */}
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md text-xs font-bold ${getScoreBadgeClass(call.overallQualityScore)}`}>
-                          {call.overallQualityScore}
-                        </span>
                       </td>
                     </tr>
                   ))}
@@ -695,8 +758,25 @@ function CallListContent() {
             {/* Pagination */}
             {pagination && (
               <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  共 {pagination.total} 条通话
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-gray-600">
+                    共 {pagination.total} 条通话
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">每页显示</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value))
+                        setPage(1) // Reset to first page when changing page size
+                      }}
+                      className="px-2 py-1 text-sm text-gray-700 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {pageSizeOptions.map(size => (
+                        <option key={size} value={size}>{size} 条</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -772,9 +852,41 @@ function CallListContent() {
                 <div className="flex items-start gap-3 mb-4">
                   <AgentAvatar agentId="call_analysis" size="lg" />
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                      {selectedCall.title}
-                    </h2>
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {selectedCall.title}
+                      </h2>
+                      {/* Deal ID Badge with Copy */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(String(selectedCall.id))
+                                setIsCopied(true)
+                                setTimeout(() => setIsCopied(false), 2000)
+                              }}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all text-sm font-mono border group ${
+                                isCopied 
+                                  ? 'bg-green-100 text-green-700 border-green-300' 
+                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 border-gray-200'
+                              }`}
+                            >
+                              <Hash className={`h-3.5 w-3.5 ${isCopied ? 'text-green-500' : 'text-gray-400'}`} />
+                              <span>{selectedCall.id}</span>
+                              {isCopied ? (
+                                <Check className="h-3 w-3 text-green-500" />
+                              ) : (
+                                <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400" />
+                              )}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{isCopied ? '已复制!' : '点击复制 Deal ID'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <AgentBadge agentId="call_analysis" size="sm" />
                   </div>
                 </div>
@@ -788,12 +900,36 @@ function CallListContent() {
                     <span>{selectedCall.duration_minutes} mins</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
-                    <Gauge className="h-4 w-4" />
-                    <span>Score {selectedCall.overallQualityScore}/100</span>
+                    <Gauge className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">Sales Score {selectedCall.overallQualityScore}/100</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <Tag className="h-4 w-4" />
-                    <span>{selectedCall.business_grade} intent</span>
+                  <div className="flex items-center gap-4 text-gray-700">
+                     {/* 1. AI 意向 */}
+                    {selectedCall.predictedIntent && (
+                        <div className="flex items-center gap-2" title="意向研判">
+                            <Brain className="h-4 w-4 text-gray-400" />
+                            <span className={`font-medium ${
+                                selectedCall.predictedIntent.grade === 'High' ? 'text-emerald-700' : 
+                                selectedCall.predictedIntent.grade === 'Medium' ? 'text-amber-700' : 'text-slate-600'
+                            }`}>
+                               {selectedCall.predictedIntent.grade === 'High' ? 'High Intent' : 
+                                selectedCall.predictedIntent.grade === 'Medium' ? 'Medium Intent' : 'Low Intent'}
+                            </span>
+                        </div>
+                    )}
+                     {/* 2. 实际结果 */}
+                     {(() => {
+                        const outcome = getOutcomeBadge(selectedCall.business_grade)
+                        const OutcomeIcon = outcome.icon
+                        return (
+                             <div className="flex items-center gap-2">
+                                <OutcomeIcon className={`h-4 w-4 ${outcome.iconClassName}`} />
+                                <span className={`font-medium ${outcome.iconClassName}`}>
+                                  {outcome.label}
+                                </span>
+                             </div>
+                        )
+                    })()}
                   </div>
                 </div>
               </div>
@@ -848,13 +984,68 @@ function CallListContent() {
                         <p className="text-xs text-gray-600 mb-1">通话时长</p>
                         <p className="text-lg font-semibold text-gray-900">{selectedCall.duration_minutes} 分钟</p>
                       </div>
-                      {/* Won/Lost Status Card */}
+                      {/* AI Predicted Intent Card */}
+                      {selectedCall.predictedIntent && (
+                        <div className={`rounded-lg p-4 border ${
+                          selectedCall.predictedIntent.grade === 'High' 
+                            ? 'bg-emerald-50 border-emerald-200' 
+                            : selectedCall.predictedIntent.grade === 'Medium'
+                              ? 'bg-amber-50 border-amber-200'
+                              : 'bg-slate-50 border-slate-200'
+                        }`}>
+                          <p className="text-xs text-gray-600 mb-1 flex items-center gap-1">
+                            <Brain className="h-3.5 w-3.5" /> 意向研判
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">
+                                {selectedCall.predictedIntent.grade === 'High' && <Zap className="h-5 w-5 text-emerald-600" />}
+                                {selectedCall.predictedIntent.grade === 'Medium' && <Target className="h-5 w-5 text-amber-600" />}
+                                {selectedCall.predictedIntent.grade === 'Low' && <MinusCircle className="h-5 w-5 text-slate-500" />}
+                              </span>
+                              <p className={`text-lg font-bold ${
+                                selectedCall.predictedIntent.grade === 'High' 
+                                  ? 'text-emerald-700' 
+                                  : selectedCall.predictedIntent.grade === 'Medium'
+                                    ? 'text-amber-700'
+                                    : 'text-slate-600'
+                              }`}>
+                                {selectedCall.predictedIntent.grade === 'High' ? '高意向' :
+                                 selectedCall.predictedIntent.grade === 'Medium' ? '中等意向' : '低意向'}
+                              </p>
+                            </div>
+                            <span className={`text-sm font-semibold px-2 py-0.5 rounded ${
+                              selectedCall.predictedIntent.score >= 70 
+                                ? 'bg-emerald-100 text-emerald-800' 
+                                : selectedCall.predictedIntent.score >= 40
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {selectedCall.predictedIntent.score}分
+                            </span>
+                          </div>
+                          {/* Confidence indicator */}
+                          <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+                            <span>置信度:</span>
+                            <div className="flex-1 bg-gray-200 rounded-full h-1.5 max-w-[60px]">
+                              <div 
+                                className="bg-blue-500 h-1.5 rounded-full" 
+                                style={{ width: `${selectedCall.predictedIntent.confidence * 100}%` }}
+                              />
+                            </div>
+                            <span>{Math.round(selectedCall.predictedIntent.confidence * 100)}%</span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Actual Outcome Card */}
                       {(() => {
                         const outcome = getOutcomeBadge(selectedCall.business_grade)
                         const OutcomeIcon = outcome.icon
                         return (
                           <div className={`rounded-lg p-4 border ${outcome.className}`}>
-                            <p className="text-xs mb-1 opacity-80">赢单状态</p>
+                            <p className="text-xs mb-1 opacity-80 flex items-center gap-1">
+                              <Target className="h-3.5 w-3.5" /> 实际结果
+                            </p>
                             <div className="flex items-center gap-2">
                               <OutcomeIcon className={`h-5 w-5 ${outcome.iconClassName}`} />
                               <p className="text-lg font-bold">{outcome.label}</p>
@@ -862,21 +1053,56 @@ function CallListContent() {
                           </div>
                         )
                       })()}
-                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <p className="text-xs text-gray-600 mb-1">通话日期</p>
-                        <p className="text-lg font-semibold text-gray-900">{new Date(selectedCall.timestamp).toLocaleDateString()}</p>
-                      </div>
                     </div>
 
-                    {/* Quality Scores Overview */}
+                    {/* Intent Factors (if available) */}
+                    {selectedCall.predictedIntent && (selectedCall.predictedIntent.factors.positive.length > 0 || selectedCall.predictedIntent.factors.negative.length > 0) && (
+                      <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                          <Brain className="h-4 w-4 text-gray-500" /> 意向分析因素
+                        </h4>
+                        <div className="grid grid-cols-2 gap-4">
+                          {selectedCall.predictedIntent.factors.positive.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-500" /> 正向因素
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {selectedCall.predictedIntent.factors.positive.map((factor, idx) => (
+                                  <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    {factor}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {selectedCall.predictedIntent.factors.negative.length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3 text-rose-500" /> 负向因素
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {selectedCall.predictedIntent.factors.negative.map((factor, idx) => (
+                                  <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800 border border-rose-200">
+                                    {factor}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sales Scores Overview */}
                     <div className={`border rounded-lg p-6 ${getScoreBgColor(selectedCall.overallQualityScore)}`}>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">质量评分概览</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">销售评分概览</h3>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
                           { label: 'Process', value: selectedCall.processScore },
                           { label: 'Skills', value: selectedCall.skillsScore },
                           { label: 'Communication', value: selectedCall.communicationScore },
-                          { label: 'Overall Quality Score', value: selectedCall.overallQualityScore },
+                          { label: 'Sales Score', value: selectedCall.overallQualityScore },
                         ].map((metric) => (
                           <div key={metric.label} className="bg-white rounded p-3 text-center">
                             <div className="text-xs text-gray-600 mb-1">{metric.label}</div>
@@ -964,7 +1190,7 @@ function CallListContent() {
                                 <div className="flex items-center justify-between mb-1">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className="text-sm font-semibold text-gray-900">
-                                      {entry.speaker === 'agent' ? (selectedCall.agentName || '坐席') : '客户'}
+                                      {entry.speaker === 'agent' ? (selectedCall.agentName || '销售') : '客户'}
                                     </span>
                                     {/* Signal Badges */}
                                     {matchedSignals.map((sig, sigIdx) => (
@@ -1002,7 +1228,7 @@ function CallListContent() {
                         <p className="text-lg font-semibold text-blue-600">{selectedCall.transcript.length}</p>
                       </div>
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <p className="text-xs text-gray-600">坐席对话</p>
+                        <p className="text-xs text-gray-600">销售对话</p>
                         <p className="text-lg font-semibold text-blue-600">
                           {selectedCall.transcript.filter(e => e.speaker === 'agent').length}
                         </p>

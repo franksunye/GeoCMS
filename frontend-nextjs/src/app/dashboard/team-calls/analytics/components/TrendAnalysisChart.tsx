@@ -38,12 +38,12 @@ export default function TrendAnalysisChart({ trendData }: TrendAnalysisChartProp
           yAxisId="right" 
           orientation="right" 
           domain={[0, 100]} 
-          label={{ value: '赢单率 (%)', angle: 90, position: 'insideRight' }} 
+          label={{ value: '转化率 (%)', angle: 90, position: 'insideRight' }} 
         />
         <Tooltip 
           contentStyle={{ backgroundColor: 'white', borderRadius: '8px', border: '1px solid #e5e7eb' }}
           formatter={(value: number, name: string) => {
-            if (name === '赢单率') return [`${value}%`, name]
+            if (name === '转化率') return [`${value}%`, name]
             return [value, name]
           }}
         />
@@ -51,7 +51,7 @@ export default function TrendAnalysisChart({ trendData }: TrendAnalysisChartProp
         <Bar 
           yAxisId="right" 
           dataKey="winRate" 
-          name="赢单率 (柱状)" 
+          name="转化率 (柱状)" 
           barSize={30} 
           fill="#3b82f6" 
           opacity={0.3} 
@@ -71,7 +71,7 @@ export default function TrendAnalysisChart({ trendData }: TrendAnalysisChartProp
           yAxisId="right" 
           type="monotone" 
           dataKey="winRate" 
-          name="赢单率 (趋势)" 
+          name="转化率 (趋势)" 
           stroke="#2563eb" 
           strokeWidth={2} 
           dot={false}

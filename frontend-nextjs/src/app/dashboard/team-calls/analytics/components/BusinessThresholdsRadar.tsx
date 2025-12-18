@@ -33,10 +33,10 @@ export default function BusinessThresholdsRadar({ businessThresholds }: Business
         <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-md">
           <p className="font-semibold">{data.subject}</p>
           <p className="text-sm">
-            实际赢单率: <span className="font-medium">{data.actual}%</span>
+            实际转化率: <span className="font-medium">{data.actual}%</span>
           </p>
           <p className="text-sm">
-            期望赢单率: <span className="font-medium">{data.expected}%</span>
+            期望转化率: <span className="font-medium">{data.expected}%</span>
           </p>
           <p className="text-sm">
             差距: <span className={`font-medium ${data.actual >= data.expected ? 'text-green-600' : 'text-red-600'}`}>

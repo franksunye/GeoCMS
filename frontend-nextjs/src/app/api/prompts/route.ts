@@ -16,7 +16,7 @@ const AVAILABLE_VARIABLES = [
     { name: 'transcript', description: '通话文本记录（JSON格式或纯文本）', example: '{{transcript}}' },
     { name: 'signals', description: '已配置的信号列表', example: '{{signals}}' },
     { name: 'tags', description: '已配置的标签列表', example: '{{tags}}' },
-    { name: 'call_metadata', description: '通话元数据（时长、坐席等）', example: '{{call_metadata}}' },
+    { name: 'call_metadata', description: '通话元数据（时长、销售等）', example: '{{call_metadata}}' },
     { name: 'scoring_rules', description: '评分规则配置', example: '{{scoring_rules}}' }
 ];
 

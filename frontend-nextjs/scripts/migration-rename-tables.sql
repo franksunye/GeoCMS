@@ -26,7 +26,7 @@ ALTER TABLE prompts RENAME TO cfg_prompts;
 -- ==================== 业务数据表 (biz_) ====================
 -- ETL 产生的核心业务数据
 ALTER TABLE calls RENAME TO biz_calls;
-ALTER TABLE call_assessments RENAME TO biz_call_assessments;
+ALTER TABLE call_assessments RENAME TO biz_call_tags;
 ALTER TABLE call_signals RENAME TO biz_call_signals;
 
 -- ==================== 日志表 (log_) ====================

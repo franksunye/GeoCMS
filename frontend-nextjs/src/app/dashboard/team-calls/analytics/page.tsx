@@ -38,23 +38,54 @@ interface ValidationResult {
   }>
 }
 
-type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all'
+type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all' | 'custom'
+
+// 生成最近18个月的选项（确保能选择到历史数据如7月）
+const generateMonthOptions = () => {
+  const options = []
+  const now = new Date()
+  for (let i = 0; i < 18; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const label = `${date.getFullYear()}年${date.getMonth() + 1}月`
+    options.push({ value, label })
+  }
+  return options
+}
+
+const MONTH_OPTIONS = generateMonthOptions()
 
 export default function AnalyticsPage() {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('30d')
+  const [selectedMonth, setSelectedMonth] = useState<string>('') // 如 '2025-07'
 
   useEffect(() => {
     fetchValidationData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeFrame])
+  }, [timeFrame, selectedMonth])
 
   const fetchValidationData = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/team-calls/scorecard/validation?timeframe=${timeFrame}`)
+      
+      // 构建查询参数
+      const params = new URLSearchParams()
+      
+      if (selectedMonth) {
+        // 使用自定义月份
+        const [year, month] = selectedMonth.split('-').map(Number)
+        const startDate = new Date(year, month - 1, 1)
+        const endDate = new Date(year, month, 0) // 月末
+        params.set('startDate', startDate.toISOString().split('T')[0])
+        params.set('endDate', endDate.toISOString().split('T')[0])
+      } else {
+        params.set('timeframe', timeFrame)
+      }
+      
+      const response = await fetch(`/api/team-calls/scorecard/validation?${params}`)
       if (!response.ok) {
         throw new Error('获取验证数据失败')
       }
@@ -91,13 +122,37 @@ export default function AnalyticsPage() {
         {/* 页面标题和控制区 */}
         <PageHeader
           title="评分系统分析仪表板"
-          description="实时监控评分系统与赢单率的相关性表现"
+          description="实时监控评分系统与转化率的相关性表现"
           actions={
             <div className="flex items-center gap-4">
+              {/* 快捷时间范围 */}
               <TimeRangeSelector
-                value={timeFrame}
-                onChange={(v) => setTimeFrame(v as TimeFrame)}
+                value={selectedMonth ? '' : timeFrame}
+                onChange={(v) => {
+                  setSelectedMonth('') // 清除月份选择
+                  setTimeFrame(v as TimeFrame)
+                }}
               />
+              
+              {/* 或 分隔符 */}
+              <span className="text-gray-400 text-sm">或</span>
+              
+              {/* 自定义月份选择 */}
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value)
+                  if (e.target.value) {
+                    setTimeFrame('custom')
+                  }
+                }}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">选择月份</option>
+                {MONTH_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
 
               {validationResult && (
                   <Badge className={correlationInfo.bg + ' ' + correlationInfo.color}>
@@ -126,7 +181,7 @@ export default function AnalyticsPage() {
                             <Info className="h-4 w-4 text-gray-400 hover:text-gray-600" />
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs">
-                            <p className="text-sm">皮尔逊相关系数，衡量评分与赢单率的线性关系强度。值越接近1表示相关性越强。</p>
+                            <p className="text-sm">皮尔逊相关系数，衡量评分与转化率的线性关系强度。值越接近1表示相关性越强。</p>
                             </TooltipContent>
                         </Tooltip>
                         </div>
@@ -205,7 +260,7 @@ export default function AnalyticsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card>
                     <CardHeader>
-                        <CardTitle>分数与赢单率相关性分析 (静态)</CardTitle>
+                        <CardTitle>分数与转化率相关性分析 (静态)</CardTitle>
                         <CardDescription>
                         基于所选时间段数据的散点分布，验证个体层面的相关性
                         </CardDescription>
@@ -219,7 +274,7 @@ export default function AnalyticsPage() {
                     <CardHeader>
                         <CardTitle>质量与结果趋势分析 (动态)</CardTitle>
                         <CardDescription>
-                        按月监控评分提升是否带来了赢单率的同步增长
+                        按月监控评分提升是否带来了转化率的同步增长
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -240,7 +295,7 @@ export default function AnalyticsPage() {
                     <CardHeader>
                         <CardTitle>分阶梯表现对比</CardTitle>
                         <CardDescription>
-                        不同分数段销售人员的平均赢单率表现
+                        不同分数段销售人员的平均转化率表现
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

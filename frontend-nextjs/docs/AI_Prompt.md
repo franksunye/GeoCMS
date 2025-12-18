@@ -242,8 +242,7 @@ service_delay_customer_reason, service_delay_agent_reason, price_misalignment, s
       "dimension": "<string: Process / Skills / Communication / Intent / Constraint / Service Issue>",
       "polarity": "<positive | negative | neutral>",
       "severity": <integer 1–3 or null>,
-      "context_text": "<string: 原文片段>",
-      "timestamp_sec": <number or null>,
+      "ts_range": [<start_sec>, <end_sec>],
       "confidence": <number between 0.0 and 1.0>,
       "reasoning": "<string: why this event recognized>"
     }
@@ -259,8 +258,7 @@ service_delay_customer_reason, service_delay_agent_reason, price_misalignment, s
       "reasoning": "<string: why this tag is assigned this score value>",
       "context_events": [
         {
-          "timestamp_sec": <number or null>,
-          "context_text": "<string>",
+          "ts_range": [<start_sec>, <end_sec>],
           "confidence": <number 0.0–1.0>
         }
       ]
@@ -273,19 +271,17 @@ service_delay_customer_reason, service_delay_agent_reason, price_misalignment, s
 
 ## 🛡️ 处理规则
 
-### **CONTEXT EXTRACTION 规则**
-每个信号必须引用 **一句或多句原文片段**：
-- 不可总结
-- 不可重写
-- 不可汇总
-- 必须来自原始通话内容
-- 可以重复，因为通话中通常会有多次同样的信号发生
+### **CONTEXT IDENTIFICATION (区间识别) 规则**
+为了极致的存储性能，**严禁在输出中包含原文文本 (context_text)**，改为输出精准的时间区间 `ts_range`：
+- **定义**：`ts_range` 是一个包含两个数字的数组 `[开始秒数, 结束秒数]`。
+- **不可总结/重写**：AI 的判断必须基于原始片段，虽然不在此处输出文本，但区间映射必须严格对应转录中的具体行。
+- **聚合一致性**：标签 (Tags) 中的 `context_events` 必须包含与之对应的信号事件的 `ts_range`。
 
-每个标签必须包含信号，以正确的体现聚合关系 ，按照schema定义，context_events 不可以为空，并且内含一个或多个event：
-- 聚合关系需要准确，比如三个listening_good信号，在listening_good标签里面 context_events 需要有三个完全一致的事件
-### **TIMESTAMP 规则**
-- 使用每段文本的 `BeginTime` 字段（单位：毫秒），转换为秒
-- 如果没有时间戳，使用 `null`
+### **TS_RANGE 计算规则**
+- **开始秒数 (start_sec)**：对应相关转录片段中第一句的 `BeginTime` / 1000。
+- **结束秒数 (end_sec)**：对应相关转录片段中最后一句的 `EndTime` / 1000。
+- 必须保留到小数点后两位以确保高精度。
+- 如果没有时间范围，使用 `null` (不建议)。
 
 ### **CONFIDENCE 规则**
 - 0.0-1.0之间的浮点数

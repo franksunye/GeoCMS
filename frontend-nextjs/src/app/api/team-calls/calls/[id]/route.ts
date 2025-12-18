@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { getStorageUrl } from '@/lib/storage'
+import { calculateIntent, type CallTagScore } from '@/lib/intent-calculator'
 
 const logger = createLogger('Call Detail')
 
@@ -12,7 +13,7 @@ const logger = createLogger('Call Detail')
  * 
  * 包含：
  *   - 基本信息和评分
- *   - 完整的 signals 和 assessments
+ *   - 完整的 signals 和 tags
  *   - 完整的 transcript
  *   - rawSignals (LLM 原始事件)
  */
@@ -50,9 +51,9 @@ export async function GET(
             communication: scoreConfig?.communicationWeight || 20
         }
 
-        // 3. Fetch assessments for this call
-        const callAssessments = await logger.time('Query: Assessments', () =>
-            prisma.callAssessment.findMany({
+        // 3. Fetch tags for this call
+        const callTags = await logger.time('Query: Tags', () =>
+            prisma.callTag.findMany({
                 where: { callId },
                 include: {
                     tag: {
@@ -92,13 +93,13 @@ export async function GET(
         )
 
         logger.info('Data fetched', {
-            assessments: callAssessments.length,
+            tags: callTags.length,
             signals: rawSignals.length
         })
 
         // 7. Calculate scores
         const getAvgScore = (dims: string[]) => {
-            const assessed = callAssessments.filter(a =>
+            const assessed = callTags.filter(a =>
                 a.tag.dimension && dims.some(d => a.tag.dimension === d || a.tag.dimension.startsWith(d + '.'))
             )
 
@@ -110,7 +111,7 @@ export async function GET(
             )
 
             for (const mTag of relevantMandatoryTags) {
-                const isAssessed = callAssessments.some(a => a.tag.code === mTag.code)
+                const isAssessed = callTags.some(a => a.tag.code === mTag.code)
                 if (!isAssessed) {
                     denominator++
                 }
@@ -131,7 +132,7 @@ export async function GET(
         )
 
         // 8. Build signals array
-        const assessmentSignals = callAssessments.map(a => {
+        const tagSignals = callTags.map(a => {
             const instances = rawSignals
                 .filter(r => r.signal?.code === a.tag.code)
                 .map(r => ({
@@ -169,7 +170,7 @@ export async function GET(
         })
 
         const missingSignals = mandatoryTags
-            .filter(mTag => !callAssessments.some(a => a.tag.code === mTag.code))
+            .filter(mTag => !callTags.some(a => a.tag.code === mTag.code))
             .map(mTag => ({
                 tag: mTag.code,
                 name: mTag.name,
@@ -184,7 +185,7 @@ export async function GET(
                 is_mandatory: true
             }))
 
-        const signals = [...assessmentSignals, ...missingSignals]
+        const signals = [...tagSignals, ...missingSignals]
 
         // 9. Parse transcript
         let transcript: any[] = []
@@ -204,20 +205,31 @@ export async function GET(
         }
 
         // 10. Build behaviors and service issues
-        const behaviors = callAssessments
+        const behaviors = callTags
             .filter(a => a.tag.category === 'Sales' || a.tag.category === 'Communication')
             .map(a => a.tag.code)
 
-        const service_issues = callAssessments
+        const service_issues = callTags
             .filter(a => a.tag.category === 'Service Issue')
             .map(a => ({
                 tag: a.tag.code,
                 severity: a.tag.severity ? a.tag.severity.toLowerCase() : 'low'
             }))
 
-        const tags = Array.from(new Set(callAssessments.map(a => a.tag.name)))
+        const tags = Array.from(new Set(callTags.map(a => a.tag.name)))
 
-        // 11. Build response
+        // 11. Calculate Predicted Intent (AI-based)
+        const intentTags: CallTagScore[] = callTags.map(a => ({
+            tagId: a.tagId,
+            tagCode: a.tag.code,
+            tagName: a.tag.name,
+            category: a.tag.category || undefined,
+            dimension: a.tag.dimension || undefined,
+            score: a.score
+        }))
+        const predictedIntent = calculateIntent(intentTags)
+
+        // 12. Build response
         const result = {
             id: call.id,
             agentId: call.agentId,
@@ -231,7 +243,10 @@ export async function GET(
             skillsScore,
             communicationScore,
             overallQualityScore,
+            // Dual-track: Keep actual outcome AND add predicted intent
+            outcome: call.outcome,  // 实际结果：won/lost/in_progress
             business_grade: call.outcome === 'won' ? 'High' : (call.outcome === 'lost' ? 'Low' : 'Medium'),
+            predictedIntent,  // 意向研判
             tags,
             events: behaviors,
             behaviors,

@@ -10,14 +10,14 @@ datasource db {
 /// 坐席/销售人员
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Agent {
-  id          String       @id
-  name        String
-  avatarId    String
-  createdAt   String
-  teamId      String?
-  calls       Call[]
-  deals       Deal[]
-  transcripts Transcript[]
+  id               String       @id
+  name             String
+  avatar_id        String
+  created_at       String
+  team_id          String?
+  biz_calls        Call[]
+  sync_deals       Deal[]
+  sync_transcripts Transcript[]
 
   @@map("sync_agents")
 }
@@ -25,96 +25,96 @@ model Agent {
 /// 通话记录
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Call {
-  id                  String               @id
-  agentId             String
-  startedAt           String
-  duration            Int
-  outcome             String
-  audioUrl            String?
-  assessments         CallAssessment[]
-  signals             CallSignal[]
-  agent               Agent                @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  promptExecutionLogs PromptExecutionLog[]
+  id                   String               @id
+  agent_id             String
+  started_at           String
+  duration             Int
+  outcome              String
+  audio_url            String?
+  biz_call_signals     CallSignal[]
+  biz_call_tags        CallTag[]
+  sync_agents          Agent                @relation(fields: [agent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  log_prompt_execution PromptExecutionLog[]
 
-  @@index([startedAt], map: "idx_biz_calls_started_at")
-  @@index([agentId], map: "idx_biz_calls_agent_id")
-  @@index([agentId, startedAt], map: "idx_biz_calls_agent_started")
+  @@index([started_at], map: "idx_biz_calls_started_at")
+  @@index([agent_id], map: "idx_biz_calls_agent_id")
+  @@index([agent_id, started_at], map: "idx_biz_calls_agent_started")
   @@map("biz_calls")
 }
 
-/// 通话评估（Tag 级别的打分）
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model CallAssessment {
+/// 通话标签打分（Tag 级别的打分）
+model CallTag {
   id            String  @id
-  callId        String
-  tagId         String
+  call_id       String
+  tag_id        String
   score         Int
   confidence    Float?  @default(0)
   contextText   String? @map("context_text")
-  timestampSec  Int?    @map("timestamp_sec")
+  timestampSec  Float?  @map("timestamp_sec")
   reasoning     String?
   contextEvents String? @map("context_events")
-  tag           Tag     @relation(fields: [tagId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  call          Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at    String
+  biz_calls     Call    @relation(fields: [call_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cfg_tags      Tag     @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([callId], map: "idx_biz_call_tags_call_id")
-  @@index([tagId], map: "idx_biz_call_tags_tag_id")
-  @@map("biz_call_assessments")
+  @@index([call_id], map: "idx_biz_call_tags_call_id")
+  @@index([tag_id], map: "idx_biz_call_tags_tag_id")
+  @@map("biz_call_tags")
 }
 
 /// 通话信号（事件级别的检测）
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model CallSignal {
   id           String  @id
-  callId       String
+  call_id      String
   signalId     String  @map("signal_id")
   timestampSec Float?  @map("timestamp_sec")
   confidence   Float?  @default(0)
   contextText  String? @map("context_text")
   reasoning    String?
-  createdAt    String
-  call         Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at   String
   signal       Signal  @relation(fields: [signalId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  biz_calls    Call    @relation(fields: [call_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([callId], map: "idx_biz_call_signals_call_id")
+  @@index([call_id], map: "idx_biz_call_signals_call_id")
   @@index([signalId], map: "idx_biz_call_signals_signal_id")
   @@map("biz_call_signals")
 }
 
 /// 标签定义（通话级别的质量维度）
 model Tag {
-  id          String          @id @default(cuid())
-  name        String
-  code        String           @unique(map: "sqlite_autoindex_tags_2")
-  category    String
-  dimension   String
-  polarity    String
-  severity    String?
-  scoreRange  String
-  description String
-  active      Int?             @default(1)
-  createdAt   String
-  updatedAt   String
-  isMandatory Boolean?         @default(false) @map("is_mandatory")
-  assessments CallAssessment[]
+  id            String    @id @default(cuid())
+  name          String
+  code          String    @unique
+  category      String
+  dimension     String
+  polarity      String
+  severity      String?
+  score_range   String
+  description   String
+  active        Int?      @default(1)
+  created_at    String
+  updated_at    String
+  isMandatory   Boolean?  @default(false) @map("is_mandatory")
+  biz_call_tags CallTag[]
 
   @@map("cfg_tags")
 }
 
 /// 信号定义（事件级别的行为检测）
 model Signal {
-  id                String @id @default(cuid())
-  code              String  @unique(map: "sqlite_autoindex_signals_2")
-  name              String
-  category          String
-  dimension         String
-  targetTagCode     String
-  aggregationMethod String
-  description       String
-  active            Int?    @default(1)
-  createdAt         String
-  updatedAt         String
-  callSignals       CallSignal[]
+  id                 String       @id @default(cuid())
+  code               String       @unique
+  name               String
+  category           String
+  dimension          String
+  target_tag_code    String
+  aggregation_method String
+  description        String
+  active             Int?         @default(1)
+  created_at         String
+  updated_at         String
+  callSignals        CallSignal[]
 
   @@map("cfg_signals")
 }
@@ -122,18 +122,18 @@ model Signal {
 /// 评分规则
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ScoringRule {
-  id              String  @id @default(cuid())
-  name            String
-  appliesTo       String
-  description     String
-  active          Int?    @default(1)
-  ruleType        String
-  tagCode         String
-  targetDimension String
-  scoreAdjustment Float
-  weight          Float
-  createdAt       String
-  updatedAt       String
+  id               String @id @default(cuid())
+  name             String
+  applies_to       String
+  description      String
+  active           Int?   @default(1)
+  rule_type        String
+  tag_code         String
+  target_dimension String
+  score_adjustment Float
+  weight           Float
+  created_at       String
+  updated_at       String
 
   @@map("cfg_scoring_rules")
 }
@@ -141,15 +141,15 @@ model ScoringRule {
 /// 评分配置
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model ScoreConfig {
-  id                  String  @id
-  aggregationMethod   String
-  processWeight       Int
-  skillsWeight        Int
-  communicationWeight Int
-  customFormula       String?
-  description         String
-  createdAt           String
-  updatedAt           String
+  id                   String  @id
+  aggregation_method   String
+  process_weight       Int
+  skills_weight        Int
+  communication_weight Int
+  custom_formula       String?
+  description          String
+  created_at           String
+  updated_at           String
 
   @@map("cfg_score_config")
 }
@@ -157,19 +157,19 @@ model ScoreConfig {
 /// 提示词模板
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Prompt {
-  id            String               @id @default(cuid())
-  name          String
-  version       String?
-  content       String
-  description   String?
-  isDefault     Boolean?             @default(false) @map("is_default")
-  active        Int?                 @default(1)
-  createdAt     String
-  updatedAt     String
-  promptType    String?              @default("quality_check") @map("prompt_type")
-  variables     String?
-  outputSchema  String?              @map("output_schema")
-  executionLogs PromptExecutionLog[]
+  id                   String               @id @default(cuid())
+  name                 String
+  version              String?
+  content              String
+  description          String?
+  isDefault            Boolean?             @default(false) @map("is_default")
+  active               Int?                 @default(1)
+  created_at           String
+  updated_at           String
+  promptType           String?              @default("quality_check") @map("prompt_type")
+  variables            String?
+  outputSchema         String?              @map("output_schema")
+  log_prompt_execution PromptExecutionLog[]
 
   @@map("cfg_prompts")
 }
@@ -178,8 +178,8 @@ model Prompt {
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model PromptExecutionLog {
   id              String  @id @default(cuid())
-  promptId        String
-  callId          String
+  prompt_id       String
+  call_id         String
   inputVariables  String? @map("input_variables")
   rawOutput       String? @map("raw_output")
   parsedOutput    String? @map("parsed_output")
@@ -187,24 +187,25 @@ model PromptExecutionLog {
   status          String
   errorMessage    String? @map("error_message")
   isDryRun        Int?    @default(0) @map("is_dry_run")
-  createdAt       String
-  call            Call    @relation(fields: [callId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  prompt          Prompt  @relation(fields: [promptId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at      String
+  cfg_prompts     Prompt  @relation(fields: [prompt_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  biz_calls       Call    @relation(fields: [call_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([promptId], map: "idx_log_prompt_execution_promptId")
-  @@index([callId], map: "idx_log_prompt_execution_callId")
+  @@index([call_id], map: "idx_log_prompt_execution_call_id")
+  @@index([prompt_id], map: "idx_log_prompt_execution_prompt_id")
   @@map("log_prompt_execution")
 }
 
 /// 交易/案例
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Deal {
-  id          String       @id
-  agentId     String
-  outcome     String
-  createdAt   String
-  agent       Agent        @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  transcripts Transcript[]
+  id               String       @id
+  agent_id         String
+  outcome          String
+  order_number     String?
+  created_at       String
+  sync_agents      Agent        @relation(fields: [agent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sync_transcripts Transcript[]
 
   @@map("sync_deals")
 }
@@ -212,14 +213,14 @@ model Deal {
 /// 通话转录文本
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Transcript {
-  id        String  @id
-  dealId    String
-  agentId   String
-  content   String
-  createdAt String
-  audioUrl  String?
-  agent     Agent   @relation(fields: [agentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  deal      Deal    @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id          String  @id
+  deal_id     String
+  agent_id    String
+  content     String
+  created_at  String
+  audio_url   String?
+  sync_deals  Deal    @relation(fields: [deal_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sync_agents Agent   @relation(fields: [agent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("sync_transcripts")
 }
@@ -227,13 +228,13 @@ model Transcript {
 /// AI 分析日志
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model AIAnalysisLog {
-  id           String  @id @default(cuid())
-  signals      String
-  createdAt    String
-  transcriptId String?
-  agentId      String?
-  dealId       String?
-  teamId       String?
+  id            String  @id @default(cuid())
+  signals       String
+  created_at    String
+  transcript_id String?
+  agent_id      String?
+  deal_id       String?
+  team_id       String?
 
   @@map("sync_ai_analysis")
 }
@@ -241,14 +242,27 @@ model AIAnalysisLog {
 /// 审计日志
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model AuditLog {
-  id         String  @id @default(cuid())
-  timestamp  String
-  user       String
-  action     String
-  objectType String
-  objectName String
-  changes    String
-  details    String
+  id          String @id @default(cuid())
+  timestamp   String
+  user        String
+  action      String
+  object_type String
+  object_name String
+  changes     String
+  details     String
 
   @@map("log_audit")
+}
+
+/// 合同/签约记录
+model Contract {
+  id        String  @id
+  dealId    String  @map("deal_id")
+  agentId   String  @map("agent_id")
+  channel   String?
+  teamId    String? @map("team_id")
+  createdAt String  @map("created_at")
+  signedAt  String? @map("signed_at")
+
+  @@map("sync_contracts")
 }

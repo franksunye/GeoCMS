@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { getStorageUrl } from '@/lib/storage'
+import { calculateIntent, type CallTagScore } from '@/lib/intent-calculator'
 
 const logger = createLogger('Calls')
 
@@ -13,7 +14,7 @@ const logger = createLogger('Calls')
  * Query Parameters:
  *   - page: 页码 (默认 1)
  *   - pageSize: 每页数量 (默认 20, 最大 100)
- *   - agentId: 按坐席过滤
+ *   - agentId: 按销售过滤
  *   - startDate: 开始日期过滤 (ISO string)
  *   - endDate: 结束日期过滤 (ISO string)
  *   - outcome: 按赢单状态过滤 (won, lost, in_progress, 支持逗号分隔多值)
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
     if (includeTagsParam) {
       const tagIds = includeTagsParam.split(',').map((t: string) => t.trim()).filter(Boolean)
       if (tagIds.length > 0) {
-        where.assessments = {
+        where.tags = {
           some: {
             tagId: { in: tagIds }
           }
@@ -101,16 +102,16 @@ export async function GET(request: NextRequest) {
       const tagIds = excludeTagsParam.split(',').map((t: string) => t.trim()).filter(Boolean)
       if (tagIds.length > 0) {
         // Correct Prisma syntax for "none of these tags" depends on relation
-        // We want: AND { assessments: { none: { tagId: { in: tagIds } } } }
-        // If where.assessments already exists (from includeTags), we need to merge carefully.
+        // We want: AND { tags: { none: { tagId: { in: tagIds } } } }
+        // If where.tags already exists (from includeTags), we need to merge carefully.
         // Prisma allows multiple conditions on relations usually via AND.
-        if (where.assessments) {
+        if (where.tags) {
           where.AND = [
             ...(where.AND || []),
-            { assessments: { none: { tagId: { in: tagIds } } } }
+            { tags: { none: { tagId: { in: tagIds } } } }
           ]
         } else {
-          where.assessments = {
+          where.tags = {
             none: {
               tagId: { in: tagIds }
             }
@@ -163,9 +164,9 @@ export async function GET(request: NextRequest) {
     // 4. Get callIds for this page
     const callIds = calls.map(c => c.id)
 
-    // 5. Fetch assessments ONLY for this page's calls
-    const pageAssessments = await logger.time('Query: Page Assessments', () =>
-      prisma.callAssessment.findMany({
+    // 5. Fetch tags ONLY for this page's calls
+    const pageTags = await logger.time('Query: Page Tags', () =>
+      prisma.callTag.findMany({
         where: { callId: { in: callIds } },
         include: {
           tag: {
@@ -175,15 +176,15 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    logger.info('Assessments fetched', { count: pageAssessments.length })
+    logger.info('Tags fetched', { count: pageTags.length })
 
-    // Group assessments by callId
-    const assessmentsByCall: Record<string, typeof pageAssessments> = {}
-    pageAssessments.forEach(a => {
-      if (!assessmentsByCall[a.callId]) {
-        assessmentsByCall[a.callId] = []
+    // Group tags by callId
+    const tagsByCall: Record<string, typeof pageTags> = {}
+    pageTags.forEach(a => {
+      if (!tagsByCall[a.callId]) {
+        tagsByCall[a.callId] = []
       }
-      assessmentsByCall[a.callId].push(a)
+      tagsByCall[a.callId].push(a)
     })
 
     // 6. Get Mandatory Tags (cached, small set)
@@ -227,12 +228,12 @@ export async function GET(request: NextRequest) {
     const formatTimer = logger.startTimer('Compute: Format Calls')
 
     const formattedCalls = calls.map((call) => {
-      const callAssessments = assessmentsByCall[call.id] || []
+      const callTags = tagsByCall[call.id] || []
       const rawSignals = signalsByCall[call.id] || []
 
       // Helper to calculate average score for a dimension
       const getAvgScore = (dims: string[]) => {
-        const assessed = callAssessments.filter(a =>
+        const assessed = callTags.filter(a =>
           a.tag.dimension && dims.some(d => a.tag.dimension === d || a.tag.dimension.startsWith(d + '.'))
         )
 
@@ -244,7 +245,7 @@ export async function GET(request: NextRequest) {
         )
 
         for (const mTag of relevantMandatoryTags) {
-          const isAssessed = callAssessments.some(a => a.tag.code === mTag.code)
+          const isAssessed = callTags.some(a => a.tag.code === mTag.code)
           if (!isAssessed) {
             denominator++
           }
@@ -264,7 +265,18 @@ export async function GET(request: NextRequest) {
           communicationScore * weights.communication) / 100
       )
 
-      const tags = Array.from(new Set(callAssessments.map(a => a.tag.name)))
+      const tags = Array.from(new Set(callTags.map(a => a.tag.name)))
+
+      // Calculate Predicted Intent
+      const intentTags: CallTagScore[] = callTags.map(a => ({
+        tagId: a.tagId,
+        tagCode: a.tag.code,
+        tagName: a.tag.name,
+        category: a.tag.category || undefined,
+        dimension: a.tag.dimension || undefined,
+        score: a.score
+      }))
+      const predictedIntent = calculateIntent(intentTags)
 
       // Base record (lightweight)
       const baseRecord = {
@@ -280,25 +292,27 @@ export async function GET(request: NextRequest) {
         skillsScore,
         communicationScore,
         overallQualityScore,
+        outcome: call.outcome,  // 实际结果
         business_grade: call.outcome === 'won' ? 'High' : (call.outcome === 'lost' ? 'Low' : 'Medium'),
+        predictedIntent,  // 意向研判
         tags,
         audioUrl: getStorageUrl(call.audioUrl)
       }
 
       // If includeDetails, add full data (backward compatibility)
       if (includeDetails) {
-        const behaviors = callAssessments
+        const behaviors = callTags
           .filter(a => a.tag.category === 'Sales' || a.tag.category === 'Communication')
           .map(a => a.tag.code)
 
-        const service_issues = callAssessments
+        const service_issues = callTags
           .filter(a => a.tag.category === 'Service Issue')
           .map(a => ({
             tag: a.tag.code,
             severity: a.tag.severity ? a.tag.severity.toLowerCase() : 'low'
           }))
 
-        const assessmentSignals = callAssessments.map(a => {
+        const tagSignals = callTags.map(a => {
           const instances = rawSignals
             .filter((r: any) => r.signalCode === a.tag.code)
             .map((r: any) => ({
@@ -336,7 +350,7 @@ export async function GET(request: NextRequest) {
         })
 
         const missingSignals = mandatoryTags
-          .filter(mTag => !callAssessments.some(a => a.tag.code === mTag.code))
+          .filter(mTag => !callTags.some(a => a.tag.code === mTag.code))
           .map(mTag => ({
             tag: mTag.code,
             name: mTag.name,
@@ -351,7 +365,7 @@ export async function GET(request: NextRequest) {
             is_mandatory: true
           }))
 
-        const signals = [...assessmentSignals, ...missingSignals]
+        const signals = [...tagSignals, ...missingSignals]
 
         let transcript: any[] = []
         try {

@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const tagIds = tags.map(t => t.id);
 
     if (tagIds.length === 0) {
-      return NextResponse.json({ tags: [], calls: [], assessments: {} });
+      return NextResponse.json({ tags: [], calls: [], tagsData: {} });
     }
 
     // 2. Fetch Recent Calls
@@ -58,13 +58,13 @@ export async function GET(request: NextRequest) {
     });
 
     if (calls.length === 0) {
-      return NextResponse.json({ tags, calls: [], assessments: {} });
+      return NextResponse.json({ tags, calls: [], tagsData: {} });
     }
 
     const callIds = calls.map(c => c.id);
 
-    // 3. Fetch Assessments for these calls and tags
-    const assessments = await prisma.callAssessment.findMany({
+    // 3. Fetch Tags for these calls and tags
+    const callTags = await prisma.callTag.findMany({
       where: {
         callId: { in: callIds },
         tagId: { in: tagIds }
@@ -79,11 +79,11 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // 4. Structure Assessments for easy lookup: [callId]_[tagId] -> Assessment
-    const assessmentMap: Record<string, any> = {};
-    assessments.forEach(a => {
+    // 4. Structure Tags for easy lookup: [callId]_[tagId] -> TagData
+    const tagsMap: Record<string, any> = {};
+    callTags.forEach(a => {
       const key = `${a.callId}_${a.tagId}`;
-      assessmentMap[key] = {
+      tagsMap[key] = {
         callId: a.callId,
         tagId: a.tagId,
         score: a.score,
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       tags,
       calls: formattedCalls,
-      assessments: assessmentMap,
+      tagsData: tagsMap,
       filters: {
         allTags
       }

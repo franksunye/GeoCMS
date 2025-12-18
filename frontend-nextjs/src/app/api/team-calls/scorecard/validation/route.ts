@@ -18,13 +18,25 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const timeframe = searchParams.get('timeframe') || '3m'
+    const customStartDate = searchParams.get('startDate')
+    const customEndDate = searchParams.get('endDate')
 
-    logger.info('Request received', { timeframe })
+    logger.info('Request received', { timeframe, customStartDate, customEndDate })
 
     let cutoffDate = new Date()
+    let endDate: Date | null = null
     cutoffDate.setHours(0, 0, 0, 0)
 
-    if (timeframe === '3m') {
+    // Custom date range has highest priority
+    if (customStartDate) {
+      cutoffDate = new Date(customStartDate)
+      cutoffDate.setHours(0, 0, 0, 0)
+
+      if (customEndDate) {
+        endDate = new Date(customEndDate)
+        endDate.setHours(23, 59, 59, 999)
+      }
+    } else if (timeframe === '3m') {
       cutoffDate.setMonth(cutoffDate.getMonth() - 3)
     } else if (timeframe === '30d') {
       cutoffDate.setDate(cutoffDate.getDate() - 30)
@@ -35,12 +47,15 @@ export async function GET(request: NextRequest) {
     }
 
     const cutoffIso = cutoffDate.toISOString()
+    const endIso = endDate ? endDate.toISOString() : new Date().toISOString()
 
     // 1. Get agent stats with call counts
+    const dateFilter = { gte: cutoffIso, lte: endIso }
+
     const agentCallStats = await logger.time('Query: Call Stats', () =>
       prisma.call.groupBy({
         by: ['agentId'],
-        where: { startedAt: { gte: cutoffIso } },
+        where: { startedAt: dateFilter },
         _count: { id: true },
       })
     )
@@ -48,7 +63,7 @@ export async function GET(request: NextRequest) {
     const wonCallStats = await logger.time('Query: Won Call Stats', () =>
       prisma.call.groupBy({
         by: ['agentId'],
-        where: { startedAt: { gte: cutoffIso }, outcome: 'won' },
+        where: { startedAt: dateFilter, outcome: 'won' },
         _count: { id: true },
       })
     )
@@ -94,9 +109,9 @@ export async function GET(request: NextRequest) {
 
     // 3. Get all tag scores
     const allTagScores = await logger.time('Query: All Tag Scores', () =>
-      prisma.callAssessment.findMany({
+      prisma.callTag.findMany({
         where: {
-          call: { startedAt: { gte: cutoffIso } }
+          call: { startedAt: dateFilter }
         },
         select: {
           tagId: true,
@@ -131,24 +146,37 @@ export async function GET(request: NextRequest) {
       agentAvgMap.set(agentId, avgMap)
     })
 
+    // 2b. Get Scoring Rules for Weights
+    const scoringRules = await prisma.scoringRule.findMany({
+      where: { active: 1, ruleType: 'TagBased' }
+    })
+    const tagWeightMap = new Map<string, number>()
+    scoringRules.forEach(rule => {
+      tagWeightMap.set(rule.tagCode, rule.weight)
+    })
+
     // Calculate agent stats
     const agentStats: AgentStats[] = agents.map(agent => {
       const scoreMap = agentAvgMap.get(agent.id) || new Map()
 
       const calculateAverage = (refTags: typeof allTags) => {
-        let totalScore = 0
-        let denominator = 0
+        let weightedScoreSum = 0
+        let weightSum = 0
 
         for (const tag of refTags) {
           const score = scoreMap.get(tag.id)
+          // Default weight is 1.0 if not configured
+          const weight = tagWeightMap.get(tag.code) || 1.0
+
           if (score !== undefined && score !== null) {
-            totalScore += score
-            denominator++
+            weightedScoreSum += score * weight
+            weightSum += weight
           } else if (tag.isMandatory) {
-            denominator++
+            // Missing mandatory tag counts as 0 score with its weight
+            weightSum += weight
           }
         }
-        return denominator > 0 ? Math.round(totalScore / denominator) : 0
+        return weightSum > 0 ? Math.round(weightedScoreSum / weightSum) : 0
       }
 
       const processScore = calculateAverage(processRefTags)
@@ -246,12 +274,12 @@ export async function GET(request: NextRequest) {
 
     // 7. Trend Analysis (Monthly)
     const allCalls = await prisma.call.findMany({
-      where: { startedAt: { gte: cutoffIso } },
+      where: { startedAt: dateFilter },
       select: {
         id: true,
         startedAt: true,
         outcome: true,
-        assessments: {
+        tags: {
           select: {
             score: true,
             tag: { select: { dimension: true } }
@@ -263,12 +291,12 @@ export async function GET(request: NextRequest) {
     const monthlyStats = new Map<string, { totalScore: number; count: number; wonCount: number }>()
 
     allCalls.forEach(call => {
-      // Group assessments by dimension
+      // Group tags by dimension
       const dimScores: Record<string, number[]> = {}
-      call.assessments.forEach(a => {
-        const dim = a.tag.dimension
+      call.tags.forEach(t => {
+        const dim = t.tag.dimension
         if (!dimScores[dim]) dimScores[dim] = []
-        dimScores[dim].push(a.score)
+        dimScores[dim].push(t.score)
       })
 
       // Calculate averages per dimension
@@ -326,8 +354,8 @@ export async function GET(request: NextRequest) {
       summary: {
         isValid: correlation > 0.3,
         message: correlation > 0.3
-          ? "评分系统与赢单率呈现显著正相关，验证通过"
-          : "评分系统与赢单率相关性不足，需要优化"
+          ? "评分系统与转化率呈现显著正相关，验证通过"
+          : "评分系统与转化率相关性不足，需要优化"
       }
     }
 
