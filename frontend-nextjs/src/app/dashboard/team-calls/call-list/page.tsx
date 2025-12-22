@@ -1,5 +1,7 @@
 'use client'
 
+import { LEAK_AREA_OPTIONS } from '@/lib/constants/team-calls'
+
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import React, { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -74,6 +76,8 @@ const getOnsiteBadge = (isOnsiteCompleted?: number) => {
   }
 }
 
+
+
 /**
  * 获取漏水部位的标签
  */
@@ -83,18 +87,8 @@ const getLeakAreaLabels = (leakArea?: string) => {
     const codes = JSON.parse(leakArea)
     if (!Array.isArray(codes)) return []
     
-    const mapping: Record<string, string> = {
-      '1': '屋面',
-      '2': '卫生间',
-      '3': '窗户',
-      '4': '外墙',
-      '5': '地下室',
-      '6': '其他',
-      '7': '厨房'
-    }
-    
     return codes
-      .map(code => mapping[String(code)])
+      .map(code => LEAK_AREA_OPTIONS.find(o => o.value === String(code))?.label)
       .filter((label): label is string => Boolean(label))
   } catch (e) {
     return []
@@ -354,6 +348,7 @@ function CallListContent() {
   const [filterOutcome, setFilterOutcome] = useState<string[]>(
     searchParams.get('outcome') ? searchParams.get('outcome')!.split(',') : []
   )
+  const [timePreset, setTimePreset] = useState<string>(searchParams.get('timePreset') || '7d')
   const [filterStartDate, setFilterStartDate] = useState<string>(searchParams.get('startDate') || '')
   const [filterEndDate, setFilterEndDate] = useState<string>(searchParams.get('endDate') || '')
   
@@ -423,6 +418,7 @@ function CallListContent() {
     if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
     if (filterOnsite !== 'all') params.set('onsite', filterOnsite)
     if (filterLeakArea.length > 0) params.set('leakArea', filterLeakArea.join(','))
+    if (timePreset !== '7d') params.set('timePreset', timePreset)
     if (filterStartDate) params.set('startDate', filterStartDate)
     if (filterEndDate) params.set('endDate', filterEndDate)
     if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
@@ -625,6 +621,8 @@ function CallListContent() {
               setFilterDuration={setFilterDuration}
               filterScore={filterScore}
               setFilterScore={setFilterScore}
+              timePreset={timePreset}
+              setTimePreset={setTimePreset}
               onClearAll={clearAllFilters}
             />
           </div>

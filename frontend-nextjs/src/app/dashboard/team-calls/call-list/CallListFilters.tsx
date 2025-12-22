@@ -4,6 +4,9 @@ import * as React from 'react'
 import { Plus, X, Search, Tag as TagIcon, Clock, ArrowUpDown, Check, Star } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import AgentAvatar from '@/components/team/AgentAvatar'
+import { LeakAreaFilter } from '@/components/team-calls/filters/LeakAreaFilter'
+import { AgentFilter } from '@/components/team-calls/filters/AgentFilter'
+import { TimeFilter } from '@/components/team-calls/filters/TimeFilter'
 
 interface Agent {
   id: string
@@ -40,19 +43,12 @@ interface CallListFiltersProps {
   setFilterScore: (score: { min: number | null, max: number | null }) => void
   filterLeakArea: string[]
   setFilterLeakArea: (leakAreas: string[]) => void
+  timePreset: string
+  setTimePreset: (preset: string) => void
   onClearAll: () => void
   children?: React.ReactNode
 }
 
-const LEAK_AREA_OPTIONS = [
-  { value: '1', label: '屋面' },
-  { value: '2', label: '卫生间' },
-  { value: '3', label: '窗户' },
-  { value: '4', label: '外墙' },
-  { value: '5', label: '地下室' },
-  { value: '6', label: '其他' },
-  { value: '7', label: '厨房' },
-]
 
 export function CallListFilters({
   agents,
@@ -77,6 +73,8 @@ export function CallListFilters({
   setFilterScore,
   filterLeakArea,
   setFilterLeakArea,
+  timePreset,
+  setTimePreset,
   onClearAll,
   children
 }: CallListFiltersProps) {
@@ -87,9 +85,7 @@ export function CallListFilters({
   const [excludeTagsOpen, setExcludeTagsOpen] = React.useState(false)
   const [durationOpen, setDurationOpen] = React.useState(false)
   const [scoreOpen, setScoreOpen] = React.useState(false)
-  const [agentSearch, setAgentSearch] = React.useState('')
   const [tagSearch, setTagSearch] = React.useState('')
-  const [agentOpen, setAgentOpen] = React.useState(false)
 
   const hasActiveFilters = filterAgent !== 'all' || 
     filterOutcome.length > 0 || 
@@ -156,22 +152,7 @@ export function CallListFilters({
     }
   }
 
-  const toggleLeakArea = (value: string) => {
-    if (filterLeakArea.includes(value)) {
-      setFilterLeakArea(filterLeakArea.filter(v => v !== value))
-    } else {
-      setFilterLeakArea([...filterLeakArea, value])
-    }
-  }
 
-  const getLeakAreaLabel = () => {
-    if (filterLeakArea.length === 0) return '部位'
-    const selected = LEAK_AREA_OPTIONS.filter(o => filterLeakArea.includes(o.value))
-    if (selected.length <= 2) {
-      return selected.map(o => o.label).join(', ')
-    }
-    return `${selected[0].label}, ${selected[1].label} +${filterLeakArea.length - 2}`
-  }
 
   // Common Chip Styles
   const chipBaseClass = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer select-none whitespace-nowrap border"
@@ -198,129 +179,33 @@ export function CallListFilters({
       <div className="flex flex-wrap gap-2 items-center">
         
         {/* --- 销售筛选 (Agent Filter) --- */}
-        <Popover open={agentOpen} onOpenChange={setAgentOpen}>
-          <PopoverTrigger asChild>
-            <div className={`${chipBaseClass} ${filterAgent !== 'all' ? activeChipClass : inactiveChipClass}`}>
-              {filterAgent !== 'all' ? (
-                <>
-                  <span>销售: {activeAgent?.name || filterAgent}</span>
-                  <div 
-                    role="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setFilterAgent('all')
-                    }}
-                    className="hover:bg-amber-200/50 rounded-full p-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Plus className="h-3 w-3" />
-                  <span>销售</span>
-                </>
-              )}
-            </div>
-          </PopoverTrigger>
-          <PopoverContent className="w-64 p-2 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
-            <div className="mb-2 px-2 py-1.5 border-b border-gray-100 flex items-center gap-2">
-              <Search className="h-3 w-3 text-gray-400" />
-              <input 
-                className="flex-1 text-sm outline-none placeholder:text-gray-400"
-                placeholder="搜索销售..."
-                value={agentSearch}
-                onChange={(e) => setAgentSearch(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="max-h-60 overflow-y-auto space-y-1 custom-scrollbar">
-              <button
-                onClick={() => {
-                  setFilterAgent('all')
-                  setAgentOpen(false)
-                }}
-                className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${filterAgent === 'all' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
-              >
-                <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-600">全</div>
-                <span>所有销售</span>
-              </button>
-              {agents
-                .filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase()))
-                .map(agent => (
-                <button
-                  key={agent.id}
-                  onClick={() => {
-                    setFilterAgent(agent.id)
-                    setAgentOpen(false)
-                  }}
-                  className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${filterAgent === agent.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
-                >
-                  <AgentAvatar agentId={agent.id} name={agent.name} size="xs" />
-                  <span className="truncate">{agent.name}</span>
-                </button>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <AgentFilter 
+          agents={agents}
+          value={filterAgent}
+          onChange={setFilterAgent}
+        />
 
         {/* --- 日期筛选 (Date Filter) --- */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <div className={`${chipBaseClass} ${(filterStartDate || filterEndDate) ? activeChipClass : inactiveChipClass}`}>
-              {(filterStartDate || filterEndDate) ? (
-                <>
-                  <span>
-                    {filterStartDate ? new Date(filterStartDate).toLocaleDateString('zh-CN', {month:'short', day:'numeric'}) : '开始'} 
-                    {' - '}
-                    {filterEndDate ? new Date(filterEndDate).toLocaleDateString('zh-CN', {month:'short', day:'numeric'}) : '结束'}
-                  </span>
-                  <div 
-                    role="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setFilterStartDate('')
-                      setFilterEndDate('')
-                    }}
-                    className="hover:bg-amber-200/50 rounded-full p-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Plus className="h-3 w-3" />
-                  <span>日期</span>
-                </>
-              )}
-            </div>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-4 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
-            <div className="space-y-4">
-              <h4 className="font-medium text-sm text-gray-900 border-b pb-2">选择日期范围</h4>
-              <div className="flex gap-4">
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-medium text-gray-500">开始日期</label>
-                  <input
-                    type="date"
-                    value={filterStartDate?.split('T')[0] || ''}
-                    onChange={(e) => setFilterStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <div className="grid gap-1.5">
-                  <label className="text-xs font-medium text-gray-500">结束日期</label>
-                  <input
-                    type="date"
-                    value={filterEndDate?.split('T')[0] || ''}
-                    onChange={(e) => setFilterEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+        <TimeFilter 
+          value={timePreset}
+          onChange={(v, range) => {
+            setTimePreset(v)
+            if (range) {
+              setFilterStartDate(range.start)
+              setFilterEndDate(range.end)
+            } else if (v !== 'custom' && v !== 'month') {
+              // For presets like 7d/30d, the API handles it via timeframe param usually
+              // but CallList uses explicit dates.
+              // Let's keep it simple: if presets are chosen, we could calculate dates
+              // but usually the API handles '7d' etc.
+              setFilterStartDate('') 
+              setFilterEndDate('')
+            }
+          }}
+          startDate={filterStartDate}
+          endDate={filterEndDate}
+        />
+
 
         {/* --- 赢单状态筛选 (Outcome Filter) --- */}
         <Popover open={outcomeOpen} onOpenChange={setOutcomeOpen}>
@@ -418,48 +303,11 @@ export function CallListFilters({
         </Popover>
 
         {/* --- 漏水部位筛选 (Leak Area Filter) --- */}
-        <Popover open={leakAreaOpen} onOpenChange={setLeakAreaOpen}>
-          <PopoverTrigger asChild>
-            <div className={`${chipBaseClass} ${filterLeakArea.length > 0 ? activeChipClass : inactiveChipClass}`}>
-              {filterLeakArea.length > 0 ? (
-                <>
-                  <span>部位: {getLeakAreaLabel()}</span>
-                  <div 
-                    role="button"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setFilterLeakArea([])
-                    }}
-                    className="hover:bg-amber-200/50 rounded-full p-0.5"
-                  >
-                    <X className="h-3 w-3" />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Plus className="h-3 w-3" />
-                  <span>部位</span>
-                </>
-              )}
-            </div>
-          </PopoverTrigger>
-          <PopoverContent className="w-40 p-2 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
-             <div className="space-y-1">
-               {LEAK_AREA_OPTIONS.map(opt => (
-                 <button
-                   key={opt.value}
-                   onClick={() => toggleLeakArea(opt.value)}
-                   className="flex items-center w-full px-2 py-1.5 hover:bg-gray-50 rounded text-sm gap-2 transition-colors"
-                 >
-                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterLeakArea.includes(opt.value) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
-                     {filterLeakArea.includes(opt.value) && <Check className="h-3 w-3" />}
-                   </div>
-                   <span className="text-gray-700">{opt.label}</span>
-                 </button>
-               ))}
-             </div>
-          </PopoverContent>
-        </Popover>
+        <LeakAreaFilter 
+          selectedValues={filterLeakArea}
+          onChange={setFilterLeakArea}
+        />
+
 
         {/* --- 包含标签筛选 (Include Tags Filter) --- */}
         <Popover open={includeTagsOpen} onOpenChange={setIncludeTagsOpen}>

@@ -10,15 +10,19 @@ import { AgentId } from '@/types'
 import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
 import { PageHeader } from '@/components/ui/page-header'
 import { TimeRangeSelector } from '@/components/ui/time-range-selector'
+import { LEAK_AREA_OPTIONS } from '@/lib/constants/team-calls'
+import { LeakAreaFilter } from '@/components/team-calls/filters/LeakAreaFilter'
+import { AgentFilter } from '@/components/team-calls/filters/AgentFilter'
+import { TimeFilter } from '@/components/team-calls/filters/TimeFilter'
 
-type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all' | 'custom'
+type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all' | 'custom' | 'month'
 type SortBy = 'overall' | 'process' | 'skills' | 'communication' | 'winRate' | 'onsiteRate'
 
-// 生成最近12个月的选项
+// 生成最近24个月的选项
 const generateMonthOptions = () => {
   const options = []
   const now = new Date()
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 24; i++) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
     const label = `${date.getFullYear()}年${date.getMonth() + 1}月`
@@ -29,16 +33,10 @@ const generateMonthOptions = () => {
 
 const MONTH_OPTIONS = generateMonthOptions()
 
-// 漏水部位一级分类选项
-const LEAK_AREA_OPTIONS = [
-  { value: '1', label: '屋面' },
-  { value: '2', label: '卫生间' },
-  { value: '3', label: '窗户' },
-  { value: '4', label: '外墙' },
-  { value: '5', label: '地下室' },
-  { value: '6', label: '其他' },
-  { value: '7', label: '厨房' },
-]
+const getTeamName = (id: string) => {
+  return id.length > 5 ? id.substring(0, 5) : id
+}
+
 
 interface SubcategoryScore {
   name: string
@@ -78,7 +76,7 @@ export default function ScorecardPage() {
   const router = useRouter()
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('7d')
   const [selectedMonth, setSelectedMonth] = useState<string>('') // 如 '2025-07'
-  const [selectedTeam, setSelectedTeam] = useState<string>('9055771909563658940')
+  const [selectedTeam, setSelectedTeam] = useState<string>('all')
   const [selectedLeakAreas, setSelectedLeakAreas] = useState<string[]>([]) // 漏水部位筛选 (多选)
   const [showOnlyActive, setShowOnlyActive] = useState<boolean>(true)
   const [sortBy, setSortBy] = useState<SortBy>('overall')
@@ -98,15 +96,17 @@ export default function ScorecardPage() {
       try {
         // 构建 API 请求参数
         const params = new URLSearchParams()
-        params.set('timeframe', timeFrame)
         
-        // 如果是自定义月份，添加日期参数
-        if (timeFrame === 'custom' && selectedMonth) {
+        if ((timeFrame === 'month' || timeFrame === 'custom') && selectedMonth) {
+          params.set('timeframe', 'custom')
           const [year, month] = selectedMonth.split('-').map(Number)
-          const startDate = new Date(year, month - 1, 1)
-          const endDate = new Date(year, month, 0, 23, 59, 59) // 月末最后一秒
-          params.set('startDate', startDate.toISOString())
-          params.set('endDate', endDate.toISOString())
+          // 使用 Date.UTC 确保时区一致性，或者保持本地时间并仔细处理
+          const start = new Date(year, month - 1, 1, 0, 0, 0)
+          const end = new Date(year, month, 0, 23, 59, 59)
+          params.set('startDate', start.toISOString())
+          params.set('endDate', end.toISOString())
+        } else {
+          params.set('timeframe', timeFrame)
         }
         
         // 添加漏水部位筛选参数
@@ -138,7 +138,7 @@ export default function ScorecardPage() {
       }
     }
     fetchData()
-  }, [timeFrame, selectedMonth, selectedLeakAreas])
+  }, [timeFrame, selectedMonth, selectedLeakAreas, selectedTeam]) // Added selectedTeam as dependency
 
   const teams = useMemo(() => {
     const uniqueTeams = new Set(agents.map(a => a.teamId).filter(Boolean) as string[])
@@ -325,118 +325,32 @@ export default function ScorecardPage() {
 
       {/* Top Filters */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">团队</span>
-            <div className="relative">
-              <select
-                value={selectedTeam}
-                onChange={(e) => setSelectedTeam(e.target.value)}
-                className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
-              >
-                <option value="all">所有团队</option>
-                {teams.map(team => (
-                  <option key={team} value={team}>{team}</option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <ChevronDown className="h-4 w-4" />
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center gap-4">
+          <AgentFilter
+            labelPrefix="团队"
+            agents={teams.map(t => ({ id: t, name: getTeamName(t) }))}
+            value={selectedTeam}
+            onChange={setSelectedTeam}
+          />
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">时间范围</span>
-            <TimeRangeSelector
-              value={timeFrame}
-              onChange={(v) => {
-                setTimeFrame(v as TimeFrame)
-                // 如果选择了"按月"，默认选择上个月
-                if (v === 'custom' && !selectedMonth) {
-                  setSelectedMonth(MONTH_OPTIONS[1]?.value || '')
-                }
-              }}
-              presets={[
-                { value: '7d', label: '近7天' },
-                { value: '30d', label: '近30天' },
-                { value: 'custom', label: '按月' },
-                { value: 'all', label: '全部' },
-              ]}
-            />
-            {/* 月份选择下拉框 */}
-            {timeFrame === 'custom' && (
-              <div className="relative">
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-blue-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
-                >
-                  {MONTH_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                  <ChevronDown className="h-4 w-4" />
-                </div>
-              </div>
-            )}
-          </div>
+          <TimeFilter
+            value={timeFrame}
+            onChange={(v, range) => {
+              setTimeFrame(v as TimeFrame)
+              // 自动切换月份
+              if (v === 'month' && !selectedMonth) {
+                setSelectedMonth(MONTH_OPTIONS[1]?.value || '')
+              }
+            }}
+            monthValue={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            monthOptions={MONTH_OPTIONS}
+          />
 
-          {/* 漏水部位筛选 */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">漏水部位</span>
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
-                  {selectedLeakAreas.length === 0 ? (
-                    <>
-                      <Plus className="h-4 w-4 text-gray-400" />
-                      <span>选择部位</span>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs">
-                        {selectedLeakAreas.length}
-                      </span>
-                      <span className="truncate max-w-[120px]">
-                        {selectedLeakAreas.map(val => LEAK_AREA_OPTIONS.find(o => o.value === val)?.label).join(', ')}
-                      </span>
-                      <X 
-                        className="h-3 w-3 hover:text-red-500" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedLeakAreas([]);
-                        }}
-                      />
-                    </div>
-                  )}
-                  <ChevronDown className="h-4 w-4 text-gray-400 ml-1" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-48 p-2 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
-                <div className="space-y-1">
-                  {LEAK_AREA_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        setSelectedLeakAreas(prev => 
-                          prev.includes(opt.value) 
-                            ? prev.filter(v => v !== opt.value) 
-                            : [...prev, opt.value]
-                        )
-                      }}
-                      className="flex items-center w-full px-2 py-1.5 hover:bg-gray-50 rounded text-sm gap-2 transition-colors text-left"
-                    >
-                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedLeakAreas.includes(opt.value) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
-                        {selectedLeakAreas.includes(opt.value) && <Check className="h-3 w-3" />}
-                      </div>
-                      <span className="text-gray-700">{opt.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
+          <LeakAreaFilter 
+            selectedValues={selectedLeakAreas}
+            onChange={setSelectedLeakAreas}
+          />
         </div>
 
         <div className="flex items-center gap-4">
@@ -538,7 +452,9 @@ export default function ScorecardPage() {
           <div className="flex items-center gap-6">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-bold text-gray-900">团队 {teamStats.name}</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  团队 {selectedTeam === 'all' ? '所有团队' : getTeamName(selectedTeam)}
+                </h2>
                 <p className={`text-4xl font-bold ${getScoreColor(teamStats.overallScore)}`}>
                   {teamStats.overallScore}
                 </p>
