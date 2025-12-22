@@ -121,8 +121,8 @@ export default function AnalyticsPage() {
       <div className="space-y-6">
         {/* 页面标题和控制区 */}
         <PageHeader
-          title="评分系统分析仪表板"
-          description="实时监控评分系统与转化率的相关性表现"
+          title="效果验证"
+          description="评分系统与业务结果（转化率）的相关性分析"
           actions={
             <div className="flex items-center gap-4">
               {/* 快捷时间范围 */}
