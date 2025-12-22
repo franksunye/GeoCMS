@@ -25,7 +25,7 @@ const sqlite = new Database(SQLITE_PATH, { readonly: true });
 const pgPool = new Pool({ connectionString: PG_URL });
 
 // 批量插入辅助函数
-async function batchInsert(client: pg.PoolClient, table: string, columns: string[], rows: any[], batchSize = 50) {
+async function batchInsert(client: pg.PoolClient, table: string, columns: string[], rows: any[], batchSize = 50, primaryKey = 'id') {
     if (rows.length === 0) return 0;
 
     let inserted = 0;
@@ -40,7 +40,7 @@ async function batchInsert(client: pg.PoolClient, table: string, columns: string
             columns.forEach(col => values.push(row[col]));
         });
 
-        const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES ${placeholders.join(', ')} ON CONFLICT (id) DO NOTHING`;
+        const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES ${placeholders.join(', ')} ON CONFLICT (${primaryKey}) DO NOTHING`;
 
         try {
             const result = await client.query(sql, values);
@@ -51,7 +51,7 @@ async function batchInsert(client: pg.PoolClient, table: string, columns: string
                 try {
                     const singlePlaceholders = columns.map((_, i) => `$${i + 1}`).join(', ');
                     await client.query(
-                        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${singlePlaceholders}) ON CONFLICT (id) DO NOTHING`,
+                        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${singlePlaceholders}) ON CONFLICT (${primaryKey}) DO NOTHING`,
                         columns.map(c => row[c])
                     );
                     inserted++;
@@ -110,16 +110,16 @@ async function migrate() {
 
         // === 阶段 2: 配置数据 (全量) ===
         console.log('📂 cfg_tags');
-        const tags = sqlite.prepare('SELECT id, name, code, category, dimension, polarity, severity, score_range, description, active, created_at, updated_at, is_mandatory FROM cfg_tags').all() as any[];
+        const tags = sqlite.prepare('SELECT code, name, category, dimension, polarity, severity, score_range, description, active, created_at, updated_at, is_mandatory FROM cfg_tags').all() as any[];
         tags.forEach(t => { t.score_range = t.score_range || '0-5'; t.description = t.description || ''; t.is_mandatory = t.is_mandatory || false; });
-        const tagCount = await batchInsert(client, 'cfg_tags', ['id', 'name', 'code', 'category', 'dimension', 'polarity', 'severity', 'score_range', 'description', 'active', 'created_at', 'updated_at', 'is_mandatory'], tags);
+        const tagCount = await batchInsert(client, 'cfg_tags', ['code', 'name', 'category', 'dimension', 'polarity', 'severity', 'score_range', 'description', 'active', 'created_at', 'updated_at', 'is_mandatory'], tags, 50, 'code');
         console.log(`   ✅ ${tagCount} 行\n`);
         total += tagCount;
 
         console.log('📂 cfg_signals');
-        const signals = sqlite.prepare('SELECT id, code, name, category, dimension, target_tag_code, aggregation_method, description, active, created_at, updated_at FROM cfg_signals').all() as any[];
+        const signals = sqlite.prepare('SELECT code, name, category, dimension, target_tag_code, aggregation_method, description, active, created_at, updated_at FROM cfg_signals').all() as any[];
         signals.forEach(s => { s.description = s.description || ''; });
-        const sigCount = await batchInsert(client, 'cfg_signals', ['id', 'code', 'name', 'category', 'dimension', 'target_tag_code', 'aggregation_method', 'description', 'active', 'created_at', 'updated_at'], signals);
+        const sigCount = await batchInsert(client, 'cfg_signals', ['code', 'name', 'category', 'dimension', 'target_tag_code', 'aggregation_method', 'description', 'active', 'created_at', 'updated_at'], signals, 50, 'code');
         console.log(`   ✅ ${sigCount} 行\n`);
         total += sigCount;
 
