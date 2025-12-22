@@ -48,6 +48,7 @@ export type CallRecord = {
   communicationScore: number
   overallQualityScore: number
   outcome?: 'won' | 'lost' | 'in_progress' | 'unknown'  // 实际结果
+  isOnsiteCompleted?: number  // 是否已上门: 1=已上门, 0=未上门
   business_grade: 'High' | 'Medium' | 'Low'  // 基于 outcome 的映射
   predictedIntent?: {  // 意向研判
     score: number

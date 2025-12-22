@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
         let weightSum = 0
 
         for (const tag of refTags) {
-          const score = scoreMap.get(tag.id)
+          const score = scoreMap.get(tag.code)
           // Default weight is 1.0 if not configured
           const weight = tagWeightMap.get(tag.code) || 1.0
 

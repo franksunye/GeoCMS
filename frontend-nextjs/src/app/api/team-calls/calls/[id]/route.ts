@@ -43,6 +43,16 @@ export async function GET(
             return NextResponse.json({ error: 'Call not found' }, { status: 404 })
         }
 
+        // 1b. Fetch dynamic fields from sync_deals
+        const deal = await logger.time('Query: Deal Info', () =>
+            prisma.deal.findUnique({
+                where: { id: callId },
+                select: { outcome: true, isOnsiteCompleted: true }
+            })
+        )
+        const outcome = deal?.outcome || 'unknown'
+        const isOnsiteCompleted = deal?.isOnsiteCompleted ?? 0
+
         // 2. Get Score Config
         const scoreConfig = await logger.time('Query: Score Config', () => prisma.scoreConfig.findFirst())
         const weights = {
@@ -244,8 +254,9 @@ export async function GET(
             communicationScore,
             overallQualityScore,
             // Dual-track: Keep actual outcome AND add predicted intent
-            outcome: call.outcome,  // 实际结果：won/lost/in_progress
-            business_grade: call.outcome === 'won' ? 'High' : (call.outcome === 'lost' ? 'Low' : 'Medium'),
+            outcome,  // 从 sync_deals 获取实际结果
+            isOnsiteCompleted,  // 是否已上门 (1=已上门, 0=未上门)
+            business_grade: outcome === 'won' ? 'High' : (outcome === 'lost' ? 'Low' : 'Medium'),
             predictedIntent,  // 意向研判
             tags,
             events: behaviors,

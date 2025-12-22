@@ -44,7 +44,7 @@ model Call {
 
 /// 通话标签打分（Tag 级别的打分）
 model CallTag {
-  id            String  @id
+  id            Int     @id @default(autoincrement())
   call_id       String
   tag_id        String
   score         Int
@@ -55,7 +55,7 @@ model CallTag {
   contextEvents String? @map("context_events")
   created_at    String
   biz_calls     Call    @relation(fields: [call_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  cfg_tags      Tag     @relation(fields: [tag_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cfg_tags      Tag     @relation(fields: [tag_id], references: [code], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([call_id], map: "idx_biz_call_tags_call_id")
   @@index([tag_id], map: "idx_biz_call_tags_tag_id")
@@ -63,9 +63,8 @@ model CallTag {
 }
 
 /// 通话信号（事件级别的检测）
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model CallSignal {
-  id           String  @id
+  id           Int     @id @default(autoincrement())
   call_id      String
   signalId     String  @map("signal_id")
   timestampSec Float?  @map("timestamp_sec")
@@ -73,7 +72,7 @@ model CallSignal {
   contextText  String? @map("context_text")
   reasoning    String?
   created_at   String
-  signal       Signal  @relation(fields: [signalId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  signal       Signal  @relation(fields: [signalId], references: [code], onDelete: NoAction, onUpdate: NoAction)
   biz_calls    Call    @relation(fields: [call_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([call_id], map: "idx_biz_call_signals_call_id")
@@ -83,9 +82,8 @@ model CallSignal {
 
 /// 标签定义（通话级别的质量维度）
 model Tag {
-  id            String    @id @default(cuid())
+  code          String    @id
   name          String
-  code          String    @unique
   category      String
   dimension     String
   polarity      String
@@ -103,8 +101,7 @@ model Tag {
 
 /// 信号定义（事件级别的行为检测）
 model Signal {
-  id                 String       @id @default(cuid())
-  code               String       @unique
+  code               String       @id
   name               String
   category           String
   dimension          String
@@ -199,13 +196,14 @@ model PromptExecutionLog {
 /// 交易/案例
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
 model Deal {
-  id               String       @id
-  agent_id         String
-  outcome          String
-  order_number     String?
-  created_at       String
-  sync_agents      Agent        @relation(fields: [agent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  sync_transcripts Transcript[]
+  id                  String       @id
+  agent_id            String
+  outcome             String
+  order_number        String?
+  isOnsiteCompleted   Int?         @default(0) @map("is_onsite_completed") /// 是否已上门: 1=已上门, 0=未上门
+  created_at          String
+  sync_agents         Agent        @relation(fields: [agent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  sync_transcripts    Transcript[]
 
   @@map("sync_deals")
 }

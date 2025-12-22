@@ -46,12 +46,13 @@ export async function GET(request: NextRequest) {
     const scoreMax = searchParams.get('scoreMax') ? parseInt(searchParams.get('scoreMax')!) : undefined
     const includeTagsParam = searchParams.get('includeTags')
     const excludeTagsParam = searchParams.get('excludeTags')
+    const onsiteParam = searchParams.get('onsite') // 'onsite' | 'not_onsite' | null
 
     // Backward compatibility: if includeDetails=true, load full data (for migration period)
     const includeDetails = searchParams.get('includeDetails') === 'true'
 
     logger.info('Request received', {
-      page, pageSize, agentId, startDate, endDate, outcome,
+      page, pageSize, agentId, startDate, endDate, outcome, onsite: onsiteParam,
       durationMin, durationMax, scoreMin, scoreMax,
       includeTags: includeTagsParam, excludeTags: excludeTagsParam,
       includeDetails
@@ -67,15 +68,8 @@ export async function GET(request: NextRequest) {
       if (startDate) where.startedAt.gte = startDate
       if (endDate) where.startedAt.lte = endDate
     }
-    // Outcome filter
-    if (outcome) {
-      const outcomes = outcome.split(',').map(o => o.trim()).filter(Boolean)
-      if (outcomes.length === 1) {
-        where.outcome = outcomes[0]
-      } else if (outcomes.length > 1) {
-        where.outcome = { in: outcomes }
-      }
-    }
+    // Note: outcome filter will be applied after joining sync_deals
+    const outcomeFilter = outcome ? outcome.split(',').map(o => o.trim()).filter(Boolean) : null
     // Duration filter (in seconds)
     if (durationMin !== undefined || durationMax !== undefined) {
       where.duration = {}
@@ -151,7 +145,16 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    logger.info('Calls fetched', { count: calls.length, total })
+    // 2b. Fetch deal info for dynamic fields (outcome, is_onsite_completed)
+    const dealInfo = await logger.time('Query: Deal Info', () =>
+      prisma.deal.findMany({
+        where: { id: { in: calls.map(c => c.id) } },
+        select: { id: true, outcome: true, isOnsiteCompleted: true }
+      })
+    )
+    const dealMap = new Map(dealInfo.map(d => [d.id, { outcome: d.outcome, isOnsiteCompleted: d.isOnsiteCompleted }]))
+
+    logger.info('Calls fetched', { count: calls.length, total, dealsLinked: dealInfo.length })
 
     // 3. Get Score Config (for weights)
     const scoreConfig = await logger.time('Query: Score Config', () => prisma.scoreConfig.findFirst())
@@ -213,6 +216,11 @@ export async function GET(request: NextRequest) {
       const pageSignals = await logger.time('Query: Signals', () =>
         prisma.callSignal.findMany({
           where: { callId: { in: callIds } },
+          include: {
+            signal: {
+              select: { code: true, name: true }
+            }
+          },
           orderBy: { timestampSec: 'asc' }
         })
       )
@@ -227,9 +235,36 @@ export async function GET(request: NextRequest) {
     // 8. Transform to CallRecord format
     const formatTimer = logger.startTimer('Compute: Format Calls')
 
-    const formattedCalls = calls.map((call) => {
+    // Pre-filter by outcome if needed (using sync_deals data)
+    let filteredCalls = calls
+    if (outcomeFilter && outcomeFilter.length > 0) {
+      filteredCalls = filteredCalls.filter(call => {
+        const deal = dealMap.get(call.id)
+        return deal && outcomeFilter.includes(deal.outcome)
+      })
+    }
+
+    // Pre-filter by onsite status if needed (using sync_deals data)
+    if (onsiteParam === 'onsite') {
+      filteredCalls = filteredCalls.filter(call => {
+        const deal = dealMap.get(call.id)
+        return deal && deal.isOnsiteCompleted === 1
+      })
+    } else if (onsiteParam === 'not_onsite') {
+      filteredCalls = filteredCalls.filter(call => {
+        const deal = dealMap.get(call.id)
+        return !deal || deal.isOnsiteCompleted !== 1
+      })
+    }
+
+    const formattedCalls = filteredCalls.map((call) => {
       const callTags = tagsByCall[call.id] || []
       const rawSignals = signalsByCall[call.id] || []
+
+      // Get dynamic fields from sync_deals
+      const deal = dealMap.get(call.id)
+      const outcome = deal?.outcome || 'unknown'
+      const isOnsiteCompleted = deal?.isOnsiteCompleted ?? 0
 
       // Helper to calculate average score for a dimension
       const getAvgScore = (dims: string[]) => {
@@ -292,8 +327,9 @@ export async function GET(request: NextRequest) {
         skillsScore,
         communicationScore,
         overallQualityScore,
-        outcome: call.outcome,  // 实际结果
-        business_grade: call.outcome === 'won' ? 'High' : (call.outcome === 'lost' ? 'Low' : 'Medium'),
+        outcome,  // 从 sync_deals 获取实际结果
+        isOnsiteCompleted,  // 是否已上门 (1=已上门, 0=未上门)
+        business_grade: outcome === 'won' ? 'High' : (outcome === 'lost' ? 'Low' : 'Medium'),
         predictedIntent,  // 意向研判
         tags,
         audioUrl: getStorageUrl(call.audioUrl)
@@ -314,7 +350,7 @@ export async function GET(request: NextRequest) {
 
         const tagSignals = callTags.map(a => {
           const instances = rawSignals
-            .filter((r: any) => r.signalCode === a.tag.code)
+            .filter((r: any) => (r.signal?.code || r.signalId) === a.tag.code)
             .map((r: any) => ({
               timestamp: r.timestampSec ? new Date(call.startedAt).getTime() + (r.timestampSec * 1000) : null,
               context: r.contextText,
@@ -391,8 +427,8 @@ export async function GET(request: NextRequest) {
           service_issues,
           signals,
           rawSignals: rawSignals.map((s: any) => ({
-            signalCode: s.signalCode,
-            signalName: s.signalCode, // Will be resolved in detail API
+            signalCode: s.signal?.code || s.signalId,
+            signalName: s.signal?.name || s.signalId, // Will be resolved in detail API
             timestampSec: s.timestampSec,
             contextText: s.contextText,
             reasoning: s.reasoning,

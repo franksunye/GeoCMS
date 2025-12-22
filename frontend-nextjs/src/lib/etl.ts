@@ -126,10 +126,10 @@ export function parseAnalysisJson(rawJson: string): AIAnalysisResult | null {
  */
 export async function getTagMap(): Promise<Map<string, string>> {
   const allTags = await prisma.tag.findMany({
-    select: { id: true, code: true }
+    select: { code: true }
   })
   const tagMap = new Map<string, string>()
-  allTags.forEach(t => tagMap.set(t.code, t.id))
+  allTags.forEach(t => tagMap.set(t.code, t.code))
   return tagMap
 }
 
@@ -238,10 +238,10 @@ export function reconstructTextFromSegments(
  */
 export async function getSignalMap(): Promise<Map<string, string>> {
   const allSignals = await prisma.signal.findMany({
-    select: { id: true, code: true }
+    select: { code: true }
   })
   const signalMap = new Map<string, string>()
-  allSignals.forEach(s => signalMap.set(s.code, s.id))
+  allSignals.forEach(s => signalMap.set(s.code, s.code))
   return signalMap
 }
 
@@ -281,6 +281,13 @@ export async function processCallAnalysis(
 
     // Use transaction for atomicity
     await prisma.$transaction(async (tx) => {
+      // 0. Pre-fetch transcript segments for duration calculation and context reconstruction
+      const segments = await getTranscriptSegments(callId)
+      // Calculate call duration from transcript (max EndTime in ms -> seconds)
+      const maxTimeMs = segments.length > 0 ? Math.max(...segments.map(s => s.EndTime)) : 0
+      const maxTime = maxTimeMs / 1000
+      const calculatedDuration = Math.ceil(maxTime) || 300 // Fallback to 300 if no transcript
+
       // 1. Create call record if requested
       if (createCall) {
         await tx.call.upsert({
@@ -289,7 +296,7 @@ export async function processCallAnalysis(
             id: callId,
             agentId: agentId || 'unknown',
             startedAt: now,
-            duration: 300, // Default duration
+            duration: calculatedDuration, // Use calculated duration from transcript
             outcome: outcome || 'unknown',
             audioUrl: audioUrl || ''
           },
@@ -304,11 +311,6 @@ export async function processCallAnalysis(
       }
 
       // 3. Process Signal Events -> call_signals
-      // 获取转录文本备份，用于重构 ts_range 文本
-      const segments = await getTranscriptSegments(callId)
-      // 计算本场通话的最大时间戳 (秒)
-      const maxTimeMs = segments.length > 0 ? Math.max(...segments.map(s => s.EndTime)) : 0
-      const maxTime = maxTimeMs / 1000
 
       if (analysisResult.signal_events && Array.isArray(analysisResult.signal_events)) {
         for (const signal of analysisResult.signal_events) {
@@ -334,7 +336,6 @@ export async function processCallAnalysis(
           try {
             await tx.callSignal.create({
               data: {
-                id: `sig_${callId}_${result.insertedSignals}_${Date.now()}`,
                 callId: callId,
                 signalId: signalId,
                 timestampSec: finalTs || null,
@@ -409,7 +410,6 @@ export async function processCallAnalysis(
           try {
             await tx.callTag.create({
               data: {
-                id: `tag_${callId}_${tagId}_${Date.now()}`,
                 callId: callId,
                 tagId: tagId,
                 score: normalizedScore,

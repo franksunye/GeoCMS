@@ -58,6 +58,22 @@ const getOutcomeBadge = (businessGrade: string) => {
   }
 }
 
+/**
+ * 获取上门状态的徽章样式
+ */
+const getOnsiteBadge = (isOnsiteCompleted?: number) => {
+  if (isOnsiteCompleted === 1) {
+    return {
+      label: '已上门',
+      className: 'bg-amber-50 text-amber-700 border border-amber-200',
+    }
+  }
+  return {
+    label: '未上门',
+    className: 'bg-gray-50 text-gray-500 border border-gray-200',
+  }
+}
+
 const getDimensionLabel = (dimension: 'process' | 'skills' | 'communication'): string => {
   if (dimension === 'process') return '流程规范'
   if (dimension === 'skills') return '销售技巧'
@@ -330,6 +346,9 @@ function CallListContent() {
     min: searchParams.get('scoreMin') ? Number(searchParams.get('scoreMin')) : null,
     max: searchParams.get('scoreMax') ? Number(searchParams.get('scoreMax')) : null
   })
+  
+  // Onsite Filter State
+  const [filterOnsite, setFilterOnsite] = useState<string>(searchParams.get('onsite') || 'all')
 
   // Sort State
   const [sortConfig, setSortConfig] = useState<{ key: 'timestamp' | 'score' | 'intent', direction: 'asc' | 'desc' }>({ 
@@ -370,6 +389,7 @@ function CallListContent() {
     const params = new URLSearchParams()
     if (filterAgent !== 'all') params.set('agentId', filterAgent)
     if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
+    if (filterOnsite !== 'all') params.set('onsite', filterOnsite)
     if (filterStartDate) params.set('startDate', filterStartDate)
     if (filterEndDate) params.set('endDate', filterEndDate)
     if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
@@ -385,7 +405,7 @@ function CallListContent() {
     // Shallow update
     router.replace(`?${params.toString()}`, { scroll: false })
 
-  }, [filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig, router])
+  }, [filterAgent, filterOutcome, filterOnsite, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig, router])
 
   // Pagination state
   const [page, setPage] = useState(1)
@@ -408,6 +428,7 @@ function CallListContent() {
   const clearAllFilters = () => {
     setFilterAgent('all')
     setFilterOutcome([])
+    setFilterOnsite('all')
     setFilterStartDate('')
     setFilterEndDate('')
     setFilterIncludeTags([])
@@ -448,7 +469,7 @@ function CallListContent() {
 
   // Fetch Calls
   const { data: callsResponse, isLoading, isFetching } = useQuery<CallsApiResponse>({
-    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig],
+    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterOnsite, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -456,6 +477,7 @@ function CallListContent() {
       })
       if (filterAgent !== 'all') params.set('agentId', filterAgent)
       if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
+      if (filterOnsite !== 'all') params.set('onsite', filterOnsite)
       if (filterStartDate) params.set('startDate', filterStartDate)
       if (filterEndDate) params.set('endDate', filterEndDate)
       if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
@@ -556,6 +578,8 @@ function CallListContent() {
               setFilterEndDate={setFilterEndDate}
               filterOutcome={filterOutcome}
               setFilterOutcome={setFilterOutcome}
+              filterOnsite={filterOnsite}
+              setFilterOnsite={setFilterOnsite}
               filterIncludeTags={filterIncludeTags}
               setFilterIncludeTags={setFilterIncludeTags}
               filterExcludeTags={filterExcludeTags}
@@ -666,7 +690,7 @@ function CallListContent() {
                       </div>
                     </th>
                     <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
+                      上门 / 状态
                     </th>
                   </tr>
                 </thead>
@@ -734,13 +758,17 @@ function CallListContent() {
                         </span>
                       </td>
 
-                      {/* Status (Outcome) Column */}
+                      {/* Status (Outcome + Onsite) Column */}
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         {(() => {
                            const badge = getOutcomeBadge(call.business_grade)
+                           const onsiteBadge = getOnsiteBadge(call.isOnsiteCompleted)
                            const Icon = badge.icon
                            return (
-                             <div className="flex justify-end">
+                             <div className="flex justify-end gap-2">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${onsiteBadge.className}`}>
+                                {onsiteBadge.label}
+                              </span>
                               <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.className.replace('border', '')} ${badge.className.includes('emerald') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : badge.className.includes('rose') ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
                                 <Icon className="h-3 w-3" />
                                 {badge.label}
@@ -1040,15 +1068,21 @@ function CallListContent() {
                       {/* Actual Outcome Card */}
                       {(() => {
                         const outcome = getOutcomeBadge(selectedCall.business_grade)
+                        const onsiteBadge = getOnsiteBadge(selectedCall.isOnsiteCompleted)
                         const OutcomeIcon = outcome.icon
                         return (
                           <div className={`rounded-lg p-4 border ${outcome.className}`}>
                             <p className="text-xs mb-1 opacity-80 flex items-center gap-1">
                               <Target className="h-3.5 w-3.5" /> 实际结果
                             </p>
-                            <div className="flex items-center gap-2">
-                              <OutcomeIcon className={`h-5 w-5 ${outcome.iconClassName}`} />
-                              <p className="text-lg font-bold">{outcome.label}</p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <OutcomeIcon className={`h-5 w-5 ${outcome.iconClassName}`} />
+                                <p className="text-lg font-bold">{outcome.label}</p>
+                              </div>
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded ${onsiteBadge.className}`}>
+                                {onsiteBadge.label}
+                              </span>
                             </div>
                           </div>
                         )

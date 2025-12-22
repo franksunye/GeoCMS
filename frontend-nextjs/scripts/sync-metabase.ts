@@ -98,6 +98,7 @@ const SYNC_JOBS: SyncJob[] = [
       'supervisorId': 'agent_id',
       'outcome': 'outcome',
       'orderNum': 'order_number', // 工单编号
+      'IsOnsiteCompleted': 'is_onsite_completed', // 是否已上门: 1=已上门, 0=未上门
       'createTime': 'created_at'
     }
   },

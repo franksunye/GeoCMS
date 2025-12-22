@@ -103,13 +103,26 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    const dealStatsMap = new Map<string, { totalDeals: number; wonDeals: number }>()
+    const dealStatsMap = new Map<string, { totalDeals: number; wonDeals: number; onsiteDeals: number }>()
     agentDealStats.forEach(s => {
-      dealStatsMap.set(s.agentId, { totalDeals: s._count.id, wonDeals: 0 })
+      dealStatsMap.set(s.agentId, { totalDeals: s._count.id, wonDeals: 0, onsiteDeals: 0 })
     })
     wonDealStats.forEach(s => {
       const existing = dealStatsMap.get(s.agentId)
       if (existing) existing.wonDeals = s._count.id
+    })
+
+    // 5b. Query: Onsite Completed Stats from CRM (sync_deals) for Onsite Rate
+    const onsiteDealStats = await logger.time('Query: Onsite Deal Stats (CRM)', () =>
+      prisma.deal.groupBy({
+        by: ['agentId'],
+        where: { ...dealDateFilter, isOnsiteCompleted: 1 },
+        _count: { id: true },
+      })
+    )
+    onsiteDealStats.forEach(s => {
+      const existing = dealStatsMap.get(s.agentId)
+      if (existing) existing.onsiteDeals = s._count.id
     })
 
     // 6. Optimized: Use SQL aggregation for tag scores per agent
@@ -173,9 +186,10 @@ export async function GET(request: NextRequest) {
       // A. Get Call Stats (通话分析数据)
       const recordings = callStatsMap.get(agent.id) || 0
 
-      // B. Get Win Rate from CRM Deal Stats (CRM工单数据)
-      const dealStats = dealStatsMap.get(agent.id) || { totalDeals: 0, wonDeals: 0 }
+      // B. Get Win Rate and Onsite Rate from CRM Deal Stats (CRM工单数据)
+      const dealStats = dealStatsMap.get(agent.id) || { totalDeals: 0, wonDeals: 0, onsiteDeals: 0 }
       const winRate = dealStats.totalDeals > 0 ? Math.round((dealStats.wonDeals / dealStats.totalDeals) * 100) : 0
+      const onsiteRate = dealStats.totalDeals > 0 ? Math.round((dealStats.onsiteDeals / dealStats.totalDeals) * 100) : 0
 
       // C. Get Tag Scores from Map
       const agentScores = agentTagAvgMap.get(agent.id) || new Map()
@@ -184,9 +198,9 @@ export async function GET(request: NextRequest) {
       const buildDetails = (refTags: typeof allTags) => {
         return refTags.map(tag => ({
           name: tag.name,
-          tagId: tag.id, // Include TagId for deep linking
+          tagId: tag.code, // Include tag code as ID for deep linking
           is_mandatory: Boolean(tag.isMandatory),
-          score: Math.round(agentScores.get(tag.id) || 0)
+          score: Math.round(agentScores.get(tag.code) || 0)
         }))
       }
 
@@ -200,7 +214,7 @@ export async function GET(request: NextRequest) {
         let denominator = 0
 
         for (const tag of refTags) {
-          const score = agentScores.get(tag.id)
+          const score = agentScores.get(tag.code)
           if (score !== undefined && score !== null) {
             // Case 1: Assessed (Triggered)
             totalScore += score
@@ -234,7 +248,10 @@ export async function GET(request: NextRequest) {
         overallScore,
         recordings,
         totalDeals: dealStats.totalDeals,
+        wonDeals: dealStats.wonDeals,
+        onsiteDeals: dealStats.onsiteDeals,
         winRate,
+        onsiteRate,  // 上门率 (已上门工单数 / 总工单数 * 100)
         process: processScore,
         skills: skillsScore,
         communication: commScore,

@@ -11,7 +11,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { TimeRangeSelector } from '@/components/ui/time-range-selector'
 
 type TimeFrame = 'today' | 'week' | '7d' | '30d' | 'all' | 'custom'
-type SortBy = 'overall' | 'process' | 'skills' | 'communication' | 'winRate'
+type SortBy = 'overall' | 'process' | 'skills' | 'communication' | 'winRate' | 'onsiteRate'
 
 // 生成最近12个月的选项
 const generateMonthOptions = () => {
@@ -50,7 +50,10 @@ interface Agent {
   overallScore: number
   recordings: number
   totalDeals: number
-  winRate: number
+  wonDeals: number        // 赢单数
+  onsiteDeals: number     // 已上门工单数
+  winRate: number         // 转化率
+  onsiteRate: number      // 上门率
   process: number
   skills: number
   communication: number
@@ -217,6 +220,7 @@ export default function ScorecardPage() {
         case 'skills': return b.skills - a.skills
         case 'communication': return b.communication - a.communication
         case 'winRate': return b.winRate - a.winRate
+        case 'onsiteRate': return b.onsiteRate - a.onsiteRate
         case 'overall': default: return b.overallScore - a.overallScore
       }
     })
@@ -383,6 +387,7 @@ export default function ScorecardPage() {
                 className="appearance-none bg-white border border-gray-200 text-gray-700 py-2 pl-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-gray-500 text-sm font-medium cursor-pointer hover:bg-gray-50"
               >
                 <option value="overall">综合评分</option>
+                <option value="onsiteRate">上门率</option>
                 <option value="winRate">转化率</option>
                 <option value="process">流程遵循</option>
                 <option value="skills">销售技巧</option>
@@ -555,31 +560,59 @@ export default function ScorecardPage() {
                 agent.overallScore
               )}`}
             >
-              <div className="flex justify-between items-start mb-5">
+              {/* Header: Avatar + Name + Score */}
+              <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                   <AgentAvatar agentId={agent.avatarId} size="md" />
                   <div>
                     <h4 className="font-bold text-gray-900 text-lg">{agent.name}</h4>
-                    <div className="mt-1 space-y-0.5 text-xs font-medium text-gray-500">
-                <p>录音 {agent.recordings} · 单 {agent.totalDeals}</p>
-                <p>转化率 {agent.winRate}%</p>
-              </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      录音 {agent.recordings} · 工单 {agent.totalDeals}
+                    </p>
                   </div>
                 </div>
-                <div className={`flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-sm ${getScoreColor(agent.overallScore)}`}>
-                  <span className="text-3xl font-bold">{agent.overallScore}</span>
+                <div className={`flex items-center justify-center w-14 h-14 rounded-full bg-white shadow-sm ${getScoreColor(agent.overallScore)}`}>
+                  <span className="text-2xl font-bold">{agent.overallScore}</span>
                 </div>
               </div>
-              <div className="space-y-2.5">
-                <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm">
+
+              {/* Mini Progress Bars: 上门率 + 转化率 */}
+              <div className="space-y-2 mb-4">
+                {/* 上门率 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 w-12 shrink-0">上门</span>
+                  <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                    <div 
+                      className="bg-amber-400 h-1.5 rounded-full transition-all" 
+                      style={{ width: `${agent.onsiteRate}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 w-10 text-right">{agent.onsiteRate}%</span>
+                </div>
+                {/* 转化率 */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 w-12 shrink-0">转化</span>
+                  <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                    <div 
+                      className="bg-emerald-400 h-1.5 rounded-full transition-all" 
+                      style={{ width: `${agent.winRate}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 w-10 text-right">{agent.winRate}%</span>
+                </div>
+              </div>
+
+              {/* Dimension Scores */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white/60 backdrop-blur-sm">
                   <span className="text-sm font-medium text-gray-700">流程</span>
                   <span className={`font-bold ${getScoreColor(agent.process)}`}>{agent.process}</span>
                 </div>
-                <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm">
+                <div className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white/60 backdrop-blur-sm">
                   <span className="text-sm font-medium text-gray-700">技巧</span>
                   <span className={`font-bold ${getScoreColor(agent.skills)}`}>{agent.skills}</span>
                 </div>
-                <div className="flex justify-between items-center px-3 py-2 rounded-lg bg-white/60 backdrop-blur-sm">
+                <div className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white/60 backdrop-blur-sm">
                   <span className="text-sm font-medium text-gray-700">沟通</span>
                   <span className={`font-bold ${getScoreColor(agent.communication)}`}>{agent.communication}</span>
                 </div>
@@ -610,10 +643,14 @@ export default function ScorecardPage() {
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                      <span>{selectedAgent.totalDeals} 单</span>
+                      <span>{selectedAgent.totalDeals} 工单</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                      <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                      <span>{selectedAgent.onsiteRate}% 上门率</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                       <span>{selectedAgent.winRate}% 转化率</span>
                     </div>
                   </div>

@@ -28,6 +28,8 @@ interface CallListFiltersProps {
   setFilterEndDate: (date: string) => void
   filterOutcome: string[]
   setFilterOutcome: (outcomes: string[]) => void
+  filterOnsite: string  // 'all' | 'onsite' | 'not_onsite'
+  setFilterOnsite: (onsite: string) => void
   filterIncludeTags: string[]
   setFilterIncludeTags: (tags: string[]) => void
   filterExcludeTags: string[]
@@ -51,6 +53,8 @@ export function CallListFilters({
   setFilterEndDate,
   filterOutcome,
   setFilterOutcome,
+  filterOnsite,
+  setFilterOnsite,
   filterIncludeTags,
   setFilterIncludeTags,
   filterExcludeTags,
@@ -63,6 +67,7 @@ export function CallListFilters({
   children
 }: CallListFiltersProps) {
   const [outcomeOpen, setOutcomeOpen] = React.useState(false)
+  const [onsiteOpen, setOnsiteOpen] = React.useState(false)
   const [includeTagsOpen, setIncludeTagsOpen] = React.useState(false)
   const [excludeTagsOpen, setExcludeTagsOpen] = React.useState(false)
   const [durationOpen, setDurationOpen] = React.useState(false)
@@ -73,6 +78,7 @@ export function CallListFilters({
 
   const hasActiveFilters = filterAgent !== 'all' || 
     filterOutcome.length > 0 || 
+    filterOnsite !== 'all' ||
     filterStartDate || 
     filterEndDate || 
     filterIncludeTags.length > 0 || 
@@ -312,9 +318,9 @@ export function CallListFilters({
           <PopoverContent className="w-48 p-2 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
              <div className="space-y-1">
                {[
-                 { value: 'won', label: '赢单', icon: '🏆' },
-                 { value: 'lost', label: '输单', icon: '📉' },
-                 { value: 'in_progress', label: '进行中', icon: '⏳' }
+                 { value: 'won', label: '赢单' },
+                 { value: 'lost', label: '输单' },
+                 { value: 'in_progress', label: '进行中' }
                ].map(opt => (
                  <button
                    key={opt.value}
@@ -322,9 +328,56 @@ export function CallListFilters({
                    className="flex items-center w-full px-2 py-1.5 hover:bg-gray-50 rounded text-sm gap-2 transition-colors"
                  >
                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterOutcome.includes(opt.value) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
-                     {filterOutcome.includes(opt.value) && <X className="h-3 w-3" />}
+                     {filterOutcome.includes(opt.value) && <Check className="h-3 w-3" />}
                    </div>
-                   <span className="text-gray-700">{opt.icon} {opt.label}</span>
+                   <span className="text-gray-700">{opt.label}</span>
+                 </button>
+               ))}
+             </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* --- 上门筛选 (Onsite Filter) --- */}
+        <Popover open={onsiteOpen} onOpenChange={setOnsiteOpen}>
+          <PopoverTrigger asChild>
+            <div className={`${chipBaseClass} ${filterOnsite !== 'all' ? activeChipClass : inactiveChipClass}`}>
+              {filterOnsite !== 'all' ? (
+                <>
+                  <span>{filterOnsite === 'onsite' ? '已上门' : '未上门'}</span>
+                  <div 
+                    role="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setFilterOnsite('all')
+                    }}
+                    className="hover:bg-amber-200/50 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3" />
+                  <span>上门</span>
+                </>
+              )}
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-36 p-2 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
+             <div className="space-y-1">
+               {[
+                 { value: 'onsite', label: '已上门' },
+                 { value: 'not_onsite', label: '未上门' },
+               ].map(opt => (
+                 <button
+                   key={opt.value}
+                   onClick={() => {
+                     setFilterOnsite(opt.value)
+                     setOnsiteOpen(false)
+                   }}
+                   className={`flex items-center w-full px-2 py-1.5 hover:bg-gray-50 rounded text-sm gap-2 transition-colors ${filterOnsite === opt.value ? 'bg-blue-50 text-blue-700' : ''}`}
+                 >
+                   <span className="text-gray-700">{opt.label}</span>
                  </button>
                ))}
              </div>
