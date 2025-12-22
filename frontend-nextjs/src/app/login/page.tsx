@@ -27,7 +27,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         router.refresh() // Refresh auth state
-        router.push('/dashboard')
+        router.push('/dashboard/team-calls/scorecard')
       } else {
         const data = await res.json()
         setError(data.error || 'Authenication failed')
