@@ -81,7 +81,7 @@ const getOnsiteBadge = (isOnsiteCompleted?: number) => {
 /**
  * 获取漏水部位的标签
  */
-const getLeakAreaLabels = (leakArea?: string) => {
+const getLeakAreaLabels = (leakArea?: string): string[] => {
   if (!leakArea) return []
   try {
     const codes = JSON.parse(leakArea)
@@ -89,7 +89,7 @@ const getLeakAreaLabels = (leakArea?: string) => {
     
     return codes
       .map(code => LEAK_AREA_OPTIONS.find(o => o.value === String(code))?.label)
-      .filter((label): label is string => Boolean(label))
+      .filter(Boolean) as string[]
   } catch (e) {
     return []
   }
