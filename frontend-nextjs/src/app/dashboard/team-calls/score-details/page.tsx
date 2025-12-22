@@ -8,7 +8,6 @@ import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
 import { PageHeader } from '@/components/ui/page-header'
 
 interface Tag {
-  id: string
   code: string
   name: string
   category: string
@@ -40,7 +39,7 @@ interface ScoreDetailsData {
   calls: Call[]
   tagsData: Record<string, CallTagScore>
   filters: {
-    allTags: { id: string, category: string, dimension: string, name: string }[]
+    allTags: { code: string, category: string, dimension: string, name: string }[]
   }
 }
 
@@ -267,7 +266,7 @@ export default function ScoreDetailsPage() {
                 </thead>
                 <tbody>
                   {data.tags.map(tag => (
-                    <tr key={tag.id} className="hover:bg-gray-50">
+                    <tr key={tag.code} className="hover:bg-gray-50">
                       <td className="p-3 border sticky left-0 bg-white font-medium z-10">
                         <div className="flex items-center gap-2">
                           {tag.name}
@@ -280,10 +279,10 @@ export default function ScoreDetailsPage() {
                         <div className="text-xs text-gray-400 font-mono">{tag.code}</div>
                       </td>
                       {data.calls.map(call => {
-                        const tagScore = data.tagsData[`${call.id}_${tag.id}`]
+                        const tagScore = data.tagsData[`${call.id}_${tag.code}`]
                         return (
                           <>
-                            <td key={`${call.id}-${tag.id}-score`} className="p-3 border text-center align-top">
+                            <td key={`${call.id}-${tag.code}-score`} className="p-3 border text-center align-top">
                               {tagScore ? (
                                 <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-xs ${getScoreColor(tagScore.score)} ${getScoreBgColor(tagScore.score)}`}>
                                   {tagScore.score}
@@ -296,7 +295,7 @@ export default function ScoreDetailsPage() {
                                 <span className="text-gray-300">-</span>
                               )}
                             </td>
-                            <td key={`${call.id}-${tag.id}-ctx`} className="p-3 border align-top text-xs text-gray-600 leading-relaxed min-w-[200px] max-w-[300px]">
+                            <td key={`${call.id}-${tag.code}-ctx`} className="p-3 border align-top text-xs text-gray-600 leading-relaxed min-w-[200px] max-w-[300px]">
                               {tagScore && tagScore.context_events ? (() => {
                                 try {
                                   const events = JSON.parse(tagScore.context_events)
@@ -305,7 +304,7 @@ export default function ScoreDetailsPage() {
                                   return (
                                     <div className="space-y-1.5">
                                       {events.map((event: any, idx: number) => {
-                                        const contextKey = `${call.id}_${tag.id}_${idx}`
+                                        const contextKey = `${call.id}_${tag.code}_${idx}`
                                         const isActive = isPlaying && activeContextIndex === contextKey
                                         const timestampSec = event.timestamp_sec
                                         const contextText = event.context_text || ''

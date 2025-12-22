@@ -347,7 +347,7 @@ export async function GET(request: NextRequest) {
         predictedIntent,  // 意向研判
         tags,
         leakArea: deal?.leakArea, // 漏水部位
-        audioUrl: getStorageUrl(call.audioUrl)
+        audioUrl: getStorageUrl(call.audio_url)
       }
 
       // If includeDetails, add full data (backward compatibility)

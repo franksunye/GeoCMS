@@ -274,7 +274,7 @@ export async function GET(
                 confidence: s.confidence
             })),
             transcript,
-            audioUrl: getStorageUrl(call.audioUrl)
+            audioUrl: getStorageUrl(call.audio_url)
         }
 
         totalTimer.end({ callId, signalCount: signals.length })
