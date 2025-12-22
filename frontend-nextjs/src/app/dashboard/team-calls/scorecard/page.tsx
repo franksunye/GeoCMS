@@ -74,8 +74,8 @@ interface Agent {
 
 export default function ScorecardPage() {
   const router = useRouter()
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>('7d')
-  const [selectedMonth, setSelectedMonth] = useState<string>('') // 如 '2025-07'
+  const [timeFrame, setTimeFrame] = useState<TimeFrame>('month')
+  const [selectedMonth, setSelectedMonth] = useState<string>('2025-07') // 默认显示2025年7月
   const [selectedTeam, setSelectedTeam] = useState<string>('all')
   const [selectedLeakAreas, setSelectedLeakAreas] = useState<string[]>([]) // 漏水部位筛选 (多选)
   const [showOnlyActive, setShowOnlyActive] = useState<boolean>(true)
