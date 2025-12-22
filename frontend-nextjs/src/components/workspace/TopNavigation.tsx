@@ -24,9 +24,9 @@ const navigation: NavItem[] = [
   {
     name: '数据罗盘',
     children: [
-      { name: '分析报表', href: '/dashboard/team-calls/analytics' },
       { name: '数据源概览', href: '/dashboard/team-calls/data-sources' },
       { name: '分数明细', href: '/dashboard/team-calls/score-details' },
+      { name: '分析报表', href: '/dashboard/team-calls/analytics' },
     ]
   },
   {
