@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { randomUUID } from 'crypto'
 
 export async function GET(request: Request) {
   try {
@@ -60,14 +59,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const id = randomUUID()
     const now = new Date().toISOString()
 
     await prisma.tag.create({
       data: {
-        id,
+        code, // code 是 Tag 的主键 (@id)
         name,
-        code,
         category,
         dimension,
         isMandatory: is_mandatory ? true : false,
@@ -81,7 +78,7 @@ export async function POST(request: Request) {
       }
     })
 
-    return NextResponse.json({ success: true, id, message: 'Tag created successfully' })
+    return NextResponse.json({ success: true, code, message: 'Tag created successfully' })
   } catch (error: any) {
     console.error('Database Error:', error)
     if (error.code === 'P2002') { // Prisma unique constraint error
@@ -94,19 +91,19 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const { id, name, code, category, dimension, polarity, severity, scoreRange, description, active, is_mandatory } = body
+    // code 是 Tag 的主键，用于查找记录
+    const { code, name, category, dimension, polarity, severity, scoreRange, description, active, is_mandatory } = body
 
-    if (!id) {
-      return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 })
+    if (!code) {
+      return NextResponse.json({ error: 'Tag code is required' }, { status: 400 })
     }
 
     const now = new Date().toISOString()
 
     const result = await prisma.tag.updateMany({
-      where: { id },
+      where: { code }, // code 是主键
       data: {
         name,
-        code,
         category,
         dimension,
         polarity,
@@ -136,14 +133,14 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const code = searchParams.get('code') // code 是 Tag 的主键
 
-    if (!id) {
-      return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 })
+    if (!code) {
+      return NextResponse.json({ error: 'Tag code is required' }, { status: 400 })
     }
 
     const result = await prisma.tag.deleteMany({
-      where: { id }
+      where: { code } // code 是主键
     })
 
     if (result.count === 0) {

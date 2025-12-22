@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-import { randomUUID } from 'crypto'
 
 export async function GET() {
   try {
@@ -28,14 +27,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const id = randomUUID()
     const now = new Date().toISOString()
 
     await prisma.signal.create({
       data: {
-        id,
+        code, // code 是 Signal 的主键 (@id)
         name,
-        code,
         category,
         dimension: dimension || '',
         targetTagCode: targetTagCode || '',
@@ -47,7 +44,7 @@ export async function POST(request: Request) {
       }
     })
 
-    return NextResponse.json({ success: true, id, message: 'Signal created successfully' })
+    return NextResponse.json({ success: true, code, message: 'Signal created successfully' })
   } catch (error: any) {
     console.error('Database Error:', error)
     if (error.code === 'P2002') {
@@ -60,19 +57,19 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const { id, name, code, category, dimension, targetTagCode, aggregationMethod, description, active } = body
+    // code 是 Signal 的主键，用于查找记录
+    const { code, name, category, dimension, targetTagCode, aggregationMethod, description, active } = body
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing ID' }, { status: 400 })
+    if (!code) {
+      return NextResponse.json({ error: 'Missing code' }, { status: 400 })
     }
 
     const now = new Date().toISOString()
 
     const result = await prisma.signal.updateMany({
-      where: { id },
+      where: { code }, // code 是主键
       data: {
         name,
-        code,
         category,
         dimension: dimension || '',
         targetTagCode: targetTagCode || '',
@@ -97,14 +94,14 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const id = searchParams.get('id')
+    const code = searchParams.get('code') // code 是 Signal 的主键
 
-    if (!id) {
-      return NextResponse.json({ error: 'Missing ID' }, { status: 400 })
+    if (!code) {
+      return NextResponse.json({ error: 'Missing code' }, { status: 400 })
     }
 
     const result = await prisma.signal.deleteMany({
-      where: { id }
+      where: { code } // code 是主键
     })
 
     if (result.count === 0) {
