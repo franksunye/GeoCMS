@@ -99,12 +99,10 @@ export default function CorrelationScatterChart({ validationResult }: Correlatio
         <Scatter
           data={trendLineData}
           line={{ stroke: '#666', strokeWidth: 2, strokeDasharray: '5 5' }}
-          shape={false}
+          shape={() => null}
           name="趋势线"
           legendType="none"
           isAnimationActive={false}
-          activeIndex={-1}
-          activeShape={false}
         />
         
         {/* 数据点 */}
