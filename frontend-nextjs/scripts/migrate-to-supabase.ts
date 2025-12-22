@@ -40,22 +40,30 @@ async function batchInsert(client: pg.PoolClient, table: string, columns: string
             columns.forEach(col => values.push(row[col]));
         });
 
-        const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES ${placeholders.join(', ')} ON CONFLICT (${primaryKey}) DO NOTHING`;
+        const updateColumns = columns.filter(c => c !== primaryKey);
+        const updateClause = updateColumns.length > 0
+            ? `DO UPDATE SET ${updateColumns.map(c => `${c} = EXCLUDED.${c}`).join(', ')}`
+            : 'DO NOTHING';
+
+        const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES ${placeholders.join(', ')} ON CONFLICT (${primaryKey}) ${updateClause}`;
 
         try {
             const result = await client.query(sql, values);
             inserted += result.rowCount || 0;
         } catch (e: any) {
             // 如果批量失败，逐行尝试
+            console.warn(`Batch failed, retrying singly: ${e.message}`);
             for (const row of batch) {
                 try {
                     const singlePlaceholders = columns.map((_, i) => `$${i + 1}`).join(', ');
                     await client.query(
-                        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${singlePlaceholders}) ON CONFLICT (${primaryKey}) DO NOTHING`,
+                        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${singlePlaceholders}) ON CONFLICT (${primaryKey}) ${updateClause}`,
                         columns.map(c => row[c])
                     );
                     inserted++;
-                } catch { }
+                } catch (err) {
+                    console.error(`Single row insert failed:`, err);
+                }
             }
         }
     }
