@@ -12,8 +12,9 @@ export async function GET(request: NextRequest) {
     const timeframe = searchParams.get('timeframe') || '7d'
     const customStartDate = searchParams.get('startDate')
     const customEndDate = searchParams.get('endDate')
+    const leakAreaCode = searchParams.get('leakArea') // 漏水部位一级分类编号，如 "1", "2" 等
 
-    logger.info('Request received', { timeframe, customStartDate, customEndDate })
+    logger.info('Request received', { timeframe, customStartDate, customEndDate, leakAreaCode })
 
     let cutoffDate = new Date()
     let endDate: Date | null = null  // For custom range
@@ -40,14 +41,28 @@ export async function GET(request: NextRequest) {
     const cutoffIso = cutoffDate.toISOString()
     const endIso = endDate ? endDate.toISOString() : null
 
-    // 构建日期范围查询条件
+    // 构建日期范围查询条件（Prisma where 对象）
     const callDateFilter = endIso
       ? { startedAt: { gte: cutoffIso, lte: endIso } }
       : { startedAt: { gte: cutoffIso } }
 
+    // Deal 筛选：日期 + 可选的漏水部位
+    // leak_area 存储的是 JSON 数组，如 ["2"] 或 ["2","201"]，一级分类是第一个元素
     const dealDateFilter = endIso
       ? { createdAt: { gte: cutoffIso, lte: endIso } }
       : { createdAt: { gte: cutoffIso } }
+
+    // 如果指定了漏水部位，添加筛选条件
+    // 因为 leak_area 是 JSON 格式，需要用 LIKE 匹配元素
+    const leakAreaCodes = leakAreaCode ? leakAreaCode.split(',').filter(Boolean) : []
+    const leakAreaFilter = leakAreaCodes.length > 0
+      ? {
+        OR: leakAreaCodes.map(code => ({
+          leakArea: { contains: `"${code}"` }
+        }))
+      }
+      : {}
+    const dealFilterWithArea = { ...dealDateFilter, ...leakAreaFilter }
 
     // 1. Get Agents
     const agents = await logger.time('Query: Agents', () => prisma.agent.findMany())
@@ -87,10 +102,11 @@ export async function GET(request: NextRequest) {
 
     // 5. Query: Deal Stats from CRM (sync_deals) for Win Rate
     // 赢单率从 CRM 工单数据计算，而不是从通话分析结果
+    // 现在支持按漏水部位筛选
     const agentDealStats = await logger.time('Query: Deal Stats (CRM)', () =>
       prisma.deal.groupBy({
         by: ['agentId'],
-        where: dealDateFilter,
+        where: dealFilterWithArea,
         _count: { id: true },
       })
     )
@@ -98,7 +114,7 @@ export async function GET(request: NextRequest) {
     const wonDealStats = await logger.time('Query: Won Deal Stats (CRM)', () =>
       prisma.deal.groupBy({
         by: ['agentId'],
-        where: { ...dealDateFilter, outcome: 'won' },
+        where: { ...dealFilterWithArea, outcome: 'won' },
         _count: { id: true },
       })
     )
@@ -116,7 +132,7 @@ export async function GET(request: NextRequest) {
     const onsiteDealStats = await logger.time('Query: Onsite Deal Stats (CRM)', () =>
       prisma.deal.groupBy({
         by: ['agentId'],
-        where: { ...dealDateFilter, isOnsiteCompleted: 1 },
+        where: { ...dealFilterWithArea, isOnsiteCompleted: 1 },
         _count: { id: true },
       })
     )

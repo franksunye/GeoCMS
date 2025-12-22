@@ -201,6 +201,7 @@ model Deal {
   outcome             String
   order_number        String?
   isOnsiteCompleted   Int?         @default(0) @map("is_onsite_completed") /// 是否已上门: 1=已上门, 0=未上门
+  leakArea            String?      @map("leak_area") /// 漏水部位 (JSON数组，如 ["2"] 或 ["2","201"])
   created_at          String
   sync_agents         Agent        @relation(fields: [agent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   sync_transcripts    Transcript[]
@@ -259,6 +260,7 @@ model Contract {
   agentId   String  @map("agent_id")
   channel   String?
   teamId    String? @map("team_id")
+  leakArea  String? @map("leak_area") /// 漏水部位 (JSON数组，如 ["2"] 或 ["2","201"])
   createdAt String  @map("created_at")
   signedAt  String? @map("signed_at")
 

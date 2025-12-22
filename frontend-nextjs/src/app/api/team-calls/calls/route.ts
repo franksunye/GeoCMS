@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     const includeTagsParam = searchParams.get('includeTags')
     const excludeTagsParam = searchParams.get('excludeTags')
     const onsiteParam = searchParams.get('onsite') // 'onsite' | 'not_onsite' | null
+    const leakAreaParam = searchParams.get('leakArea') // 漏水部位一级分类编号
 
     // Backward compatibility: if includeDetails=true, load full data (for migration period)
     const includeDetails = searchParams.get('includeDetails') === 'true'
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
       page, pageSize, agentId, startDate, endDate, outcome, onsite: onsiteParam,
       durationMin, durationMax, scoreMin, scoreMax,
       includeTags: includeTagsParam, excludeTags: excludeTagsParam,
-      includeDetails
+      includeDetails, leakArea: leakAreaParam
     })
 
     // Build where clause
@@ -149,10 +150,10 @@ export async function GET(request: NextRequest) {
     const dealInfo = await logger.time('Query: Deal Info', () =>
       prisma.deal.findMany({
         where: { id: { in: calls.map(c => c.id) } },
-        select: { id: true, outcome: true, isOnsiteCompleted: true }
+        select: { id: true, outcome: true, isOnsiteCompleted: true, leakArea: true }
       })
     )
-    const dealMap = new Map(dealInfo.map(d => [d.id, { outcome: d.outcome, isOnsiteCompleted: d.isOnsiteCompleted }]))
+    const dealMap = new Map(dealInfo.map(d => [d.id, { outcome: d.outcome, isOnsiteCompleted: d.isOnsiteCompleted, leakArea: d.leakArea }]))
 
     logger.info('Calls fetched', { count: calls.length, total, dealsLinked: dealInfo.length })
 
@@ -257,6 +258,19 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Pre-filter by leak area if needed (using sync_deals data)
+    if (leakAreaParam) {
+      const areaCodes = leakAreaParam.split(',').filter(Boolean)
+      if (areaCodes.length > 0) {
+        filteredCalls = filteredCalls.filter(call => {
+          const deal = dealMap.get(call.id)
+          if (!deal || !deal.leakArea) return false
+          // leakArea is a JSON string like ["2"] or ["2","201"]
+          return areaCodes.some(code => deal.leakArea!.includes(`"${code}"`))
+        })
+      }
+    }
+
     const formattedCalls = filteredCalls.map((call) => {
       const callTags = tagsByCall[call.id] || []
       const rawSignals = signalsByCall[call.id] || []
@@ -332,6 +346,7 @@ export async function GET(request: NextRequest) {
         business_grade: outcome === 'won' ? 'High' : (outcome === 'lost' ? 'Low' : 'Medium'),
         predictedIntent,  // 意向研判
         tags,
+        leakArea: deal?.leakArea, // 漏水部位
         audioUrl: getStorageUrl(call.audioUrl)
       }
 

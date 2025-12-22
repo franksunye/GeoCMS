@@ -60,6 +60,7 @@ export type CallRecord = {
     }
   }
   tags: string[]
+  leakArea?: string // 漏水部位 (JSON string)
   events: string[]
   behaviors: string[]
   service_issues: Array<{ tag: string; severity: 'high' | 'medium' | 'low' }>

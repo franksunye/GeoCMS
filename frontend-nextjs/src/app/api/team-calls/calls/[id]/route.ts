@@ -47,11 +47,12 @@ export async function GET(
         const deal = await logger.time('Query: Deal Info', () =>
             prisma.deal.findUnique({
                 where: { id: callId },
-                select: { outcome: true, isOnsiteCompleted: true }
+                select: { outcome: true, isOnsiteCompleted: true, leakArea: true }
             })
         )
         const outcome = deal?.outcome || 'unknown'
         const isOnsiteCompleted = deal?.isOnsiteCompleted ?? 0
+        const leakArea = deal?.leakArea
 
         // 2. Get Score Config
         const scoreConfig = await logger.time('Query: Score Config', () => prisma.scoreConfig.findFirst())
@@ -259,6 +260,7 @@ export async function GET(
             business_grade: outcome === 'won' ? 'High' : (outcome === 'lost' ? 'Low' : 'Medium'),
             predictedIntent,  // 意向研判
             tags,
+            leakArea, // 漏水部位
             events: behaviors,
             behaviors,
             service_issues,

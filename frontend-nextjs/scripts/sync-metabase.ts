@@ -99,6 +99,7 @@ const SYNC_JOBS: SyncJob[] = [
       'outcome': 'outcome',
       'orderNum': 'order_number', // 工单编号
       'IsOnsiteCompleted': 'is_onsite_completed', // 是否已上门: 1=已上门, 0=未上门
+      'leakagesite_copy': 'leak_area', // 漏水部位
       'createTime': 'created_at'
     }
   },
@@ -122,6 +123,7 @@ const SYNC_JOBS: SyncJob[] = [
       'serviceHousekeeperId': 'agent_id',
       'channel': 'channel',
       'orgId': 'team_id',
+      'leakagesite_copy': 'leak_area', // 漏水部位
       'createTime': 'created_at',
       'signedDate': 'signed_at'
     }
@@ -320,6 +322,15 @@ async function runSync() {
 
               // Handle channel field (may be array like ["46","4610","4610010"])
               if (dbCol === 'channel') {
+                if (value === undefined || value === null) {
+                  value = null;
+                } else if (typeof value !== 'string') {
+                  value = JSON.stringify(value);
+                }
+              }
+
+              // Handle leak_area field (may be array like ["2"] or ["2","201"])
+              if (dbCol === 'leak_area') {
                 if (value === undefined || value === null) {
                   value = null;
                 } else if (typeof value !== 'string') {

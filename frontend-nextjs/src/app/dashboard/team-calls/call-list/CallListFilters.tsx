@@ -38,9 +38,21 @@ interface CallListFiltersProps {
   setFilterDuration: (duration: { min: number | null, max: number | null }) => void
   filterScore: { min: number | null, max: number | null }
   setFilterScore: (score: { min: number | null, max: number | null }) => void
+  filterLeakArea: string[]
+  setFilterLeakArea: (leakAreas: string[]) => void
   onClearAll: () => void
   children?: React.ReactNode
 }
+
+const LEAK_AREA_OPTIONS = [
+  { value: '1', label: '屋面' },
+  { value: '2', label: '卫生间' },
+  { value: '3', label: '窗户' },
+  { value: '4', label: '外墙' },
+  { value: '5', label: '地下室' },
+  { value: '6', label: '其他' },
+  { value: '7', label: '厨房' },
+]
 
 export function CallListFilters({
   agents,
@@ -63,11 +75,14 @@ export function CallListFilters({
   setFilterDuration,
   filterScore,
   setFilterScore,
+  filterLeakArea,
+  setFilterLeakArea,
   onClearAll,
   children
 }: CallListFiltersProps) {
   const [outcomeOpen, setOutcomeOpen] = React.useState(false)
   const [onsiteOpen, setOnsiteOpen] = React.useState(false)
+  const [leakAreaOpen, setLeakAreaOpen] = React.useState(false)
   const [includeTagsOpen, setIncludeTagsOpen] = React.useState(false)
   const [excludeTagsOpen, setExcludeTagsOpen] = React.useState(false)
   const [durationOpen, setDurationOpen] = React.useState(false)
@@ -79,6 +94,7 @@ export function CallListFilters({
   const hasActiveFilters = filterAgent !== 'all' || 
     filterOutcome.length > 0 || 
     filterOnsite !== 'all' ||
+    filterLeakArea.length > 0 ||
     filterStartDate || 
     filterEndDate || 
     filterIncludeTags.length > 0 || 
@@ -138,6 +154,23 @@ export function CallListFilters({
     } else {
       setFilterExcludeTags([...filterExcludeTags, tagId])
     }
+  }
+
+  const toggleLeakArea = (value: string) => {
+    if (filterLeakArea.includes(value)) {
+      setFilterLeakArea(filterLeakArea.filter(v => v !== value))
+    } else {
+      setFilterLeakArea([...filterLeakArea, value])
+    }
+  }
+
+  const getLeakAreaLabel = () => {
+    if (filterLeakArea.length === 0) return '部位'
+    const selected = LEAK_AREA_OPTIONS.filter(o => filterLeakArea.includes(o.value))
+    if (selected.length <= 2) {
+      return selected.map(o => o.label).join(', ')
+    }
+    return `${selected[0].label}, ${selected[1].label} +${filterLeakArea.length - 2}`
   }
 
   // Common Chip Styles
@@ -377,6 +410,50 @@ export function CallListFilters({
                    }}
                    className={`flex items-center w-full px-2 py-1.5 hover:bg-gray-50 rounded text-sm gap-2 transition-colors ${filterOnsite === opt.value ? 'bg-blue-50 text-blue-700' : ''}`}
                  >
+                   <span className="text-gray-700">{opt.label}</span>
+                 </button>
+               ))}
+             </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* --- 漏水部位筛选 (Leak Area Filter) --- */}
+        <Popover open={leakAreaOpen} onOpenChange={setLeakAreaOpen}>
+          <PopoverTrigger asChild>
+            <div className={`${chipBaseClass} ${filterLeakArea.length > 0 ? activeChipClass : inactiveChipClass}`}>
+              {filterLeakArea.length > 0 ? (
+                <>
+                  <span>部位: {getLeakAreaLabel()}</span>
+                  <div 
+                    role="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setFilterLeakArea([])
+                    }}
+                    className="hover:bg-amber-200/50 rounded-full p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3" />
+                  <span>部位</span>
+                </>
+              )}
+            </div>
+          </PopoverTrigger>
+          <PopoverContent className="w-40 p-2 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
+             <div className="space-y-1">
+               {LEAK_AREA_OPTIONS.map(opt => (
+                 <button
+                   key={opt.value}
+                   onClick={() => toggleLeakArea(opt.value)}
+                   className="flex items-center w-full px-2 py-1.5 hover:bg-gray-50 rounded text-sm gap-2 transition-colors"
+                 >
+                   <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterLeakArea.includes(opt.value) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                     {filterLeakArea.includes(opt.value) && <Check className="h-3 w-3" />}
+                   </div>
                    <span className="text-gray-700">{opt.label}</span>
                  </button>
                ))}

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronDown, TrendingUp, Loader2, ExternalLink, X } from 'lucide-react'
+import { ChevronDown, TrendingUp, Loader2, ExternalLink, X, Plus, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import AgentAvatar from '@/components/team/AgentAvatar'
 import { AgentId } from '@/types'
 import { getScoreColor, getScoreBgColor } from '@/lib/score-thresholds'
@@ -27,6 +28,17 @@ const generateMonthOptions = () => {
 }
 
 const MONTH_OPTIONS = generateMonthOptions()
+
+// 漏水部位一级分类选项
+const LEAK_AREA_OPTIONS = [
+  { value: '1', label: '屋面' },
+  { value: '2', label: '卫生间' },
+  { value: '3', label: '窗户' },
+  { value: '4', label: '外墙' },
+  { value: '5', label: '地下室' },
+  { value: '6', label: '其他' },
+  { value: '7', label: '厨房' },
+]
 
 interface SubcategoryScore {
   name: string
@@ -67,6 +79,7 @@ export default function ScorecardPage() {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>('7d')
   const [selectedMonth, setSelectedMonth] = useState<string>('') // 如 '2025-07'
   const [selectedTeam, setSelectedTeam] = useState<string>('9055771909563658940')
+  const [selectedLeakAreas, setSelectedLeakAreas] = useState<string[]>([]) // 漏水部位筛选 (多选)
   const [showOnlyActive, setShowOnlyActive] = useState<boolean>(true)
   const [sortBy, setSortBy] = useState<SortBy>('overall')
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
@@ -84,15 +97,24 @@ export default function ScorecardPage() {
       setIsLoading(true)
       try {
         // 构建 API 请求参数
-        let apiUrl = `/api/team-calls/scorecard/agents?timeframe=${timeFrame}`
+        const params = new URLSearchParams()
+        params.set('timeframe', timeFrame)
         
         // 如果是自定义月份，添加日期参数
         if (timeFrame === 'custom' && selectedMonth) {
           const [year, month] = selectedMonth.split('-').map(Number)
           const startDate = new Date(year, month - 1, 1)
           const endDate = new Date(year, month, 0, 23, 59, 59) // 月末最后一秒
-          apiUrl = `/api/team-calls/scorecard/agents?timeframe=custom&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
+          params.set('startDate', startDate.toISOString())
+          params.set('endDate', endDate.toISOString())
         }
+        
+        // 添加漏水部位筛选参数
+        if (selectedLeakAreas.length > 0) {
+          params.set('leakArea', selectedLeakAreas.join(','))
+        }
+        
+        const apiUrl = `/api/team-calls/scorecard/agents?${params.toString()}`
         
         const agentsRes = await fetch(apiUrl)
         if (agentsRes.ok) {
@@ -116,7 +138,7 @@ export default function ScorecardPage() {
       }
     }
     fetchData()
-  }, [timeFrame, selectedMonth])
+  }, [timeFrame, selectedMonth, selectedLeakAreas])
 
   const teams = useMemo(() => {
     const uniqueTeams = new Set(agents.map(a => a.teamId).filter(Boolean) as string[])
@@ -358,6 +380,62 @@ export default function ScorecardPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* 漏水部位筛选 */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">漏水部位</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">
+                  {selectedLeakAreas.length === 0 ? (
+                    <>
+                      <Plus className="h-4 w-4 text-gray-400" />
+                      <span>选择部位</span>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs">
+                        {selectedLeakAreas.length}
+                      </span>
+                      <span className="truncate max-w-[120px]">
+                        {selectedLeakAreas.map(val => LEAK_AREA_OPTIONS.find(o => o.value === val)?.label).join(', ')}
+                      </span>
+                      <X 
+                        className="h-3 w-3 hover:text-red-500" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedLeakAreas([]);
+                        }}
+                      />
+                    </div>
+                  )}
+                  <ChevronDown className="h-4 w-4 text-gray-400 ml-1" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48 p-2 bg-white border border-gray-200 shadow-xl rounded-lg" align="start">
+                <div className="space-y-1">
+                  {LEAK_AREA_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        setSelectedLeakAreas(prev => 
+                          prev.includes(opt.value) 
+                            ? prev.filter(v => v !== opt.value) 
+                            : [...prev, opt.value]
+                        )
+                      }}
+                      className="flex items-center w-full px-2 py-1.5 hover:bg-gray-50 rounded text-sm gap-2 transition-colors text-left"
+                    >
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selectedLeakAreas.includes(opt.value) ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'}`}>
+                        {selectedLeakAreas.includes(opt.value) && <Check className="h-3 w-3" />}
+                      </div>
+                      <span className="text-gray-700">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 

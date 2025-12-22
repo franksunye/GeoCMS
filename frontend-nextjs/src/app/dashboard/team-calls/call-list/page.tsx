@@ -74,6 +74,33 @@ const getOnsiteBadge = (isOnsiteCompleted?: number) => {
   }
 }
 
+/**
+ * 获取漏水部位的标签
+ */
+const getLeakAreaLabels = (leakArea?: string) => {
+  if (!leakArea) return []
+  try {
+    const codes = JSON.parse(leakArea)
+    if (!Array.isArray(codes)) return []
+    
+    const mapping: Record<string, string> = {
+      '1': '屋面',
+      '2': '卫生间',
+      '3': '窗户',
+      '4': '外墙',
+      '5': '地下室',
+      '6': '其他',
+      '7': '厨房'
+    }
+    
+    return codes
+      .map(code => mapping[String(code)])
+      .filter((label): label is string => Boolean(label))
+  } catch (e) {
+    return []
+  }
+}
+
 const getDimensionLabel = (dimension: 'process' | 'skills' | 'communication'): string => {
   if (dimension === 'process') return '流程规范'
   if (dimension === 'skills') return '销售技巧'
@@ -350,6 +377,11 @@ function CallListContent() {
   // Onsite Filter State
   const [filterOnsite, setFilterOnsite] = useState<string>(searchParams.get('onsite') || 'all')
 
+  // Leak Area Filter State
+  const [filterLeakArea, setFilterLeakArea] = useState<string[]>(
+    searchParams.get('leakArea') ? searchParams.get('leakArea')!.split(',') : []
+  )
+
   // Sort State
   const [sortConfig, setSortConfig] = useState<{ key: 'timestamp' | 'score' | 'intent', direction: 'asc' | 'desc' }>({ 
     key: 'timestamp', 
@@ -390,6 +422,7 @@ function CallListContent() {
     if (filterAgent !== 'all') params.set('agentId', filterAgent)
     if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
     if (filterOnsite !== 'all') params.set('onsite', filterOnsite)
+    if (filterLeakArea.length > 0) params.set('leakArea', filterLeakArea.join(','))
     if (filterStartDate) params.set('startDate', filterStartDate)
     if (filterEndDate) params.set('endDate', filterEndDate)
     if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
@@ -429,6 +462,7 @@ function CallListContent() {
     setFilterAgent('all')
     setFilterOutcome([])
     setFilterOnsite('all')
+    setFilterLeakArea([])
     setFilterStartDate('')
     setFilterEndDate('')
     setFilterIncludeTags([])
@@ -469,7 +503,7 @@ function CallListContent() {
 
   // Fetch Calls
   const { data: callsResponse, isLoading, isFetching } = useQuery<CallsApiResponse>({
-    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterOnsite, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig],
+    queryKey: ['calls', page, pageSize, filterAgent, filterOutcome, filterOnsite, filterLeakArea, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -478,6 +512,7 @@ function CallListContent() {
       if (filterAgent !== 'all') params.set('agentId', filterAgent)
       if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
       if (filterOnsite !== 'all') params.set('onsite', filterOnsite)
+      if (filterLeakArea.length > 0) params.set('leakArea', filterLeakArea.join(','))
       if (filterStartDate) params.set('startDate', filterStartDate)
       if (filterEndDate) params.set('endDate', filterEndDate)
       if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
@@ -580,6 +615,8 @@ function CallListContent() {
               setFilterOutcome={setFilterOutcome}
               filterOnsite={filterOnsite}
               setFilterOnsite={setFilterOnsite}
+              filterLeakArea={filterLeakArea}
+              setFilterLeakArea={setFilterLeakArea}
               filterIncludeTags={filterIncludeTags}
               setFilterIncludeTags={setFilterIncludeTags}
               filterExcludeTags={filterExcludeTags}
@@ -598,7 +635,7 @@ function CallListContent() {
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      {[1, 2, 3, 4, 5, 6].map((i) => (
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                         <th key={i} className="px-6 py-3 text-left">
                           <Skeleton className="h-4 w-24" />
                         </th>
@@ -621,6 +658,9 @@ function CallListContent() {
                           </div>
                         </td>
                         <td className="px-6 py-4">
+                           <Skeleton className="h-4 w-12" />
+                        </td>
+                        <td className="px-6 py-4">
                            <Skeleton className="h-4 w-16" />
                         </td>
                         <td className="px-6 py-4">
@@ -629,8 +669,14 @@ function CallListContent() {
                          <td className="px-6 py-4">
                            <Skeleton className="h-6 w-20 rounded-full" />
                         </td>
-                         <td className="px-6 py-4">
-                           <Skeleton className="h-8 w-12 rounded" />
+                         <td className="px-6 py-4 text-center">
+                           <Skeleton className="h-8 w-12 mx-auto rounded" />
+                        </td>
+                        <td className="px-6 py-4">
+                           <div className="flex justify-end gap-2">
+                             <Skeleton className="h-6 w-16 rounded" />
+                             <Skeleton className="h-6 w-16 rounded-full" />
+                           </div>
                         </td>
                       </tr>
                     ))}
@@ -649,6 +695,9 @@ function CallListContent() {
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Rep
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      部位
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Duration
@@ -723,6 +772,20 @@ function CallListContent() {
                             size="xs" 
                           />
                           <span className="ml-2 text-sm text-gray-700">{call.agentName}</span>
+                        </div>
+                      </td>
+
+                      {/* Leak Area Column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex flex-wrap gap-1">
+                          {getLeakAreaLabels(call.leakArea).map((label, idx) => (
+                            <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                              {label}
+                            </span>
+                          ))}
+                          {getLeakAreaLabels(call.leakArea).length === 0 && (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
                         </div>
                       </td>
 
@@ -918,20 +981,20 @@ function CallListContent() {
                     <AgentBadge agentId="call_analysis" size="sm" />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
                   <div className="flex items-center gap-2 text-gray-700">
-                    <Calendar className="h-4 w-4" />
+                    <Calendar className="h-4 w-4 text-gray-400" />
                     <span>{new Date(selectedCall.timestamp).toLocaleString('en-US')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
-                    <Clock className="h-4 w-4" />
+                    <Clock className="h-4 w-4 text-gray-400" />
                     <span>{selectedCall.duration_minutes} mins</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-700">
                     <Gauge className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">Sales Score {selectedCall.overallQualityScore}/100</span>
+                    <span className="font-medium">Score {selectedCall.overallQualityScore}/100</span>
                   </div>
-                  <div className="flex items-center gap-4 text-gray-700">
+                  <div className="flex items-center gap-4 text-gray-700 border-l border-gray-200 pl-4 ml-2">
                      {/* 1. AI 意向 */}
                     {selectedCall.predictedIntent && (
                         <div className="flex items-center gap-2" title="意向研判">
@@ -959,6 +1022,19 @@ function CallListContent() {
                         )
                     })()}
                   </div>
+                  {/* 3. 部位 (Move inside the same row) */}
+                  {selectedCall.leakArea && getLeakAreaLabels(selectedCall.leakArea).length > 0 && (
+                    <div className="flex items-center gap-2 border-l border-gray-200 pl-4 ml-2">
+                      <Tag className="h-4 w-4 text-gray-400" />
+                      <div className="flex gap-1.5">
+                        {getLeakAreaLabels(selectedCall.leakArea).map((label, idx) => (
+                          <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
