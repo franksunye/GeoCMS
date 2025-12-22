@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
       ]
     });
 
-    const tagIds = tags.map(t => t.id);
+    const tagCodes = tags.map(t => t.code);
 
-    if (tagIds.length === 0) {
+    if (tagCodes.length === 0) {
       return NextResponse.json({ tags: [], calls: [], tagsData: {} });
     }
 
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     const callTags = await prisma.callTag.findMany({
       where: {
         callId: { in: callIds },
-        tagId: { in: tagIds }
+        tagId: { in: tagCodes }
       },
       select: {
         callId: true,
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     const allTags = await prisma.tag.findMany({
       where: { active: 1 },
       select: {
-        id: true,
+        code: true,
         category: true,
         dimension: true,
         name: true
