@@ -49,9 +49,9 @@ export function TimeFilter({
         <div className="cursor-pointer">
           <FilterChip
             label={getLabel()}
-            isActive={value !== 'all' && value !== '7d'} // assuming 7d is default
+            isActive={value !== 'all'}
             icon={<Calendar className="h-3 w-3" />}
-            onClear={() => onChange('7d')}
+            onClear={() => onChange('all')}
           />
         </div>
       </PopoverTrigger>

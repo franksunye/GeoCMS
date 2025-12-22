@@ -86,6 +86,20 @@ export function CallListFilters({
   const [durationOpen, setDurationOpen] = React.useState(false)
   const [scoreOpen, setScoreOpen] = React.useState(false)
   const [tagSearch, setTagSearch] = React.useState('')
+  const [selectedMonth, setSelectedMonth] = React.useState<string>('')
+
+  // Generate month options (last 6 months)
+  const monthOptions = React.useMemo(() => {
+    const options: { value: string; label: string }[] = []
+    const now = new Date()
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const label = `${date.getFullYear()}年${date.getMonth() + 1}月`
+      options.push({ value, label })
+    }
+    return options
+  }, [])
 
   const hasActiveFilters = filterAgent !== 'all' || 
     filterOutcome.length > 0 || 
@@ -191,19 +205,46 @@ export function CallListFilters({
           onChange={(v, range) => {
             setTimePreset(v)
             if (range) {
+              // Custom range provided (from custom date picker)
               setFilterStartDate(range.start)
               setFilterEndDate(range.end)
-            } else if (v !== 'custom' && v !== 'month') {
-              // For presets like 7d/30d, the API handles it via timeframe param usually
-              // but CallList uses explicit dates.
-              // Let's keep it simple: if presets are chosen, we could calculate dates
-              // but usually the API handles '7d' etc.
+            } else if (v === '7d') {
+              // Calculate last 7 days
+              const now = new Date()
+              const start = new Date(now)
+              start.setDate(now.getDate() - 6)
+              setFilterStartDate(start.toISOString().split('T')[0])
+              setFilterEndDate(now.toISOString().split('T')[0])
+            } else if (v === '30d') {
+              // Calculate last 30 days
+              const now = new Date()
+              const start = new Date(now)
+              start.setDate(now.getDate() - 29)
+              setFilterStartDate(start.toISOString().split('T')[0])
+              setFilterEndDate(now.toISOString().split('T')[0])
+            } else if (v === 'all') {
+              // Show all - clear date filters
               setFilterStartDate('') 
               setFilterEndDate('')
+              setSelectedMonth('')
+            } else if (v === 'month') {
+              // When switching to month mode, clear dates until a month is selected
+              // Dates will be set by onMonthChange
             }
           }}
           startDate={filterStartDate}
           endDate={filterEndDate}
+          monthOptions={monthOptions}
+          monthValue={selectedMonth}
+          onMonthChange={(month) => {
+            setSelectedMonth(month)
+            // Calculate start and end date for the selected month
+            const [year, monthNum] = month.split('-').map(Number)
+            const startDate = new Date(year, monthNum - 1, 1)
+            const endDate = new Date(year, monthNum, 0) // Last day of the month
+            setFilterStartDate(startDate.toISOString().split('T')[0])
+            setFilterEndDate(endDate.toISOString().split('T')[0])
+          }}
         />
 
 

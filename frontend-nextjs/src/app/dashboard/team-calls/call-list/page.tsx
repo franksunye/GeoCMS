@@ -348,7 +348,7 @@ function CallListContent() {
   const [filterOutcome, setFilterOutcome] = useState<string[]>(
     searchParams.get('outcome') ? searchParams.get('outcome')!.split(',') : []
   )
-  const [timePreset, setTimePreset] = useState<string>(searchParams.get('timePreset') || '7d')
+  const [timePreset, setTimePreset] = useState<string>(searchParams.get('timePreset') || 'all')
   const [filterStartDate, setFilterStartDate] = useState<string>(searchParams.get('startDate') || '')
   const [filterEndDate, setFilterEndDate] = useState<string>(searchParams.get('endDate') || '')
   
@@ -418,7 +418,7 @@ function CallListContent() {
     if (filterOutcome.length > 0) params.set('outcome', filterOutcome.join(','))
     if (filterOnsite !== 'all') params.set('onsite', filterOnsite)
     if (filterLeakArea.length > 0) params.set('leakArea', filterLeakArea.join(','))
-    if (timePreset !== '7d') params.set('timePreset', timePreset)
+    if (timePreset !== 'all') params.set('timePreset', timePreset)
     if (filterStartDate) params.set('startDate', filterStartDate)
     if (filterEndDate) params.set('endDate', filterEndDate)
     if (filterIncludeTags.length > 0) params.set('includeTags', filterIncludeTags.join(','))
