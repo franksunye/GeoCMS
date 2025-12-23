@@ -196,7 +196,7 @@ export default function DurationAnalysisPage() {
           <CardContent>
             <div className="text-2xl font-bold">{data?.summary.frictionRate}%</div>
             <p className="text-xs text-muted-foreground mt-1 text-amber-600 font-medium">
-              > 240s 且低效的通话
+              &gt; 240s 且低效的通话
             </p>
           </CardContent>
         </Card>
