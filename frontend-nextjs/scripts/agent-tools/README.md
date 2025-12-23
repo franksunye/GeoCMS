@@ -21,20 +21,29 @@
 
 ### 2. 因果推断工具 (Causal Inference)
 
-*   **`analyze-causal-drivers.ts`**
-    *   **用途**: 计算各销售动作的 **平均干预效果 (ATE - Average Treatment Effect)**，识别真正驱动转化的因果驱动力。
+*   **`causal-ate-agent-stratified.ts`**
+    *   **用途**: 计算 **ATE (Average Treatment Effect)**，使用销售员级别分层控制混杂。
+    *   **运行**: `npx tsx scripts/agent-tools/causal-ate-agent-stratified.ts`
+
+*   **`causal-psm-matching.ts`**
+    *   **用途**: **倾向性得分匹配 (PSM)**，通过匹配相似销售员消除选择偏差。
+    *   **核心功能**: 找出与高分销售员"特征相似"的低分销售员进行配对比较。
+    *   **运行**: `npx tsx scripts/agent-tools/causal-psm-matching.ts`
+
+*   **`causal-cross-method-comparison.ts`**
+    *   **用途**: **跨方法一致性检验**，同时运行 Naive ATE 和 PSM ATT，验证结论稳健性。
     *   **核心功能**: 
-        *   使用销售员级别的分层策略控制混杂因素（Agent Skill Confounders）。
-        *   对比"干预组"（展示高分行为的销售）与"对照组"的成交/上门率差异。
-        *   揭示"专家陷阱"：某些高分行为可能实际上降低转化率。
-    *   **运行**: `npx tsx scripts/agent-tools/analyze-causal-drivers.ts`
+        *   对比不同方法的结果方向是否一致
+        *   揭示选择偏差修正后的真实因果效应
+    *   **运行**: `npx tsx scripts/agent-tools/causal-cross-method-comparison.ts`
     *   **输出示例**:
         ```
-        ✅ CAUSAL IMPACT ON WIN RATE:
-        empathy_shown        | 共情表现   | -2.21% Win | +0.51% Onsite
-        objection_handled    | 异议处理   | -3.80% Win | -4.59% Onsite
-        attitude_positive    | 积极态度   | -7.46% Win | -4.31% Onsite (负因果!)
+        📊 Tag: "empathy_shown"
+        Method        | Win Rate Effect | Consistency
+        Naive ATE     |         -2.21% | ⚠️ 不一致
+        PSM ATT       |         +6.67% | (选择偏差修正后逆转!)
         ```
+
 
 ### 3. 实证采样工具 (Empirical Sampling)
 
