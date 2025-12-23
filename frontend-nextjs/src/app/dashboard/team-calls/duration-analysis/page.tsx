@@ -255,7 +255,7 @@ export default function DurationAnalysisPage() {
                   domain={[0, 100]}
                   label={{ value: '比率 (%)', angle: 90, position: 'insideRight', fontSize: 11 }}
                   tick={{ fontSize: 11 }}
-                  formatter={(v: number) => `${v}%`}
+                  tickFormatter={(v: number) => `${v}%`}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend iconType="circle" />
