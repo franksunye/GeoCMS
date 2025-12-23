@@ -15,6 +15,9 @@ interface DataSource {
   type: 'sync' | 'biz' | 'cfg'
   category: string
   count: number
+  timeField?: string
+  oldestRecord?: string | null
+  latestRecord?: string | null
   error?: string
 }
 
@@ -37,6 +40,45 @@ export default function DataSourcesPage() {
     }
     fetchData()
   }, [])
+
+  // Helper function to format date
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return '-'
+    try {
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    } catch {
+      return dateStr
+    }
+  }
+
+  // Helper function to calculate days since last update
+  const getDaysSinceUpdate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return null
+    try {
+      const date = new Date(dateStr)
+      const now = new Date()
+      const diffMs = now.getTime() - date.getTime()
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+      return diffDays
+    } catch {
+      return null
+    }
+  }
+
+  // Helper function to get freshness status (only for sync/biz layers)
+  const getFreshnessStatus = (source: DataSource) => {
+    if (source.type === 'cfg') return null // Config layer doesn't need freshness warnings
+    
+    const days = getDaysSinceUpdate(source.latestRecord)
+    if (days === null) return null
+    
+    if (days === 0) return { label: '今天', color: 'text-emerald-600 bg-emerald-50' }
+    if (days === 1) return { label: '昨天', color: 'text-emerald-600 bg-emerald-50' }
+    if (days <= 7) return { label: `${days} 天前`, color: 'text-blue-600 bg-blue-50' }
+    if (days <= 30) return { label: `${days} 天前`, color: 'text-amber-600 bg-amber-50' }
+    return { label: `${days} 天前`, color: 'text-red-600 bg-red-50' }
+  }
 
   const groups = [
     {
@@ -107,6 +149,12 @@ export default function DataSourcesPage() {
                             {source.tableName}
                           </code>
                         </div>
+                        {/* Freshness indicator for sync/biz layers */}
+                        {getFreshnessStatus(source) && (
+                          <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${getFreshnessStatus(source)!.color}`}>
+                            {getFreshnessStatus(source)!.label}
+                          </div>
+                        )}
                       </div>
 
                       <h3 className="text-lg font-bold text-gray-800 mb-1 group-hover:text-blue-600 transition-colors">
@@ -116,12 +164,38 @@ export default function DataSourcesPage() {
                         {source.description}
                       </p>
 
-                      <div className="flex items-baseline gap-2">
+                      <div className="flex items-baseline gap-2 mb-4">
                         <span className={`text-3xl font-bold tracking-tight ${source.count > 0 ? 'text-gray-900' : 'text-gray-300'}`}>
                           {source.count.toLocaleString()}
                         </span>
                         <span className="text-xs font-medium text-gray-400 uppercase">记录</span>
                       </div>
+
+                      {/* Time range information */}
+                      {source.count > 0 && (source.oldestRecord || source.latestRecord) && (
+                        <div className="text-[11px] text-gray-500 pb-4">
+                          {source.type === 'cfg' ? (
+                            // Config layer: show last update time
+                            source.latestRecord && (
+                              <div className="flex items-center gap-1.5">
+                                <RefreshCcw className="h-3 w-3 text-gray-400" />
+                                <span className="text-gray-400">最后更新:</span>
+                                <span className="font-medium text-gray-600">{formatDate(source.latestRecord)}</span>
+                              </div>
+                            )
+                          ) : (
+                            // Sync/Biz layers: show data range in one line
+                            source.oldestRecord && source.latestRecord && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-400">数据范围:</span>
+                                <span className="font-medium text-gray-600">{formatDate(source.oldestRecord)}</span>
+                                <span className="text-gray-300">→</span>
+                                <span className="font-medium text-gray-600">{formatDate(source.latestRecord)}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      )}
                       
                       <div className="mt-6 pt-4 border-t border-gray-50 flex items-center justify-end">
                         <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
