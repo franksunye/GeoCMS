@@ -26,6 +26,7 @@ const navigation: NavItem[] = [
     children: [
       { name: '数据源概览', href: '/dashboard/team-calls/data-sources' },
       { name: '分数明细', href: '/dashboard/team-calls/score-details' },
+      { name: '通话时长分析', href: '/dashboard/team-calls/duration-analysis' },
       { name: '效果验证', href: '/dashboard/team-calls/score-validation' },
     ]
   },
