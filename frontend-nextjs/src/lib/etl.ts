@@ -99,13 +99,34 @@ export interface ETLResult {
 // ============================================
 
 /**
+ * 解析结果接口
+ */
+export interface ParseResult {
+  success: boolean
+  data: AIAnalysisResult | null
+  error?: string
+  raw?: string
+}
+
+/**
  * 解析 AI 分析 JSON 字符串
  * 处理可能包含 markdown 代码块的情况
  */
 export function parseAnalysisJson(rawJson: string): AIAnalysisResult | null {
   try {
-    let cleaned = rawJson.trim()
+    const result = parseAnalysisJsonVerbose(rawJson)
+    return result.data
+  } catch (error) {
+    return null
+  }
+}
 
+/**
+ * 详细解析函数，包含错误信息
+ */
+export function parseAnalysisJsonVerbose(rawJson: string): ParseResult {
+  let cleaned = (rawJson || '').trim()
+  try {
     // Remove markdown code blocks if present
     if (cleaned.startsWith('```json')) {
       cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '').trim()
@@ -113,10 +134,15 @@ export function parseAnalysisJson(rawJson: string): AIAnalysisResult | null {
       cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim()
     }
 
-    return JSON.parse(cleaned) as AIAnalysisResult
+    const data = JSON.parse(cleaned) as AIAnalysisResult
+    return { success: true, data }
   } catch (error) {
-    console.error('Failed to parse analysis JSON:', error)
-    return null
+    return {
+      success: false,
+      data: null,
+      error: error instanceof Error ? error.message : String(error),
+      raw: cleaned
+    }
   }
 }
 
@@ -215,8 +241,8 @@ export function reconstructTextFromSegments(
   const endMs = end * 1000
 
   const filtered = segments.filter(s =>
-    (s.BeginTime >= startMs - 100 && s.BeginTime <= endMs + 100) ||
-    (s.EndTime >= startMs && s.EndTime <= endMs + 100)
+    (s.BeginTime >= startMs - 1000 && s.BeginTime <= endMs + 1000) ||
+    (s.EndTime >= startMs - 1000 && s.EndTime <= endMs + 1000)
   )
 
   const text = filtered.map(s => s.Text).join(' ')

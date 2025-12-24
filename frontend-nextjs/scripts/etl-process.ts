@@ -14,7 +14,7 @@ import fs from 'fs'
 import path from 'path'
 import prisma from '../src/lib/prisma'
 import {
-  parseAnalysisJson,
+  parseAnalysisJsonVerbose,
   processCallAnalysis,
   ETLInput,
   ETLResult
@@ -25,7 +25,8 @@ interface ParseFailure {
   logId: string
   dealId: string | null
   agentId: string | null
-  signalsPreview: string  // 前 50 字符预览
+  error: string
+  rawSignals: string
   timestamp: string
 }
 
@@ -92,20 +93,23 @@ async function runETL() {
       continue
     }
 
-    // Parse signals JSON
-    const analysisResult = parseAnalysisJson(log.signals)
-    if (!analysisResult) {
+    // Parse signals JSON (VERBOSE)
+    const parseResult = parseAnalysisJsonVerbose(log.signals)
+    if (!parseResult.success || !parseResult.data) {
       // 记录解析失败的详细信息
       parseFailures.push({
         logId: log.id,
         dealId: log.dealId,
         agentId: log.agentId,
-        signalsPreview: (log.signals || '').substring(0, 50),
+        error: parseResult.error || 'Unknown parse error',
+        rawSignals: log.signals || '',
         timestamp: new Date().toISOString()
       })
-      console.error(`[${i + 1}/${logs.length}] ❌ Parse failed: logId=${log.id}, dealId=${log.dealId}`)
+      console.error(`[${i + 1}/${logs.length}] ❌ Parse failed: logId=${log.id}, dealId=${log.dealId} - ${parseResult.error}`)
       continue
     }
+
+    const analysisResult = parseResult.data
 
     // Prepare ETL input
     // 使用 Deal 的 createdAt 作为通话时间（而不是 AI 分析时间）
