@@ -33,11 +33,13 @@ function main() {
     console.log('Comparing multiple causal methods for consistency.\n')
 
     const tagsToAnalyze = [
-        'empathy_shown',
         'expectation_setting',
+        'price_misalignment',
+        'objection_handled',
         'expertise_display',
-        'attitude_positive',
-        'listening_good'
+        'solution_proposal_professional',
+        'customer_role_owner',
+        'empathy_shown'
     ]
 
     // Get agent stats
