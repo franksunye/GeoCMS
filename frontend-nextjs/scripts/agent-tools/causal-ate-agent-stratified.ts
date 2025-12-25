@@ -41,10 +41,11 @@ function main() {
             SUM(CASE WHEN outcome = 'won' THEN 1 ELSE 0 END) as won_deals,
             SUM(CASE WHEN is_onsite_completed = 1 THEN 1 ELSE 0 END) as onsite_deals
         FROM sync_deals
+        WHERE agent_id IN (SELECT DISTINCT agent_id FROM biz_calls)
         GROUP BY agent_id
     `).all() as { agent_id: string; total_deals: number; won_deals: number; onsite_deals: number }[]
 
-    console.log(`📊 Found ${agentStats.length} agents with deal data.`)
+    console.log(`📊 Found ${agentStats.length} agents with call data and deal outcomes.`)
 
     // 2. For each agent, determine which tags they have high-score on
     const agentHighScoreTags = db.prepare(`

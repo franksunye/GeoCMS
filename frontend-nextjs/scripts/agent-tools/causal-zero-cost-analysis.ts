@@ -73,6 +73,7 @@ function runAnalysis() {
                 SUM(CASE WHEN sd.outcome = 'won' THEN 1 ELSE 0 END) as won_deals,
                 SUM(CASE WHEN sd.is_onsite_completed = 1 THEN 1 ELSE 0 END) as onsite_deals
             FROM sync_deals sd
+            WHERE sd.agent_id IN (SELECT DISTINCT agent_id FROM biz_calls)
             GROUP BY sd.agent_id
         `).all() as { agent_id: string; total_deals: number; won_deals: number; onsite_deals: number }[]
 
@@ -141,8 +142,8 @@ function runAnalysis() {
                 }
             });
             if (bestMatch && bestDist < 0.2) {
-                matchedPairs.push({ treated: t, control: bestMatch });
-                usedControl.add(bestMatch!.id);
+                matchedPairs.push({ treated: t, control: (bestMatch as AgentData) });
+                usedControl.add((bestMatch as AgentData).id);
             }
         });
 
