@@ -60,7 +60,8 @@ export async function GET(request: Request) {
         const dealIds = new Set<string>()
 
         for (const q of filteredQuestions) {
-            categoryCount[q.category] = (categoryCount[q.category] || 0) + 1
+            const category = q.category || '其他'
+            categoryCount[category] = (categoryCount[category] || 0) + 1
             dealIds.add(q.dealId)
         }
 
