@@ -252,8 +252,8 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                         ON CONFLICT (id) DO NOTHING
                     """
                     cur.execute(sql, (
-                        trace_id, "faq_v3_ci", call_id or "", prompt, raw_output,
-                        execution_time, "success", "", 0, datetime.now()  # 使用 0 代替 False
+                        trace_id, "faq_v3_ci", call_id, prompt, raw_output,  # 使用 call_id（可能是 None/NULL）
+                        execution_time, "success", "", 0, datetime.now()
                     ))
                 else:  # SQLite
                     sql = """
@@ -263,7 +263,7 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """
                     cur.execute(sql, (
-                        trace_id, "faq_v3_ci", call_id or "", prompt, raw_output,
+                        trace_id, "faq_v3_ci", call_id, prompt, raw_output,  # 使用 call_id（可能是 None）
                         execution_time, "success", "", 0, datetime.now().isoformat()
                     ))
                 conn.commit()
@@ -292,8 +292,8 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                         ON CONFLICT (id) DO NOTHING
                     """
                     cur.execute(sql, (
-                        trace_id, "faq_v3_ci", call_id or "", prompt, "",
-                        0, "error", str(e), 0, datetime.now()  # 使用 0 代替 False
+                        trace_id, "faq_v3_ci", call_id, prompt, "",  # 使用 call_id（可能是 None/NULL）
+                        0, "error", str(e), 0, datetime.now()
                     ))
                 else:  # SQLite
                     sql = """
@@ -303,7 +303,7 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """
                     cur.execute(sql, (
-                        trace_id, "faq_v3_ci", call_id or "", prompt, "",
+                        trace_id, "faq_v3_ci", call_id, prompt, "",  # 使用 call_id（可能是 None）
                         0, "error", str(e), 0, datetime.now().isoformat()
                     ))
                 conn.commit()
