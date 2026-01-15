@@ -159,7 +159,7 @@ export default function FaqPage() {
       }
     }
     fetchStats()
-  }, [timeFrame, selectedMonth, selectedLeakAreas])
+  }, [timeFrame, selectedMonth, selectedLeakAreas, selectedCategory])
 
   // 获取样本数据
   useEffect(() => {
@@ -315,7 +315,7 @@ export default function FaqPage() {
                       key={sample.id}
                       className="p-3 bg-gray-50 rounded-lg border border-gray-100"
                     >
-                      <p className="text-gray-800 mb-2">"{sample.question}"</p>
+                      <p className="text-gray-800 mb-2">&quot;{sample.question}&quot;</p>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-gray-500">
                           {getLeakAreaName(sample.leakArea) || '未知部位'}

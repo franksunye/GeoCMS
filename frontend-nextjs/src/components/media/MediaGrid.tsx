@@ -68,10 +68,12 @@ export default function MediaGrid({
             {/* Thumbnail */}
             <div className="relative w-full h-40 bg-gray-100 flex items-center justify-center overflow-hidden">
               {file.type === 'image' ? (
-                <img
+                <Image
                   src={file.url}
                   alt={file.filename}
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  className="object-cover"
                 />
               ) : (
                 <div className="flex flex-col items-center gap-2">
@@ -162,10 +164,13 @@ export default function MediaGrid({
                   {media.find((m) => m.id === previewId)?.filename}
                 </h2>
                 {media.find((m) => m.id === previewId)?.type === 'image' && (
-                  <img
-                    src={media.find((m) => m.id === previewId)?.url}
+                  <Image
+                    src={media.find((m) => m.id === previewId)?.url || ''}
                     alt="preview"
-                    className="w-full rounded-lg"
+                    width={0}
+                    height={0}
+                    sizes="100vw"
+                    className="w-full rounded-lg h-auto"
                   />
                 )}
                 <p className="text-sm text-gray-600 mt-4">

@@ -70,9 +70,9 @@ export default function DurationAnalysisPage() {
 
   useEffect(() => {
     fetchData()
-  }, [timeFrame, selectedMonth, customRange])
+  }, [timeFrame, selectedMonth, customRange, fetchData])
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams()
@@ -100,7 +100,7 @@ export default function DurationAnalysisPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [timeFrame, selectedMonth, customRange])
 
   const handleTimeChange = (v: string, range?: { start: string; end: string }) => {
     setTimeFrame(v)

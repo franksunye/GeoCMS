@@ -434,7 +434,7 @@ function CallListContent() {
     // Shallow update
     router.replace(`?${params.toString()}`, { scroll: false })
 
-  }, [filterAgent, filterOutcome, filterOnsite, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig, router])
+  }, [filterAgent, filterOutcome, filterOnsite, filterStartDate, filterEndDate, filterIncludeTags, filterExcludeTags, filterDuration, filterScore, sortConfig, router, filterLeakArea, timePreset])
 
   // Pagination state
   const [page, setPage] = useState(1)
