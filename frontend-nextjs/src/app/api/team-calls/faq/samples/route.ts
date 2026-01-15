@@ -27,7 +27,7 @@ export async function GET(request: Request) {
             select: {
                 id: true,
                 audioUrl: true,
-                sync_agents: {
+                agent: {
                     select: { name: true }
                 }
             }
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
                 callId: q.callId,
                 timestamp: q.timestamp ? Number(q.timestamp) : null, // 毫秒 BigInt -> Number
                 audioUrl: getStorageUrl(audioUrl),
-                agentName: call?.sync_agents?.name || null,
+                agentName: call?.agent?.name || null,
                 leakArea: deal?.leakArea || null
             }
         })
