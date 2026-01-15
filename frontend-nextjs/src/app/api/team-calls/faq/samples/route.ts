@@ -67,7 +67,7 @@ export async function GET(request: Request) {
                 question: q.question,
                 dealId: q.dealId,
                 callId: q.callId,
-                timestamp: q.timestamp, // 毫秒
+                timestamp: q.timestamp ? Number(q.timestamp) : null, // 毫秒 BigInt -> Number
                 audioUrl: getStorageUrl(audioUrl),
                 agentName: call?.sync_agents?.name || null,
                 leakArea: deal?.leakArea || null

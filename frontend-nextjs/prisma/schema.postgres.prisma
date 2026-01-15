@@ -261,3 +261,17 @@ model Contract {
 
   @@map("sync_contracts")
 }
+
+/// FAQ 问题 (AI 提取)
+model FaqQuestion {
+  id           String   @id
+  dealId       String   @map("deal_id")
+  transcriptId String   @map("transcript_id")
+  callId       String?  @map("call_id")
+  timestamp    BigInt?
+  question     String?
+  category     String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("biz_faq_questions")
+}
