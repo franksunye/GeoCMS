@@ -111,6 +111,22 @@ def ensure_schema(conn, db_type):
                 # 忽略错误（可能是已经允许为空，或表不存在等其他情况）
                 # print(f"⚠️Schema 调整跳过: {e}")
 
+            # [自动修复] 确保 prompt_id = 'faq_v3_ci' 存在于 cfg_prompts 表中
+            try:
+                cur.execute("""
+                    INSERT INTO cfg_prompts (id, name, description, "group", model, version, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (id) DO NOTHING
+                """, (
+                    'faq_v3_ci', 'FAQ V3 Analysis (CI)', 'GitHub Actions 自动 FAQ 提取 (V3 策略)', 
+                    'analysis', 'hunyuan-lite', '3.0.0', datetime.now(), datetime.now()
+                ))
+                conn.commit()
+                print("✅ 已确保 Prompt ID 'faq_v3_ci' 存在")
+            except Exception as e:
+                conn.rollback()
+                print(f"⚠️ 无法注册 Prompt ID (可能是表结构差异): {e}")
+
             conn.commit()
     else:  # SQLite
         cursor = conn.cursor()
