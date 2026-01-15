@@ -68,10 +68,6 @@ export default function DurationAnalysisPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>(MONTH_OPTIONS[0]?.value || '')
   const [customRange, setCustomRange] = useState<{start?: string, end?: string}>({})
 
-  useEffect(() => {
-    fetchData()
-  }, [timeFrame, selectedMonth, customRange, fetchData])
-
   const fetchData = React.useCallback(async () => {
     try {
       setLoading(true)
@@ -101,6 +97,10 @@ export default function DurationAnalysisPage() {
       setLoading(false)
     }
   }, [timeFrame, selectedMonth, customRange])
+
+  useEffect(() => {
+    fetchData()
+  }, [timeFrame, selectedMonth, customRange, fetchData])
 
   const handleTimeChange = (v: string, range?: { start: string; end: string }) => {
     setTimeFrame(v)
