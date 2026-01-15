@@ -100,6 +100,17 @@ def ensure_schema(conn, db_type):
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
                 )
             """)
+            
+            # [自动修复] 尝试移除 call_id 的 NOT NULL 约束，以允许空值
+            try:
+                cur.execute("ALTER TABLE log_prompt_execution ALTER COLUMN call_id DROP NOT NULL")
+                conn.commit()
+                print("✅ 已更新 schema: log_prompt_execution.call_id 允许为空")
+            except Exception as e:
+                conn.rollback()
+                # 忽略错误（可能是已经允许为空，或表不存在等其他情况）
+                # print(f"⚠️Schema 调整跳过: {e}")
+
             conn.commit()
     else:  # SQLite
         cursor = conn.cursor()
