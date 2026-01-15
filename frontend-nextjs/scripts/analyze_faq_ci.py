@@ -253,7 +253,7 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                     """
                     cur.execute(sql, (
                         trace_id, "faq_v3_ci", call_id or "", prompt, raw_output,
-                        execution_time, "success", "", False, datetime.now()
+                        execution_time, "success", "", 0, datetime.now()  # 使用 0 代替 False
                     ))
                 else:  # SQLite
                     sql = """
@@ -293,7 +293,7 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                     """
                     cur.execute(sql, (
                         trace_id, "faq_v3_ci", call_id or "", prompt, "",
-                        0, "error", str(e), False, datetime.now()
+                        0, "error", str(e), 0, datetime.now()  # 使用 0 代替 False
                     ))
                 else:  # SQLite
                     sql = """
