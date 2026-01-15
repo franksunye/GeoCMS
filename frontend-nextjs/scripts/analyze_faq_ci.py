@@ -113,36 +113,27 @@ def ensure_schema(conn, db_type):
 
             # [自动修复] 确保 prompt_id = 'faq_v3_ci' 存在于 cfg_prompts 表中
             try:
-                # 1. 动态获取表列名
-                cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 'cfg_prompts'")
-                columns = {row[0] for row in cur.fetchall()}
-                
-                # 2. 构建兼容的 INSERT 语句
-                insert_cols = ['id', 'name', 'description', 'model', 'version', 'created_at', 'updated_at']
-                insert_vals = ['faq_v3_ci', 'FAQ V3 Analysis (CI)', 'GitHub Actions 自动 FAQ 提取 (V3 策略)', 'hunyuan-lite', '3.0.0', datetime.now(), datetime.now()]
-                
-                # 可选字段检查
-                if 'group' in columns:
-                    insert_cols.append('"group"')
-                    insert_vals.append('analysis')
-                
-                # 构造 SQL
-                cols_str = ", ".join(insert_cols)
-                placeholders = ", ".join(["%s"] * len(insert_vals))
-                
-                sql = f"""
-                    INSERT INTO cfg_prompts ({cols_str})
-                    VALUES ({placeholders})
+                # 兼容 Prisma Schema: id, name, content, description, prompt_type, created_at, updated_at
+                cur.execute("""
+                    INSERT INTO cfg_prompts 
+                    (id, name, content, description, prompt_type, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     ON CONFLICT (id) DO NOTHING
-                """
-                
-                cur.execute(sql, tuple(insert_vals))
+                """, (
+                    'faq_v3_ci', 
+                    'FAQ V3 Analysis (CI)', 
+                    'Actual prompt is dynamically built in script: analyze_faq_ci.py', 
+                    'GitHub Actions 自动 FAQ 提取 (V3 策略)', 
+                    'analysis', 
+                    datetime.now(), 
+                    datetime.now()
+                ))
                 conn.commit()
                 print("✅ 已确保 Prompt ID 'faq_v3_ci' 存在")
                 
             except Exception as e:
                 conn.rollback()
-                print(f"⚠️ 无法注册 Prompt ID (严重错误): {e}")
+                print(f"⚠️ 无法注册 Prompt ID: {e}")
 
             conn.commit()
     else:  # SQLite
