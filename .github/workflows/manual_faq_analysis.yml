@@ -1,12 +1,17 @@
-name: Manual FAQ Analysis
+name: FAQ Analysis (Scheduled & Manual)
 
 on:
+  # 定时任务：每小时运行一次
+  schedule:
+    - cron: '0 * * * *'  # 每小时的第0分钟执行
+  
+  # 手动触发
   workflow_dispatch:
     inputs:
       limit:
         description: '处理记录数量'
         required: false
-        default: '500'
+        default: '100'
       days_back:
         description: '仅分析最近 N 天数据 (0=全部)'
         required: false
@@ -38,10 +43,15 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           HUNYUAN_API_KEY: ${{ secrets.HUNYUAN_API_KEY }}
         run: |
+          # 定时触发时 inputs 为空，使用默认值
+          LIMIT="${{ github.event.inputs.limit || '100' }}"
+          DAYS="${{ github.event.inputs.days_back || '0' }}"
+          FORCE="${{ github.event.inputs.force_rerun && '--force' || '' }}"
+          
           python backend/scripts/analyze_faq_ci.py \
-            --limit ${{ github.event.inputs.limit }} \
-            --days ${{ github.event.inputs.days_back }} \
-            ${{ github.event.inputs.force_rerun && '--force' || '' }}
+            --limit $LIMIT \
+            --days $DAYS \
+            $FORCE
       
       - name: 分析完成
         run: echo "✅ FAQ 分析已完成"
