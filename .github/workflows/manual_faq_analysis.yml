@@ -25,6 +25,10 @@ on:
 jobs:
   analyze_faq:
     runs-on: ubuntu-latest
+    # 并发限制：确保同一时间只有一个分析任务在运行
+    concurrency:
+      group: faq-analysis-group
+      cancel-in-progress: false
     
     steps:
       - name: Checkout 代码
