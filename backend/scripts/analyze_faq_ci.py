@@ -408,11 +408,14 @@ def main():
     if args.days > 0:
         cutoff = datetime.now() - timedelta(days=args.days)
         if db_type == 'postgres':
-            cursor.execute(sql + f" AND t.created_at > {placeholder} ORDER BY t.created_at DESC LIMIT {placeholder}", (cutoff, args.limit))
+            cursor.execute(sql + " AND t.created_at > %s ORDER BY t.created_at DESC LIMIT %s", (cutoff, args.limit))
         else:
-            cursor.execute(sql + f" AND t.created_at > datetime('now', '-{args.days} days') ORDER BY t.created_at DESC LIMIT {placeholder}", (args.limit,))
+            cursor.execute(sql + f" AND t.created_at > datetime('now', '-{args.days} days') ORDER BY t.created_at DESC LIMIT ?", (args.limit,))
     else:
-        cursor.execute(sql + f" ORDER BY t.created_at DESC LIMIT {placeholder}", (args.limit,))
+        if db_type == 'postgres':
+            cursor.execute(sql + " ORDER BY t.created_at DESC LIMIT %s", (args.limit,))
+        else:
+            cursor.execute(sql + " ORDER BY t.created_at DESC LIMIT ?", (args.limit,))
     
     rows = cursor.fetchall()
     print(f"✅ 获取到 {len(rows)} 条待分析记录")
