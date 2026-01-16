@@ -31,8 +31,7 @@ jobs:
           python-version: '3.11'
       
       - name: 安装依赖
-        run: |
-          pip install psycopg2-binary openai tqdm
+        run: pip install -r backend/requirements.txt
       
       - name: 运行 FAQ 分析
         env:
