@@ -50,7 +50,17 @@ jobs:
           # 定时触发时 inputs 为空，使用默认值
           LIMIT="${{ github.event.inputs.limit || '50' }}"
           DAYS="${{ github.event.inputs.days_back || '0' }}"
-          FORCE="${{ github.event.inputs.force_rerun && '--force' || '' }}"
+          
+          # 布尔值需要显式比较 (true/false 字符串)
+          if [ "${{ github.event.inputs.force_rerun }}" = "true" ]; then
+            FORCE="--force"
+            echo "⚠️ 强制重新分析模式"
+          else
+            FORCE=""
+            echo "🔄 增量分析模式"
+          fi
+          
+          echo "📊 参数: limit=$LIMIT, days=$DAYS, force=$FORCE"
           
           python backend/scripts/analyze_faq_ci.py \
             --limit $LIMIT \

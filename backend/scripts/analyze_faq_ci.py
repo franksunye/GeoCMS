@@ -396,6 +396,9 @@ def main():
             exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%')"
         else:
             exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%')"
+        print(f"🔄 增量模式: 跳过已处理的记录")
+    else:
+        print(f"⚠️ 强制模式 (--force): 将重新处理所有记录")
 
     sql = f"""
         SELECT t.id, t.deal_id, t.content, c.id as call_id
