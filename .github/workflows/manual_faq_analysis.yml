@@ -11,7 +11,7 @@ on:
       limit:
         description: '处理记录数量'
         required: false
-        default: '500'
+        default: '50'
       days_back:
         description: '仅分析最近 N 天数据 (0=全部)'
         required: false
@@ -48,7 +48,7 @@ jobs:
           HUNYUAN_API_KEY: ${{ secrets.HUNYUAN_API_KEY }}
         run: |
           # 定时触发时 inputs 为空，使用默认值
-          LIMIT="${{ github.event.inputs.limit || '500' }}"
+          LIMIT="${{ github.event.inputs.limit || '50' }}"
           DAYS="${{ github.event.inputs.days_back || '0' }}"
           FORCE="${{ github.event.inputs.force_rerun && '--force' || '' }}"
           
