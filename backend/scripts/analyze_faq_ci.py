@@ -305,6 +305,7 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                         execution_time, "success", "", 0, datetime.now().isoformat()
                     ))
                 conn.commit()
+                print(f"    📝 已记录日志: {trace_id[:50]}...")
                 
                 # 解析结果
                 result = json.loads(raw_output)
@@ -438,6 +439,7 @@ def main():
             tid, deal_id, content, call_id = row[0], row[1], row[2], row[3]
         
         questions = analyze_transcript(client, conn, cursor, tid, deal_id, call_id, content, db_type)
+        print(f"  📞 Transcript {tid[:20]}...: 提取 {len(questions)} 个问题")
         
         for q in questions:
             if db_type == 'postgres':
