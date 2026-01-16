@@ -418,6 +418,14 @@ def main():
             cursor.execute(sql + " ORDER BY t.created_at DESC LIMIT ?", (args.limit,))
     
     rows = cursor.fetchall()
+    
+    if len(rows) == 0:
+        print("ℹ️  没有新的待分析记录（所有数据已处理或无符合条件的数据）")
+        print("💡 提示: 使用 --force 可重新分析已处理过的记录")
+        cursor.close()
+        conn.close()
+        return
+    
     print(f"✅ 获取到 {len(rows)} 条待分析记录")
     
     client = OpenAI(api_key=HUNYUAN_API_KEY, base_url=HUNYUAN_BASE_URL)
