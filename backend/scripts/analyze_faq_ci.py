@@ -392,8 +392,9 @@ def main():
     if not args.force:
         # 如果不是强制重新跑，则排除掉已经在日志表中存在记录（代表已经尝试处理过）的 transcript
         # 匹配规则：log_prompt_execution.id 包含 faq_trace_{transcript_id}
+        # 注意：%% 在 psycopg2 中会被转义为单个 % (用于 LIKE 匹配)
         if db_type == 'postgres':
-            exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%')"
+            exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%%')"
         else:
             exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%')"
         print(f"🔄 增量模式: 跳过已处理的记录")
