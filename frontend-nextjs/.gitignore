@@ -34,3 +34,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# sqlite
+*.db
+*.db-shm
+*.db-wal
+
+
+/src/generated/prisma
+/logs

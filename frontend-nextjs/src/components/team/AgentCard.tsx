@@ -30,12 +30,13 @@ export default function AgentCard({
   const statusConfig = AGENT_STATUS_CONFIG[status]
 
   // Agent role badges
-  const roleBadges = {
+  const roleBadges: Record<AgentId, string> = {
     knowledge: '🧠 AI Librarian',
     planner: '💡 Strategy Expert',
     writer: '✍️ Content Creator',
     verifier: '🛡️ Quality Guardian',
-    call_analysis: '📞 Call Analyst'
+    call_analysis: '📞 Call Analyst',
+    'default-avatar': '👤 Default Avatar'
   }
 
   return (

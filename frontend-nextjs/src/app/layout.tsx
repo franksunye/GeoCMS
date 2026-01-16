@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "GeoCMS - AI-Powered Content Management System",
-  description: "Make content creation smarter and more efficient",
+  title: "智能通话分析",
+  description: "AI驱动的智能通话分析系统",
 }
 
 export default function RootLayout({

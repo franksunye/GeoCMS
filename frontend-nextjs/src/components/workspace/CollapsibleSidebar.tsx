@@ -22,31 +22,28 @@ import {
 import { useWorkspaceStore } from '@/lib/stores/workspace-store'
 import { Button } from '@/components/ui/button'
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'My Tasks', href: '/dashboard/tasks', icon: Activity, badge: true },
+interface NavItem {
+  name: string
+  href?: string
+  icon: any
+  children?: NavItem[]
+  badge?: boolean
+}
+
+const navigation: NavItem[] = [
+  {
+    name: 'Team Calls',
+    icon: PhoneCall,
+    children: [
+      { name: 'Call List', href: '/dashboard/team-calls/call-list', icon: PhoneCall },
+      { name: 'Analytics', href: '/dashboard/team-calls/analytics', icon: BarChart3 },
+      { name: 'Scorecard', href: '/dashboard/team-calls/scorecard', icon: BarChart3 },
+      { name: 'AI Audit', href: '/dashboard/team-calls/ai-audit', icon: Activity },
+      { name: 'AI Prompts', href: '/dashboard/team-calls/prompts', icon: PenTool },
+      { name: 'Config', href: '/dashboard/team-calls/config', icon: Settings },
+    ]
+  },
   { name: 'Team', href: '/dashboard/team', icon: Users },
-  {
-    name: 'Conversation',
-    icon: MessageSquare,
-    children: [
-      { name: 'Overview', href: '/dashboard/conversation/overview', icon: LayoutDashboard },
-      { name: 'Call List', href: '/dashboard/conversation/call-list', icon: PhoneCall },
-      { name: 'Action Log', href: '/dashboard/conversation/action-log', icon: Activity },
-    ]
-  },
-  { name: 'Knowledge', href: '/dashboard/knowledge', icon: BookOpen },
-  {
-    name: 'Content',
-    icon: BookOpen,
-    children: [
-      { name: 'Planning', href: '/dashboard/planning', icon: FileText },
-      { name: 'Drafts', href: '/dashboard/drafts', icon: PenTool },
-      { name: 'Media', href: '/dashboard/media', icon: Image },
-    ]
-  },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -71,7 +68,7 @@ export function CollapsibleSidebar({ activeBadgeCount = 0 }: CollapsibleSidebarP
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b">
           <h1 className="text-2xl font-bold text-primary">
-            GeoCMS
+            智能通话分析
           </h1>
 
           <Button
@@ -98,7 +95,7 @@ export function CollapsibleSidebar({ activeBadgeCount = 0 }: CollapsibleSidebarP
               )
             }
 
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(`${item.href}/`))
             const showBadge = item.badge && activeBadgeCount > 0
 
             return (
@@ -173,7 +170,7 @@ interface NavGroupProps {
 
 function NavGroup({ item, pathname }: NavGroupProps) {
   const isAnyChildActive = item.children.some((child: any) =>
-    pathname === child.href || pathname.startsWith(child.href)
+    pathname === child.href || pathname.startsWith(`${child.href}/`)
   )
 
   return (

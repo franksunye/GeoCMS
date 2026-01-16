@@ -3,13 +3,16 @@ import { AGENTS } from '@/lib/constants/agents'
 import Image from 'next/image'
 
 interface AgentAvatarProps {
-  agentId: AgentId
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  agentId: string
+  name?: string
+  avatarUrl?: string
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   showStatus?: boolean
   status?: 'active' | 'idle' | 'scheduled' | 'waiting'
 }
 
 const sizeClasses = {
+  xs: 'h-6 w-6',
   sm: 'h-8 w-8',
   md: 'h-12 w-12',
   lg: 'h-16 w-16',
@@ -17,6 +20,7 @@ const sizeClasses = {
 }
 
 const statusDotSizes = {
+  xs: 'h-1.5 w-1.5',
   sm: 'h-2 w-2',
   md: 'h-3 w-3',
   lg: 'h-4 w-4',
@@ -24,6 +28,7 @@ const statusDotSizes = {
 }
 
 const sizePixels = {
+  xs: 24,
   sm: 32,
   md: 48,
   lg: 64,
@@ -32,11 +37,29 @@ const sizePixels = {
 
 export default function AgentAvatar({
   agentId,
+  name,
+  avatarUrl,
   size = 'md',
   showStatus = false,
   status = 'idle'
 }: AgentAvatarProps) {
-  const agent = AGENTS[agentId]
+  let avatarSrc = avatarUrl
+  let altText = name || agentId || 'Agent'
+
+  // Check if it matches a system agent
+  const systemAgent = AGENTS[agentId as AgentId]
+  
+  if (systemAgent && !avatarSrc) {
+    avatarSrc = systemAgent.avatar
+    altText = altText || systemAgent.name
+  }
+
+  // Fallback to generated avatar
+  if (!avatarSrc) {
+    const seed = name || agentId || 'default'
+    avatarSrc = `https://api.dicebear.com/9.x/notionists/svg?seed=${encodeURIComponent(seed)}&backgroundColor=e5e7eb&backgroundType=gradientLinear`
+    altText = altText || 'Agent'
+  }
 
   const statusColors = {
     active: 'bg-green-500',
@@ -49,8 +72,8 @@ export default function AgentAvatar({
     <div className="relative inline-block">
       <div className={`${sizeClasses[size]} rounded-full overflow-hidden shadow-lg ring-2 ring-white bg-gray-100`}>
         <Image
-          src={agent.avatar}
-          alt={agent.name}
+          src={avatarSrc}
+          alt={altText}
           width={sizePixels[size]}
           height={sizePixels[size]}
           className="object-cover"
@@ -63,4 +86,3 @@ export default function AgentAvatar({
     </div>
   )
 }
-

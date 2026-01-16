@@ -1,0 +1,48 @@
+name: Manual FAQ Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: '处理记录数量'
+        required: false
+        default: '500'
+      days_back:
+        description: '仅分析最近 N 天数据 (0=全部)'
+        required: false
+        default: '0'
+      force_rerun:
+        description: '强制重新分析'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  analyze_faq:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+      
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: 安装依赖
+        run: |
+          pip install psycopg2-binary openai tqdm
+      
+      - name: 运行 FAQ 分析
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          HUNYUAN_API_KEY: ${{ secrets.HUNYUAN_API_KEY }}
+        run: |
+          python scripts/analyze_faq_ci.py \
+            --limit ${{ github.event.inputs.limit }} \
+            --days ${{ github.event.inputs.days_back }} \
+            ${{ github.event.inputs.force_rerun && '--force' || '' }}
+      
+      - name: 分析完成
+        run: echo "✅ FAQ 分析已完成"

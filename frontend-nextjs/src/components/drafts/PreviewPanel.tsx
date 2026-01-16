@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Monitor, Tablet, Smartphone, Eye, EyeOff } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import Image from 'next/image'
 
 interface PreviewPanelProps {
   content: string
@@ -123,10 +124,14 @@ export default function PreviewPanel({
                   <ReactMarkdown
                     components={{
                       img: ({ node, ...props }) => (
-                        <img
+                        <Image
                           {...props}
+                          src={props.src || ''}
+                          width={800}
+                          height={400}
                           className="rounded-lg shadow-md my-4 w-full h-auto"
                           alt={props.alt || 'Content image'}
+                          style={{ width: '100%', height: 'auto' }}
                         />
                       ),
                     }}
@@ -162,14 +167,13 @@ export default function PreviewPanel({
             <div className="border border-gray-200 rounded-lg p-4 bg-white">
               <h4 className="text-xs font-semibold text-gray-600 mb-2 uppercase">Twitter Preview</h4>
               <div className="border border-gray-300 rounded overflow-hidden bg-white shadow-sm">
-                <img
-                  src="/images/demo/social-preview.jpg"
-                  alt="Twitter preview"
-                  className="w-full h-32 object-cover bg-gray-200"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
+                  <Image
+                    src="/images/demo/social-preview.jpg"
+                    alt="Twitter preview"
+                    width={500}
+                    height={260}
+                    className="w-full h-32 object-cover bg-gray-200"
+                  />
                 <div className="p-3">
                   <p className="text-sm text-gray-900 font-medium mb-1">{socialTitle}</p>
                   <p className="text-xs text-gray-600 mb-2">{socialDescription}...</p>
@@ -183,13 +187,12 @@ export default function PreviewPanel({
               <h4 className="text-xs font-semibold text-gray-600 mb-2 uppercase">LinkedIn Preview</h4>
               <div className="border border-gray-300 rounded overflow-hidden bg-white shadow-sm">
                 <div className="flex gap-3 p-3">
-                  <img
+                  <Image
                     src="/images/demo/linkedin-preview.jpg"
                     alt="LinkedIn preview"
+                    width={96}
+                    height={96}
                     className="w-24 h-24 object-cover rounded bg-gray-200"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
                   />
                   <div className="flex-1">
                     <p className="text-sm text-gray-900 font-medium mb-1">{socialTitle}</p>

@@ -1,0 +1,1558 @@
+'use client'
+
+import { Settings, Save, RotateCcw, Plus, Edit2, Trash2, Eye, MoreHorizontal, Clock, User, Copy, Filter, X, Activity } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { PageHeader } from '@/components/ui/page-header'
+
+type Tab = 'signals' | 'tags' | 'rules' | 'scoring' | 'history'
+
+type Signal = {
+  id: string
+  code: string
+  name: string
+  category: string
+  dimension: string
+  targetTagCode: string
+  aggregationMethod: string
+  description: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+type Tag = {
+  id: string
+  name: string
+  code: string
+  category: string
+  dimension: string
+  is_mandatory: boolean
+  polarity: string
+  severity?: string
+  scoreRange: string
+  description: string
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+type ScoringRule = {
+  id: string
+  name: string
+  appliesTo: 'Calls' | 'Leads' | 'All'
+  description: string
+  active: boolean
+  ruleType: 'TagBased' | 'Manual' | 'ML-based'
+  tagCode: string
+  targetDimension: 'process' | 'skills' | 'communication'
+  scoreAdjustment: number
+  weight: number
+  createdAt: string
+  updatedAt: string
+}
+
+type ScoreCalculationConfig = {
+  id: string
+  aggregationMethod: 'weighted-average' | 'custom'
+  processWeight: number
+  skillsWeight: number
+  communicationWeight: number
+  customFormula?: string
+  description: string
+  createdAt: string
+  updatedAt: string
+}
+
+type AuditLog = {
+  id: string
+  timestamp: string
+  user: string
+  action: 'Create' | 'Edit' | 'Delete' | 'Enable' | 'Disable' | 'Rollback'
+  objectType: 'Tag' | 'Rule'
+  objectName: string
+  changes: string
+  details: string
+}
+
+
+
+
+
+
+// Translation Mapping
+const TRANSLATIONS: Record<string, string> = {
+  // Categories
+  'Sales': '销售',
+  'Customer': '客户服务',
+  'Service Issue': '服务问题',
+  'Compliance': '合规质检',
+  
+  // Dimensions
+  'Process': '流程规范',
+  'Skills': '业务技能',
+  'Communication': '沟通技巧',
+  'Objection Handling': '异议处理',
+  'Closing': '缔结成交',
+  'Discovery': '需求挖掘',
+  'Constraint': '约束条件',
+  'Intent': '客户意图',
+  
+  // Common
+  'Positive': '积极',
+  'Negative': '消极',
+  'Neutral': '中性',
+}
+
+// Helper: Translate or return original
+const t = (key: string) => TRANSLATIONS[key] || key
+
+export default function ConversationConfigPage() {
+  const [activeTab, setActiveTab] = useState<Tab>('signals')
+  const [signals, setSignals] = useState<Signal[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [rules, setRules] = useState<ScoringRule[]>([])
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
+  const [scoreConfig, setScoreConfig] = useState<ScoreCalculationConfig | null>(null)
+  
+  const [showTagModal, setShowTagModal] = useState(false)
+  const [showRuleModal, setShowRuleModal] = useState(false)
+  const [showSignalModal, setShowSignalModal] = useState(false)
+  const [showRulePreview, setShowRulePreview] = useState(false)
+  
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null)
+  const [selectedRule, setSelectedRule] = useState<ScoringRule | null>(null)
+  const [selectedSignal, setSelectedSignal] = useState<Signal | null>(null)
+  
+  const [isSaving, setIsSaving] = useState(false)
+  
+  // Filter State
+  const [filterState, setFilterState] = useState({
+    category: '',
+    dimension: '',
+    polarity: ''
+  })
+
+  // Metadata for filters
+  const [metadata, setMetadata] = useState<{
+    categories: string[]
+    dimensions: string[]
+    polarities: string[]
+  }>({ categories: [], dimensions: [], polarities: [] })
+
+  // Trigger tag fetch when filters or tab changes
+  useEffect(() => {
+    if (activeTab === 'tags') {
+      fetchTags()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, filterState])
+
+  const fetchTags = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (filterState.category) params.append('category', filterState.category)
+      if (filterState.dimension) params.append('dimension', filterState.dimension)
+      if (filterState.polarity) params.append('polarity', filterState.polarity)
+      
+      const res = await fetch(`/api/team-calls/config/tags?${params.toString()}`)
+      if (res.ok) {
+        setTags(await res.json())
+      }
+    } catch (error) {
+      console.error('Error fetching tags:', error)
+    }
+  }
+
+  // Fetch Initial Data and Metadata
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [signalsRes, rulesRes, scoreRes, metaRes] = await Promise.all([
+          fetch('/api/team-calls/config/signals'),
+          fetch('/api/team-calls/config/rules'),
+          fetch('/api/team-calls/config/score'),
+          fetch('/api/team-calls/config/metadata')
+        ])
+        
+        if (signalsRes.ok) setSignals(await signalsRes.json())
+        if (rulesRes.ok) setRules(await rulesRes.json())
+        if (scoreRes.ok) {
+          const data = await scoreRes.json()
+          setScoreConfig(data)
+          setScoreForm({
+            processWeight: data.processWeight,
+            skillsWeight: data.skillsWeight,
+            communicationWeight: data.communicationWeight
+          })
+        }
+        if (metaRes.ok) {
+          setMetadata(await metaRes.json())
+        }
+
+        // Initial tag fetch is handled by the other useEffect because initial activeTab might not be 'tags', 
+        // but we might want to pre-load or wait until tab switch. 
+        // Based on current logic `activeTab` defaults to 'signals'. 
+        // If we want to eager load tags we can, but optimizing usually implies lazy loading.
+        // However, let's keep it simple: if user switches to tags, it loads.
+      } catch (e) {
+        console.error('Error fetching config data:', e)
+      }
+    }
+    fetchData()
+  }, [])
+
+  // Derived Filtered Signals (Client-side filtering for Signals)
+  const filteredSignals = useMemo(() => {
+    return signals.filter(signal => {
+      if (filterState.category && signal.category !== filterState.category) return false
+      if (filterState.dimension && signal.dimension !== filterState.dimension) return false
+      return true
+    })
+  }, [signals, filterState])
+
+  // Use metadata for filter options
+  const categories = metadata.categories
+  
+  // For dimensions, we can still filter based on category if we want, but since we don't have the map,
+  // we will just show all dimensions or rely on the server validation. 
+  // To keep the UI consistent with "cascading", we might simply show all dimensions from metadata
+  // OR we can rely on the fact that metadata returns all valid dimensions.
+  // For now, let's use all dimensions from metadata to ensure we see everything available.
+  const dimensions = metadata.dimensions
+
+  // Reset dimension when category changes? 
+  // With server side filtering, we don't strictly enforce this in the UI as strictly, 
+  // but it's good UX.
+  useEffect(() => {
+    // If we want to keep the "reset dimension if not in category" logic, we need the mapping.
+    // Since we simplified metadata, we'll skip the auto-reset for now or just trust the user.
+    // Or we rely on the implementation below which sets filterState.
+  }, [filterState.category])
+  
+  // Signal form state
+  const [signalForm, setSignalForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', targetTagCode: '', aggregationMethod: 'Count', description: '', active: true })
+  
+  // Tag form state
+  const [tagForm, setTagForm] = useState({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', is_mandatory: false, polarity: 'Neutral' as const, severity: '无', scoreRange: '1-5', description: '', active: true })
+  
+  // Rule form state
+  const [ruleForm, setRuleForm] = useState({ name: '', description: '', tagCode: '', targetDimension: 'skills' as 'process' | 'skills' | 'communication', scoreAdjustment: 0, weight: 1.0, active: true })
+  
+
+
+  // Score config form state
+  const [scoreForm, setScoreForm] = useState({ processWeight: 30, skillsWeight: 50, communicationWeight: 20 })
+
+
+
+  const handleSaveSignal = async () => {
+    setIsSaving(true)
+    try {
+      const method = selectedSignal ? 'PUT' : 'POST'
+      const body = selectedSignal ? { ...signalForm, id: selectedSignal.id } : signalForm
+      
+      const res = await fetch('/api/team-calls/config/signals', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!res.ok) throw new Error('Failed to save signal')
+
+      // Refresh signals
+      const signalsRes = await fetch('/api/team-calls/config/signals')
+      if (signalsRes.ok) {
+        setSignals(await signalsRes.json())
+      }
+      
+      setShowSignalModal(false)
+      setSignalForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', targetTagCode: '', aggregationMethod: 'Count', description: '', active: true })
+    } catch (error) {
+      console.error('Error saving signal:', error)
+      alert('Failed to save signal')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleToggleSignal = async (signalId: string) => {
+    const signal = signals.find(s => s.id === signalId)
+    if (!signal) return
+
+    try {
+      const res = await fetch('/api/team-calls/config/signals', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...signal, active: !signal.active })
+      })
+
+      if (!res.ok) throw new Error('Failed to update signal')
+
+      setSignals(signals.map((s: Signal) => s.id === signalId ? { ...s, active: !s.active } : s))
+    } catch (error) {
+      console.error('Error toggling signal:', error)
+    }
+  }
+
+  const handleDeleteSignal = async (signalId: string) => {
+    if (!confirm('确定要删除这个信号吗？')) return
+
+    try {
+      const res = await fetch(`/api/team-calls/config/signals?id=${signalId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete signal')
+
+      setSignals(signals.filter(s => s.id !== signalId))
+    } catch (error) {
+      console.error('Error deleting signal:', error)
+      alert('Failed to delete signal')
+    }
+  }
+
+  const handleSaveTag = async () => {
+    setIsSaving(true)
+    try {
+      const method = selectedTag ? 'PUT' : 'POST'
+      const body = selectedTag ? { ...tagForm, id: selectedTag.id } : tagForm
+      
+      const res = await fetch('/api/team-calls/config/tags', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!res.ok) throw new Error('Failed to save tag')
+
+      // Refresh tags using current filters
+      fetchTags()
+      
+      setShowTagModal(false)
+      setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', is_mandatory: false, polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
+    } catch (error) {
+      console.error('Error saving tag:', error)
+      alert('Failed to save tag')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSaveRule = async () => {
+    setIsSaving(true)
+    try {
+      const method = selectedRule ? 'PUT' : 'POST'
+      const body = selectedRule ? { ...ruleForm, id: selectedRule.id } : ruleForm
+      
+      const res = await fetch('/api/team-calls/config/rules', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+
+      if (!res.ok) throw new Error('Failed to save rule')
+
+      // Refresh rules
+      const rulesRes = await fetch('/api/team-calls/config/rules')
+      if (rulesRes.ok) {
+        setRules(await rulesRes.json())
+      }
+      
+      setShowRuleModal(false)
+      setRuleForm({ name: '', description: '', tagCode: '', targetDimension: 'skills', scoreAdjustment: 0, weight: 1.0, active: true })
+    } catch (error) {
+      console.error('Error saving rule:', error)
+      alert('Failed to save rule')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSaveScoreConfig = async () => {
+    setIsSaving(true)
+    try {
+      const res = await fetch('/api/team-calls/config/score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...scoreForm,
+          aggregationMethod: 'weighted-average',
+          description: 'Default Config'
+        })
+      })
+
+      if (!res.ok) throw new Error('Failed to save score config')
+      
+      alert('Score configuration saved successfully')
+    } catch (error) {
+      console.error('Error saving score config:', error)
+      alert('Failed to save score configuration')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleToggleTag = async (tagId: string) => {
+    const tag = tags.find(t => t.id === tagId)
+    if (!tag) return
+
+    try {
+      const res = await fetch('/api/team-calls/config/tags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...tag, active: !tag.active })
+      })
+
+      if (!res.ok) throw new Error('Failed to update tag')
+
+      setTags(tags.map((t: Tag) => t.id === tagId ? { ...t, active: !t.active } : t))
+    } catch (error) {
+      console.error('Error toggling tag:', error)
+    }
+  }
+
+  const handleToggleRule = async (ruleId: string) => {
+    const rule = rules.find(r => r.id === ruleId)
+    if (!rule) return
+
+    try {
+      const res = await fetch('/api/team-calls/config/rules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...rule, active: !rule.active })
+      })
+
+      if (!res.ok) throw new Error('Failed to update rule')
+
+      setRules(rules.map((r: ScoringRule) => r.id === ruleId ? { ...r, active: !r.active } : r))
+    } catch (error) {
+      console.error('Error toggling rule:', error)
+    }
+  }
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!confirm('确定要删除这个标签吗？')) return
+
+    try {
+      const res = await fetch(`/api/team-calls/config/tags?id=${tagId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete tag')
+
+      setTags(tags.filter(t => t.id !== tagId))
+    } catch (error) {
+      console.error('Error deleting tag:', error)
+      alert('Failed to delete tag')
+    }
+  }
+
+  const handleDeleteRule = async (ruleId: string) => {
+    if (!confirm('确定要删除这个规则吗？')) return
+
+    try {
+      const res = await fetch(`/api/team-calls/config/rules?id=${ruleId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) throw new Error('Failed to delete rule')
+
+      setRules(rules.filter(r => r.id !== ruleId))
+    } catch (error) {
+      console.error('Error deleting rule:', error)
+      alert('Failed to delete rule')
+    }
+  }
+
+
+
+  return (
+    <div>
+      <div className="mb-8">
+        <PageHeader
+          title="通话配置"
+          description="管理信号、标签、评分规则和系统配置"
+        />
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white shadow rounded-lg mb-6 border-b border-gray-200">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab('signals')}
+            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'signals'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            信号定义
+          </button>
+          <button
+            onClick={() => setActiveTab('tags')}
+            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'tags'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            标签管理
+          </button>
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'rules'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            评分规则
+          </button>
+          <button
+            onClick={() => setActiveTab('scoring')}
+            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'scoring'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            评分计算
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`px-6 py-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'history'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            历史记录
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'signals' && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">信号定义</h2>
+              <button
+                onClick={() => {
+                  setSelectedSignal(null)
+                  setSignalForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', targetTagCode: '', aggregationMethod: 'Count', description: '', active: true })
+                  setShowSignalModal(true)
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                添加信号
+              </button>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4">
+              <select
+                value={filterState.category}
+                onChange={(e) => setFilterState({ ...filterState, category: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">所有分类</option>
+                {categories.sort().map(cat => (
+                  <option key={cat} value={cat}>{t(cat)}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterState.dimension}
+                onChange={(e) => setFilterState({ ...filterState, dimension: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">所有维度</option>
+                {dimensions.sort().map(dim => (
+                  <option key={dim} value={dim}>{t(dim)}</option>
+                ))}
+              </select>
+
+              {(filterState.category || filterState.dimension) && (
+                <button
+                  onClick={() => setFilterState({ category: '', dimension: '', polarity: '' })}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  重置筛选
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Signals Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">名称 / 代码</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">分类 / 维度</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">目标标签</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">描述 / 逻辑</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">状态</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredSignals.map((signal) => (
+                  <tr key={signal.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{signal.name}</span>
+                        <span className="text-xs text-gray-500 font-mono">{signal.code}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{t(signal.category)}</span>
+                        <span className="text-xs text-gray-500">{t(signal.dimension)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-mono text-xs text-blue-600">
+                      {signal.targetTagCode}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs">{signal.description}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={signal.active}
+                          onChange={() => handleToggleSignal(signal.id)}
+                          className="h-4 w-4 text-blue-600 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{signal.active ? '启用' : '禁用'}</span>
+                      </label>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedSignal(signal)
+                            setSignalForm({
+                              name: signal.name,
+                              code: signal.code,
+                              category: signal.category,
+                              dimension: signal.dimension,
+                              targetTagCode: signal.targetTagCode,
+                              aggregationMethod: signal.aggregationMethod,
+                              description: signal.description,
+                              active: signal.active
+                            })
+                            setShowSignalModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button 
+                          className="text-red-600 hover:text-red-700" 
+                          title="Delete"
+                          onClick={() => handleDeleteSignal(signal.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'tags' && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">标签管理</h2>
+              <button
+                onClick={() => {
+                  setSelectedTag(null)
+                  setTagForm({ name: '', code: '', category: 'Sales', dimension: 'Sales.Process', is_mandatory: false, polarity: 'Neutral', severity: '无', scoreRange: '1-5', description: '', active: true })
+                  setShowTagModal(true)
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+              >
+                <Plus className="h-4 w-4" />
+                添加标签
+              </button>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4">
+              <select
+                value={filterState.category}
+                onChange={(e) => setFilterState({ ...filterState, category: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">所有分类</option>
+                {categories.sort().map(cat => (
+                  <option key={cat} value={cat}>{t(cat)}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterState.dimension}
+                onChange={(e) => setFilterState({ ...filterState, dimension: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">所有维度</option>
+                {dimensions.sort().map(dim => (
+                  <option key={dim} value={dim}>{t(dim)}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterState.polarity}
+                onChange={(e) => setFilterState({ ...filterState, polarity: e.target.value })}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">所有极性</option>
+                {metadata.polarities.map(p => (
+                  <option key={p} value={p}>{t(p)}</option>
+                ))}
+              </select>
+
+              {(filterState.category || filterState.dimension || filterState.polarity) && (
+                <button
+                  onClick={() => setFilterState({ category: '', dimension: '', polarity: '' })}
+                  className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  重置筛选
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tags Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">名称 / 代码</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">分类 / 维度</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">必选</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">极性</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">状态</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">描述</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {tags.map((tag) => (
+                  <tr key={tag.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{tag.name}</span>
+                        <span className="text-xs text-gray-500 font-mono">{tag.code}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-900">{t(tag.category)}</span>
+                        <span className="text-xs text-gray-500">{t(tag.dimension)}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {tag.is_mandatory ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                           必选
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                           可选
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        tag.polarity === 'Positive' ? 'bg-green-100 text-green-800' :
+                        tag.polarity === 'Negative' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {tag.polarity}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={tag.active}
+                          onChange={() => handleToggleTag(tag.id)}
+                          className="h-4 w-4 text-blue-600 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{tag.active ? '启用' : '禁用'}</span>
+                      </label>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 truncate max-w-xs">{tag.description}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedTag(tag)
+                            setTagForm({
+                              name: tag.name,
+                              code: tag.code,
+                              category: tag.category,
+                              dimension: tag.dimension,
+                              is_mandatory: tag.is_mandatory,
+                              polarity: tag.polarity as any,
+                              severity: tag.severity || '无',
+                              scoreRange: tag.scoreRange,
+                              description: tag.description,
+                              active: tag.active
+                            })
+                            setShowTagModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button 
+                          className="text-red-600 hover:text-red-700" 
+                          title="Delete"
+                          onClick={() => handleDeleteTag(tag.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'rules' && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">评分规则</h2>
+            <button
+              onClick={() => {
+                setSelectedRule(null)
+                setRuleForm({ name: '', description: '', tagCode: '', targetDimension: 'skills', scoreAdjustment: 0, weight: 1.0, active: true })
+                setShowRuleModal(true)
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+            >
+              <Plus className="h-4 w-4" />
+              添加规则
+            </button>
+          </div>
+
+          {/* Rules Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">规则名称</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">标签</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">目标维度</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">调整分值</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">权重</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">状态</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {rules.map((rule) => (
+                  <tr key={rule.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{rule.name}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 font-mono text-xs">{rule.tagCode}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {rule.targetDimension === 'process' && '⚙️ 流程'}
+                        {rule.targetDimension === 'skills' && '🎯 技能'}
+                        {rule.targetDimension === 'communication' && '🗣️ 沟通'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-mono text-gray-900">
+                      <span className={rule.scoreAdjustment > 0 ? 'text-green-600' : rule.scoreAdjustment < 0 ? 'text-red-600' : 'text-gray-600'}>
+                        {rule.scoreAdjustment > 0 ? '+' : ''}{rule.scoreAdjustment}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{rule.weight.toFixed(1)}x</td>
+                    <td className="px-6 py-4 text-sm">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rule.active}
+                          onChange={() => handleToggleRule(rule.id)}
+                          className="h-4 w-4 text-blue-600 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{rule.active ? '启用' : '禁用'}</span>
+                      </label>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setSelectedRule(rule)
+                            setRuleForm({
+                              name: rule.name,
+                              description: rule.description,
+                              tagCode: rule.tagCode,
+                              targetDimension: rule.targetDimension,
+                              scoreAdjustment: rule.scoreAdjustment,
+                              weight: rule.weight,
+                              active: rule.active
+                            })
+                            setShowRuleModal(true)
+                          }}
+                          className="text-blue-600 hover:text-blue-700"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSelectedRule(rule)
+                            setShowRulePreview(true)
+                          }}
+                          className="text-green-600 hover:text-green-700" 
+                          title="Preview"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteRule(rule.id)}
+                          className="text-red-600 hover:text-red-700" 
+                          title="Delete"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'scoring' && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">评分计算配置</h2>
+            <p className="text-sm text-gray-600 mt-1">定义如何从三个维度计算整体质量评分</p>
+          </div>
+
+          <div className="px-6 py-6 space-y-6">
+            {/* Aggregation Method */}
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">聚合方法</h3>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3">
+                  <input type="radio" name="method" value="weighted-average" defaultChecked className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm text-gray-700"><strong>加权平均</strong>（推荐）</span>
+                </label>
+                <p className="text-xs text-gray-500 ml-7">overallScore = (process × weight) + (skills × weight) + (communication × weight)</p>
+              </div>
+            </div>
+
+            {/* Weight Configuration */}
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-4">评分权重</h3>
+              <p className="text-xs text-gray-500 mb-4">调整每个维度对整体评分的贡献（总和必须等于100%）</p>
+              
+              <div className="space-y-5">
+                {/* Process Weight */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">⚙️ 流程评分权重</label>
+                    <span className="text-sm font-semibold text-gray-900">{scoreForm.processWeight}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={scoreForm.processWeight}
+                    onChange={(e) => {
+                      const newProcess = parseInt(e.target.value)
+                      const available = 100 - newProcess
+                      setScoreForm({
+                        ...scoreForm,
+                        processWeight: newProcess,
+                        skillsWeight: Math.min(scoreForm.skillsWeight, available),
+                      })
+                    }}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+
+                {/* Skills Weight */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">🎯 技能评分权重</label>
+                    <span className="text-sm font-semibold text-gray-900">{scoreForm.skillsWeight}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={scoreForm.skillsWeight}
+                    onChange={(e) => {
+                      const newSkills = parseInt(e.target.value)
+                      const available = 100 - newSkills
+                      setScoreForm({
+                        ...scoreForm,
+                        skillsWeight: newSkills,
+                        communicationWeight: Math.min(scoreForm.communicationWeight, available),
+                      })
+                    }}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+
+                {/* Communication Weight */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">🗣️ 沟通评分权重</label>
+                    <span className="text-sm font-semibold text-gray-900">{scoreForm.communicationWeight}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={scoreForm.communicationWeight}
+                    onChange={(e) => setScoreForm({ ...scoreForm, communicationWeight: parseInt(e.target.value) })}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+
+                {/* Total Display */}
+                <div className="bg-gray-50 rounded p-3 border border-gray-200">
+                  <p className="text-xs text-gray-600 font-medium">总权重</p>
+                  <p className={`text-lg font-bold ${scoreForm.processWeight + scoreForm.skillsWeight + scoreForm.communicationWeight === 100 ? 'text-green-600' : 'text-red-600'}`}>
+                    {scoreForm.processWeight + scoreForm.skillsWeight + scoreForm.communicationWeight}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Formula Preview */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-2">公式预览</h4>
+              <code className="text-sm text-blue-800 font-mono block p-3 bg-white rounded border border-blue-100">
+                overallScore = (process × {(scoreForm.processWeight / 100).toFixed(2)}) + (skills × {(scoreForm.skillsWeight / 100).toFixed(2)}) + (communication × {(scoreForm.communicationWeight / 100).toFixed(2)})
+              </code>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end pt-4 border-t border-gray-200">
+              <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                重置为默认值
+              </button>
+              <button
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                onClick={handleSaveScoreConfig}
+                disabled={isSaving}
+              >
+                {isSaving ? '保存中...' : '保存配置'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'history' && (
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">审计日志与版本历史</h2>
+          </div>
+
+          {/* Audit Log Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">时间</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">用户</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">操作</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">对象</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">变更</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">详情</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {auditLogs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm text-gray-600 whitespace-nowrap flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-400" />
+                      {log.timestamp}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600 flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-400" />
+                      {log.user}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          log.action === 'Create'
+                            ? 'bg-green-100 text-green-800'
+                            : log.action === 'Delete'
+                            ? 'bg-red-100 text-red-800'
+                            : log.action === 'Edit'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                      >
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        {log.objectType}
+                      </span>
+                      <span className="ml-2 font-medium text-gray-900">{log.objectName}</span>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-mono text-gray-600">{log.changes}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">{log.details}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Signal Modal */}
+      {showSignalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {selectedSignal ? '编辑信号' : '添加新信号'}
+              </h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">信号名称</label>
+                <input
+                  type="text"
+                  placeholder="例如：竞争对手提及"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.name}
+                  onChange={(e) => setSignalForm({ ...signalForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">信号代码</label>
+                <input
+                  type="text"
+                  placeholder="例如：competitor_mention"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.code}
+                  onChange={(e) => setSignalForm({ ...signalForm, code: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分类</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={signalForm.category}
+                    onChange={(e) => setSignalForm({ ...signalForm, category: e.target.value })}
+                  >
+                    {categories.map(cat => <option key={cat} value={cat}>{t(cat)}</option>)}
+                    <option value="New Category">新分类...</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">维度</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={signalForm.dimension}
+                    onChange={(e) => setSignalForm({ ...signalForm, dimension: e.target.value })}
+                  >
+                    {dimensions.map(dim => <option key={dim} value={dim}>{t(dim)}</option>)}
+                    <option value="New Dimension">新维度...</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">目标标签代码（可选）</label>
+                <input
+                  type="text"
+                  placeholder="例如：linked_tag_code"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.targetTagCode}
+                  onChange={(e) => setSignalForm({ ...signalForm, targetTagCode: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">聚合方法</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={signalForm.aggregationMethod}
+                  onChange={(e) => setSignalForm({ ...signalForm, aggregationMethod: e.target.value })}
+                >
+                  <option value="Count">计数统计</option>
+                  <option value="Existence">存在检测</option>
+                  <option value="Sentiment">情感分析</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">描述 / 逻辑</label>
+                <textarea
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  value={signalForm.description}
+                  onChange={(e) => setSignalForm({ ...signalForm, description: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="signal-active"
+                  type="checkbox"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  checked={signalForm.active}
+                  onChange={(e) => setSignalForm({ ...signalForm, active: e.target.checked })}
+                />
+                <label htmlFor="signal-active" className="ml-2 block text-sm text-gray-900">
+                  启用
+                </label>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowSignalModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveSignal}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSaving ? '保存中...' : '保存信号'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tag Modal */}
+      {showTagModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {selectedTag ? '编辑标签' : '添加新标签'}
+              </h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">标签名称</label>
+                <input
+                  type="text"
+                  placeholder="例如：价格异议"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={tagForm.name}
+                  onChange={(e) => setTagForm({ ...tagForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">代码 / 键值</label>
+                <input
+                  type="text"
+                  placeholder="例如：price_objection"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-xs"
+                  value={tagForm.code}
+                  onChange={(e) => setTagForm({ ...tagForm, code: e.target.value })}
+                />
+              </div>
+              <div className="bg-red-50 p-3 rounded-md border border-red-100">
+                <label className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    checked={tagForm.is_mandatory}
+                    onChange={(e) => setTagForm({ ...tagForm, is_mandatory: e.target.checked })}
+                    className="h-4 w-4 text-red-600 rounded focus:ring-red-500" 
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-red-900 block">设为必选动作</span>
+                    <span className="text-xs text-red-700 block mt-0.5">
+                        若未触发此标签，该维度评分将被拉低（计入分母但分子为0）。
+                        <br/>
+                        若未勾选（默认），则为&quot;加分项&quot;，未触发时不影响平均分。
+                    </span>
+                  </div>
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分类</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={tagForm.category}
+                    onChange={(e) => setTagForm({ ...tagForm, category: e.target.value })}
+                  >
+                    <option value="">选择分类...</option>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{t(cat)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">维度</label>
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={tagForm.dimension}
+                    onChange={(e) => setTagForm({ ...tagForm, dimension: e.target.value })}
+                  >
+                    <option value="">选择维度...</option>
+                    {dimensions.map(dim => (
+                      <option key={dim} value={dim}>{t(dim)}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">极性</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={tagForm.polarity}
+                    onChange={(e) => setTagForm({ ...tagForm, polarity: e.target.value as any })}
+                  >
+                    <option value="Positive">{t('Positive')}</option>
+                    <option value="Negative">{t('Negative')}</option>
+                    <option value="Neutral">{t('Neutral')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分数范围</label>
+                  <input
+                    type="text"
+                    placeholder="例如：1-5"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={tagForm.scoreRange}
+                    onChange={(e) => setTagForm({ ...tagForm, scoreRange: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                <textarea
+                  rows={3}
+                  placeholder="标签定义和使用指南..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  value={tagForm.description}
+                  onChange={(e) => setTagForm({ ...tagForm, description: e.target.value })}
+                />
+              </div>
+              <label className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  checked={tagForm.active}
+                  onChange={(e) => setTagForm({ ...tagForm, active: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 rounded" 
+                />
+                <span className="text-sm text-gray-700">启用</span>
+              </label>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex gap-2 justify-end">
+              <button
+                onClick={() => setShowTagModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveTag}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSaving ? '保存中...' : '保存标签'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rule Modal */}
+      {showRuleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200 sticky top-0 bg-white">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {selectedRule ? '编辑评分规则' : '添加新评分规则'}
+              </h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">规则名称</label>
+                <input
+                  type="text"
+                  placeholder="例如：高购买意向"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  value={ruleForm.name}
+                  onChange={(e) => setRuleForm({ ...ruleForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
+                <textarea
+                  rows={2}
+                  placeholder="这个规则的作用是什么？"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  value={ruleForm.description}
+                  onChange={(e) => setRuleForm({ ...ruleForm, description: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">监控标签</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    value={ruleForm.tagCode}
+                    onChange={(e) => setRuleForm({ ...ruleForm, tagCode: e.target.value })}
+                  >
+                    <option value="">选择一个标签...</option>
+                    {tags.map(t => (
+                      <option key={t.id} value={t.code}>{t.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">影响维度</label>
+                  <select 
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    value={ruleForm.targetDimension}
+                    onChange={(e) => setRuleForm({ ...ruleForm, targetDimension: e.target.value as any })}
+                  >
+                    <option value="process">⚙️ 流程分</option>
+                    <option value="skills">🎯 技能分</option>
+                    <option value="communication">🗣️ 沟通分</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">分数调整 (-100 到 +100)</label>
+                  <input
+                    type="number"
+                    min={-100}
+                    max={100}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={ruleForm.scoreAdjustment}
+                    onChange={(e) => setRuleForm({ ...ruleForm, scoreAdjustment: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">权重 (0.5-2.0)</label>
+                  <input
+                    type="number"
+                    step={0.1}
+                    min={0.5}
+                    max={2.0}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    value={ruleForm.weight}
+                    onChange={(e) => setRuleForm({ ...ruleForm, weight: parseFloat(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  checked={ruleForm.active}
+                  onChange={(e) => setRuleForm({ ...ruleForm, active: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 rounded" 
+                />
+                <span className="text-sm text-gray-700">启用</span>
+              </label>
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                <p className="text-xs text-blue-800">
+                  <strong>📌 逻辑：</strong>当检测到标签时，将分数调整应用到目标维度，并使用指定的权重。
+                </p>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex gap-2 justify-end sticky bottom-0 bg-gray-50">
+              <button
+                onClick={() => setShowRuleModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveRule}
+                disabled={isSaving}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isSaving ? '保存中...' : '保存规则'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rule Preview Modal */}
+      {showRulePreview && selectedRule && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">规则详情：{selectedRule.name}</h3>
+              <p className="text-sm text-gray-600 mt-1">{selectedRule.description}</p>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <h4 className="font-semibold text-gray-900 mb-2">触发条件</h4>
+                <p className="text-sm text-gray-700">当标签 <code className="bg-blue-50 px-2 py-1 rounded text-xs font-mono">{selectedRule.tagCode}</code> 被检测到时</p>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                  <p className="text-xs text-purple-600 font-medium uppercase">目标</p>
+                  <p className="text-lg font-bold text-purple-900 mt-1">
+                    {selectedRule.targetDimension === 'process' && '⚙️ 流程'}
+                    {selectedRule.targetDimension === 'skills' && '🎯 技能'}
+                    {selectedRule.targetDimension === 'communication' && '🗣️ 沟通'}
+                  </p>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <p className="text-xs text-blue-600 font-medium uppercase">影响</p>
+                  <p className={`text-lg font-bold mt-1 ${selectedRule.scoreAdjustment > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {selectedRule.scoreAdjustment > 0 ? '+' : ''}{selectedRule.scoreAdjustment} 分
+                  </p>
+                </div>
+                <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
+                  <p className="text-xs text-orange-600 font-medium uppercase">权重</p>
+                  <p className="text-lg font-bold text-orange-900 mt-1">{selectedRule.weight}x</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowRulePreview(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
+    </div>
+  )
+}

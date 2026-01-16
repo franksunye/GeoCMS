@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import publishingData from '@/lib/data/publishing.json'
 
+// Force dynamic rendering since we use searchParams
+export const dynamic = 'force-dynamic';
+
 let publishing = [...publishingData]
 let nextId = Math.max(...publishing.map(p => p.id)) + 1
 

@@ -1,18 +1,18 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, formatDistanceToNow } from "date-fns"
-import { enUS } from "date-fns/locale"
+import { zhCN } from "date-fns/locale"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 export function formatDate(date: string | Date, formatStr: string = "yyyy-MM-dd HH:mm"): string {
-  return format(new Date(date), formatStr, { locale: enUS })
+  return format(new Date(date), formatStr, { locale: zhCN })
 }
 
 export function formatRelativeTime(date: string | Date): string {
-  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: enUS })
+  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: zhCN })
 }
 
 export function truncate(str: string, length: number): string {

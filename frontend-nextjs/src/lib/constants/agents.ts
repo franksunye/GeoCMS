@@ -1,6 +1,6 @@
-import { Brain, Lightbulb, Pencil, ShieldCheck, PhoneCall } from 'lucide-react'
+import { Brain, Lightbulb, Pencil, ShieldCheck, PhoneCall, User } from 'lucide-react'
 
-export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier' | 'call_analysis'
+export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier' | 'call_analysis' | 'default-avatar'
 
 export type AgentStatus = 'active' | 'idle' | 'scheduled' | 'waiting'
 
@@ -84,6 +84,19 @@ export const AGENTS: Record<AgentId, AgentConfig> = {
     description: 'Analyzes call recordings and extracts actionable insights',
     schedule: 'On-demand + Daily summary at 7:00 PM',
     triggers: ['New call recording', 'Support ticket flagged', 'Weekly report generation']
+  },
+  'default-avatar': {
+    id: 'default-avatar',
+    name: 'Sales Rep',
+    icon: User,
+    avatar: 'https://api.dicebear.com/9.x/notionists/svg?seed=Felix&backgroundColor=e5e7eb&backgroundType=gradientLinear',
+    color: 'gray',
+    bgColor: 'bg-gray-500',
+    borderColor: 'border-gray-300',
+    textColor: 'text-gray-600',
+    description: 'Sales Representative',
+    schedule: 'Variable',
+    triggers: []
   }
 }
 

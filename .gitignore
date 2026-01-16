@@ -1,34 +1,3 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Exception: Allow frontend lib/data for mock data
-!frontend-nextjs/src/lib/
-!frontend-nextjs/src/lib/**
-
-# Virtual Environment
-venv/
-ENV/
-
 # IDE
 .idea/
 .vscode/
@@ -41,15 +10,44 @@ ENV/
 
 # Environment variables
 .env
+.env.local
+.env.production
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Testing
-.coverage
-.pytest_cache/
-htmlcov/
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Build outputs
+.next/
+build/
+dist/
+
+# Dependencies
+node_modules/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Next.js
+/.next/
+/out/
+
+# Production
+.npmrc
+.yarnrc
+
+# Debug
+*.tsbuildinfo
+
+# Misc
+.cache/
+.parcel-cache/

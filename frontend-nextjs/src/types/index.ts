@@ -305,7 +305,7 @@ export interface AgentStats {
 }
 
 // Agent Team types
-export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier' | 'call_analysis'
+export type AgentId = 'knowledge' | 'planner' | 'writer' | 'verifier' | 'call_analysis' | 'default-avatar'
 export type AgentStatus = 'active' | 'idle' | 'scheduled' | 'waiting'
 
 export interface AgentStatusData {

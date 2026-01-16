@@ -1,0 +1,235 @@
+﻿import { PrismaClient } from '../../src/generated/prisma'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import path from 'path'
+import fs from 'fs'
+import dotenv from 'dotenv'
+
+// Load environment variables
+const envPath = path.join(process.cwd(), '.env')
+if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath })
+}
+
+// Initialize Prisma with Adapter
+const DATABASE_URL = process.env.DATABASE_URL || 'file:./team-calls.db'
+const adapter = new PrismaBetterSqlite3({ url: DATABASE_URL })
+const prisma = new PrismaClient({ adapter })
+
+interface ScoreConfig {
+    processWeight: number
+    skillsWeight: number
+    communicationWeight: number
+}
+
+interface AgentStats {
+    id: string
+    name: string
+    totalCalls: number
+    wonCalls: number
+    winRate: number
+    processScore: number
+    skillsScore: number
+    commScore: number
+    overallScore: number
+}
+
+async function main() {
+    console.log('🚀 Starting Scorecard Correlation Analysis...\n')
+
+    // 1. Load Configuration
+    console.log('⚙️  Loading Scoring Configuration...')
+
+    const scoreConfigRaw = await prisma.scoreConfig.findFirst()
+    const scoreWeights: ScoreConfig = {
+        processWeight: scoreConfigRaw?.processWeight || 30,
+        skillsWeight: scoreConfigRaw?.skillsWeight || 50,
+        communicationWeight: scoreConfigRaw?.communicationWeight || 20
+    }
+    console.log(`   Dimension Weights: Process=${scoreWeights.processWeight}%, Skills=${scoreWeights.skillsWeight}%, Comm=${scoreWeights.communicationWeight}%`)
+
+    const scoringRules = await prisma.scoringRule.findMany({
+        where: { active: 1, ruleType: 'TagBased' }
+    })
+    const tagWeightMap = new Map<string, number>()
+    scoringRules.forEach((rule: any) => {
+        tagWeightMap.set(rule.tagCode, rule.weight)
+    })
+    console.log(`   Tag Rules Loaded: ${scoringRules.length} rules active.`)
+
+    // 2. Fetch Data (All valid data)
+    console.log('📥 Fetching Calls and Tags...')
+
+    const calls = await prisma.call.findMany({
+        select: {
+            id: true,
+            agentId: true,
+            outcome: true
+        }
+    })
+
+    const agentMap = new Map<string, { total: number, won: number }>()
+    calls.forEach((c: any) => {
+        if (!agentMap.has(c.agentId)) agentMap.set(c.agentId, { total: 0, won: 0 })
+        const stat = agentMap.get(c.agentId)!
+        stat.total++
+        if (c.outcome === 'won') stat.won++
+    })
+
+    const validAgentIds = Array.from(agentMap.entries())
+        .filter(([_, stat]) => stat.total > 5)
+        .map(([id, _]) => id)
+
+    console.log(`   Found ${calls.length} total calls. Analyzing ${validAgentIds.length} agents with >5 calls.`)
+
+    const allTags = await prisma.tag.findMany({
+        where: { active: 1 }
+    })
+
+    const callTags = await prisma.callTag.findMany({
+        where: {
+            call: {
+                agentId: { in: validAgentIds }
+            }
+        },
+        include: {
+            tag: true,
+            call: { select: { agentId: true } }
+        }
+    })
+
+    const agentsData = await prisma.agent.findMany({ where: { id: { in: validAgentIds } } })
+    const agentNameMap = new Map(agentsData.map(a => [a.id, a.name]))
+
+    // 3. Calculate Scores
+    const agentScoresMap = new Map<string, Map<string, number[]>>()
+
+    callTags.forEach((a: any) => {
+        const aid = a.call.agentId
+        if (!agentScoresMap.has(aid)) agentScoresMap.set(aid, new Map())
+        const tagMap = agentScoresMap.get(aid)!
+
+        if (!tagMap.has(a.tag.id)) tagMap.set(a.tag.id, [])
+        tagMap.get(a.tag.id)!.push(a.score)
+    })
+
+    const agentTagAvgMap = new Map<string, Map<string, number>>()
+    agentScoresMap.forEach((tagMap, agentId) => {
+        const avgMap = new Map<string, number>()
+        tagMap.forEach((scores, tagId) => {
+            const avg = scores.reduce((sum, val) => sum + val, 0) / scores.length
+            avgMap.set(tagId, avg)
+        })
+        agentTagAvgMap.set(agentId, avgMap)
+    })
+
+    const results: AgentStats[] = []
+
+    const getDimensionCategory = (dim: string): string => {
+        if (dim === 'Process' || dim === 'Sales.Process') return 'Process'
+        if (dim === 'Communication' || dim === 'Sales.Communication') return 'Communication'
+        if (dim === 'Skills' || dim === 'Sales.Skills' || dim === 'Intent' || dim === 'Constraint') return 'Skills'
+        return 'Other'
+    }
+
+    const processTags = allTags.filter((t: any) => getDimensionCategory(t.dimension) === 'Process')
+    const skillsTags = allTags.filter((t: any) => getDimensionCategory(t.dimension) === 'Skills')
+    const commTags = allTags.filter((t: any) => getDimensionCategory(t.dimension) === 'Communication')
+
+    for (const agentId of validAgentIds) {
+        const stats = agentMap.get(agentId)!
+        const winRate = (stats.won / stats.total) * 100
+        const tagAvgs = agentTagAvgMap.get(agentId) || new Map()
+
+        const calcDimScore = (refTags: any[]) => {
+            let weightedSum = 0
+            let weightSum = 0
+
+            for (const tag of refTags) {
+                const score = tagAvgs.get(tag.id)
+                const weight = tagWeightMap.get(tag.code) || 1.0
+
+                if (score !== undefined) {
+                    weightedSum += score * weight
+                    weightSum += weight
+                } else if (tag.isMandatory) {
+                    weightSum += weight
+                }
+            }
+            return weightSum > 0 ? (weightedSum / weightSum) : 0
+        }
+
+        const processScore = calcDimScore(processTags)
+        const skillsScore = calcDimScore(skillsTags)
+        const commScore = calcDimScore(commTags)
+
+        const overallScore = (
+            processScore * scoreWeights.processWeight +
+            skillsScore * scoreWeights.skillsWeight +
+            commScore * scoreWeights.communicationWeight
+        ) / 100
+
+        results.push({
+            id: agentId,
+            name: agentNameMap.get(agentId) || agentId.substring(agentId.length - 4),
+            totalCalls: stats.total,
+            wonCalls: stats.won,
+            winRate: winRate,
+            processScore,
+            skillsScore,
+            commScore,
+            overallScore
+        })
+    }
+
+    // 4. Output Results
+    console.log('\n📊 Results Sorted by Win Rate (Descending):')
+    console.log('Agent                | Calls | Win Rate | Overall | Process | Skills | Comm')
+    console.log('---------------------+-------+----------+---------+---------+--------+------')
+
+    results.sort((a, b) => b.winRate - a.winRate)
+
+    results.forEach(r => {
+        console.log(
+            `${r.name.padEnd(20)} | ` +
+            `${r.totalCalls.toString().padEnd(5)} | ` +
+            `${r.winRate.toFixed(1)}%`.padEnd(8) + ' | ' +
+            `\x1b[1m${r.overallScore.toFixed(2)}\x1b[0m   | ` +
+            `${r.processScore.toFixed(1).padStart(7)} | ` +
+            `${r.skillsScore.toFixed(1).padStart(6)} | ` +
+            `${r.commScore.toFixed(1).padStart(4)}`
+        )
+    })
+
+    // 5. Calculate Correlation
+    if (results.length > 1) {
+        const calculateR = (data: any[], xKey: (d: any) => number, yKey: (d: any) => number) => {
+            const n = data.length
+            const x = data.map(xKey)
+            const y = data.map(yKey)
+            const sumX = x.reduce((a, b) => a + b, 0)
+            const sumY = y.reduce((a, b) => a + b, 0)
+            const sumXY = x.reduce((prev, curr, i) => prev + curr * y[i], 0)
+            const sumX2 = x.reduce((a, b) => a + b * b, 0)
+            const sumY2 = y.reduce((a, b) => a + b * b, 0)
+            const numerator = n * sumXY - sumX * sumY
+            const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY))
+            return denominator === 0 ? 0 : numerator / denominator
+        }
+
+        const rOverall = calculateR(results, d => d.overallScore, d => d.winRate)
+        const rProcess = calculateR(results, d => d.processScore, d => d.winRate)
+        const rSkills = calculateR(results, d => d.skillsScore, d => d.winRate)
+        const rComm = calculateR(results, d => d.commScore, d => d.winRate)
+
+        console.log('\n📈 Dimension Correlation with Win Rate:')
+        console.log(`- Overall Score     : ${rOverall.toFixed(4)}`)
+        console.log(`- Process Dimension : ${rProcess.toFixed(4)}`)
+        console.log(`- Skills Dimension  : ${rSkills.toFixed(4)}`)
+        console.log(`- Comm Dimension    : ${rComm.toFixed(4)}`)
+    }
+}
+
+main()
+    .catch(e => console.error(e))
+    .finally(() => prisma.$disconnect())
+

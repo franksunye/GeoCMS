@@ -1,0 +1,353 @@
+/**
+ * 数据迁移脚本：SQLite -> Supabase PostgreSQL (批量版)
+ * 使用批量插入而不是逐行插入，速度快 10x+
+ * 
+ * 注意：SQLite 和 PostgreSQL 现在使用相同的 snake_case 列名，无需转换
+ */
+
+import 'dotenv/config';
+import Database from 'better-sqlite3';
+import pg from 'pg';
+import path from 'path';
+import fs from 'fs';
+
+const { Pool } = pg;
+
+const SQLITE_PATH = path.join(process.cwd(), 'team-calls.db');
+let PG_URL = process.env.DATABASE_URL;
+
+// 如果 DATABASE_URL 是 sqlite 的 (比如在 .env.local 中)，尝试使用 DIRECT_URL
+if (PG_URL && PG_URL.startsWith('file:')) {
+    PG_URL = process.env.DIRECT_URL || '';
+}
+
+if (!PG_URL || !PG_URL.startsWith('postgres')) {
+    // 最后的尝试：检查环境变量中任何包含 postgresql:// 的变量
+    const possibleUrl = Object.values(process.env).find(v => typeof v === 'string' && v.startsWith('postgresql://'));
+    if (possibleUrl) PG_URL = possibleUrl;
+}
+
+if (!PG_URL || !PG_URL.startsWith('postgres') || !fs.existsSync(SQLITE_PATH)) {
+    console.error('❌ 缺少配置。请确保环境变量中包含有效的 PostgreSQL 连接字符串 (DATABASE_URL 或 DIRECT_URL)。');
+    console.error('当前 PG_URL:', PG_URL);
+    process.exit(1);
+}
+
+console.log(`🔗 连接到 Supabase: ${PG_URL.split('@')[1] || PG_URL}`); // 隐藏密码打印
+
+const sqlite = new Database(SQLITE_PATH, { readonly: true });
+const pgPool = new Pool({ connectionString: PG_URL });
+
+// 批量插入辅助函数
+async function batchInsert(client: pg.PoolClient, table: string, columns: string[], rows: any[], batchSize = 50, primaryKey = 'id') {
+    if (rows.length === 0) return 0;
+
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += batchSize) {
+        const batch = rows.slice(i, i + batchSize);
+        const values: any[] = [];
+        const placeholders: string[] = [];
+
+        batch.forEach((row, idx) => {
+            const rowPlaceholders = columns.map((_, colIdx) => `$${idx * columns.length + colIdx + 1}`);
+            placeholders.push(`(${rowPlaceholders.join(', ')})`);
+            columns.forEach(col => values.push(row[col]));
+        });
+
+        const updateColumns = columns.filter(c => c !== primaryKey);
+        const updateClause = updateColumns.length > 0
+            ? `DO UPDATE SET ${updateColumns.map(c => `${c} = EXCLUDED.${c}`).join(', ')}`
+            : 'DO NOTHING';
+
+        const sql = `INSERT INTO ${table} (${columns.join(', ')}) VALUES ${placeholders.join(', ')} ON CONFLICT (${primaryKey}) ${updateClause}`;
+
+        try {
+            const result = await client.query(sql, values);
+            inserted += result.rowCount || 0;
+        } catch (e: any) {
+            // 如果批量失败，逐行尝试
+            console.warn(`Batch failed, retrying singly: ${e.message}`);
+            for (const row of batch) {
+                try {
+                    const singlePlaceholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+                    await client.query(
+                        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${singlePlaceholders}) ON CONFLICT (${primaryKey}) ${updateClause}`,
+                        columns.map(c => row[c])
+                    );
+                    inserted++;
+                } catch (err) {
+                    console.error(`Single row insert failed:`, err);
+                }
+            }
+        }
+    }
+    return inserted;
+}
+
+// 简易参数解析
+function parseArgs() {
+    const args = process.argv.slice(2);
+    let targetTables: string[] | null = null;
+
+    for (let i = 0; i < args.length; i++) {
+        const arg = args[i];
+        if (arg.startsWith('--tables=') || arg.startsWith('--only=')) {
+            targetTables = arg.split('=')[1].split(/[ ,]+/).map(t => t.trim());
+        } else if (arg === '--tables' || arg === '-t' || arg === '--only') {
+            if (args[i + 1]) {
+                targetTables = args[i + 1].split(/[ ,]+/).map(t => t.trim());
+                i++;
+            }
+        }
+    }
+    return { targetTables };
+}
+
+async function migrate() {
+    const { targetTables } = parseArgs();
+
+    console.log('🚀 智能增量迁移开始 (Smart Sync)...\n');
+    console.log('DEBUG: targetTables =', JSON.stringify(targetTables));
+    if (targetTables) {
+        console.log(`🎯 仅同步指定表: ${targetTables.join(', ')}\n`);
+    } else {
+        console.log('配置策略: 全量同步所有关联数据\n');
+    }
+
+    const client = await pgPool.connect();
+    let total = 0;
+
+    // Helper to check if a table should be synced
+    const shouldSync = (tableName: string) => {
+        if (!targetTables) return true;
+        return targetTables.includes(tableName);
+    };
+
+    try {
+        // 1. 获取核心驱动数据: biz_calls
+        // 始终需要获取 biz_calls 以确定要同步哪些关联数据 (e.g. deals that belong to these calls)
+        const calls = sqlite.prepare('SELECT id, agent_id, started_at, duration, outcome, audio_url FROM biz_calls').all() as any[];
+        const callIds = calls.map(c => c.id);
+        const relatedAgentIds = [...new Set(calls.map(c => c.agent_id))];
+
+        console.log(`📋 核心数据源: ${calls.length} 条通话记录 (用于计算关联)\n`);
+
+        // === 阶段 1: 基础依赖 (Agents) ===
+        if (shouldSync('sync_agents')) {
+            console.log('📂 sync_agents (全量同步)');
+            const agents = sqlite.prepare(`
+                SELECT id, name, avatar_id, created_at, team_id 
+                FROM sync_agents
+            `).all() as any[];
+
+            if (agents.length > 0) {
+                agents.forEach(a => {
+                    a.avatar_id = a.avatar_id || 'default-avatar';
+                    a.name = a.name || 'Unknown';
+                    a.created_at = a.created_at || new Date().toISOString();
+                });
+                const agentCount = await batchInsert(client, 'sync_agents', ['id', 'name', 'avatar_id', 'created_at', 'team_id'], agents);
+                console.log(`   ✅ ${agentCount} 行 / 共 ${agents.length} 行\n`);
+                total += agentCount;
+            } else {
+                console.log(`   ⚠️ 本地无坐席数据，跳过\n`);
+            }
+        }
+
+        // === 阶段 2: 配置数据 (全量) ===
+        if (shouldSync('cfg_tags')) {
+            console.log('📂 cfg_tags');
+            const tags = sqlite.prepare('SELECT code, name, category, dimension, polarity, severity, score_range, description, active, created_at, updated_at, is_mandatory FROM cfg_tags').all() as any[];
+            tags.forEach(t => { t.score_range = t.score_range || '0-5'; t.description = t.description || ''; t.is_mandatory = t.is_mandatory || false; });
+            const tagCount = await batchInsert(client, 'cfg_tags', ['code', 'name', 'category', 'dimension', 'polarity', 'severity', 'score_range', 'description', 'active', 'created_at', 'updated_at', 'is_mandatory'], tags, 50, 'code');
+            console.log(`   ✅ ${tagCount} 行\n`);
+            total += tagCount;
+        }
+
+        if (shouldSync('cfg_signals')) {
+            console.log('📂 cfg_signals');
+            const signals = sqlite.prepare('SELECT code, name, category, dimension, target_tag_code, aggregation_method, description, active, created_at, updated_at FROM cfg_signals').all() as any[];
+            signals.forEach(s => { s.description = s.description || ''; });
+            const sigCount = await batchInsert(client, 'cfg_signals', ['code', 'name', 'category', 'dimension', 'target_tag_code', 'aggregation_method', 'description', 'active', 'created_at', 'updated_at'], signals, 50, 'code');
+            console.log(`   ✅ ${sigCount} 行\n`);
+            total += sigCount;
+        }
+
+        if (shouldSync('cfg_prompts')) {
+            console.log('📂 cfg_prompts');
+            const prompts = sqlite.prepare('SELECT id, name, version, content, description, is_default, active, created_at, updated_at, prompt_type, variables, output_schema FROM cfg_prompts').all() as any[];
+            const pCount = await batchInsert(client, 'cfg_prompts', ['id', 'name', 'version', 'content', 'description', 'is_default', 'active', 'created_at', 'updated_at', 'prompt_type', 'variables', 'output_schema'], prompts);
+            console.log(`   ✅ ${pCount} 行\n`);
+            total += pCount;
+        }
+
+        if (shouldSync('cfg_scoring_rules')) {
+            console.log('📂 cfg_scoring_rules'); // 添加评分规则
+            try {
+                const rules = sqlite.prepare('SELECT id, name, applies_to, description, active, rule_type, tag_code, target_dimension, score_adjustment, weight, created_at, updated_at FROM cfg_scoring_rules').all() as any[];
+                const rCount = await batchInsert(client, 'cfg_scoring_rules', ['id', 'name', 'applies_to', 'description', 'active', 'rule_type', 'tag_code', 'target_dimension', 'score_adjustment', 'weight', 'created_at', 'updated_at'], rules);
+                console.log(`   ✅ ${rCount} 行\n`);
+                total += rCount;
+            } catch (e) { console.log('   ⚠️ cfg_scoring_rules 可能是空的或不存在，跳过\n'); }
+        }
+
+        if (shouldSync('cfg_score_config')) {
+            console.log('📂 cfg_score_config'); // 添加评分配置
+            try {
+                const configs = sqlite.prepare('SELECT id, aggregation_method, process_weight, skills_weight, communication_weight, custom_formula, description, created_at, updated_at FROM cfg_score_config').all() as any[];
+                const cCount = await batchInsert(client, 'cfg_score_config', ['id', 'aggregation_method', 'process_weight', 'skills_weight', 'communication_weight', 'custom_formula', 'description', 'created_at', 'updated_at'], configs);
+                console.log(`   ✅ ${cCount} 行\n`);
+                total += cCount;
+            } catch (e) { console.log('   ⚠️ cfg_score_config 可能是空的或不存在，跳过\n'); }
+        }
+
+
+        // === 阶段 3: 业务数据 ===
+
+        // 1. === 同步 AI 分析原日志 (最优先, 因为没外键) ===
+        if (shouldSync('sync_ai_analysis')) {
+            console.log('📂 sync_ai_analysis (全量同步)');
+            try {
+                const logs = sqlite.prepare(`
+                    SELECT id, signals, created_at, transcript_id, agent_id, deal_id, team_id 
+                    FROM sync_ai_analysis
+                `).all() as any[];
+
+                const logCount = await batchInsert(client, 'sync_ai_analysis', ['id', 'signals', 'created_at', 'transcript_id', 'agent_id', 'deal_id', 'team_id'], logs);
+                console.log(`   ✅ ${logCount} 行 / 共 ${logs.length} 行\n`);
+                total += logCount;
+            } catch (e) {
+                console.log('   ⚠️ 同步 AI 分析日志失败:', e);
+            }
+        }
+
+        // 2. 通话记录 biz_calls
+        if (shouldSync('biz_calls')) {
+            console.log('📂 biz_calls');
+            // 数据已经在上面 fetch 过了，直接处理
+            calls.forEach(c => { c.duration = c.duration || 0; c.outcome = c.outcome || 'unknown'; });
+            const callCount = await batchInsert(client, 'biz_calls', ['id', 'agent_id', 'started_at', 'duration', 'outcome', 'audio_url'], calls);
+            console.log(`   ✅ ${callCount} 行\n`);
+            total += callCount;
+        }
+
+        if (callIds.length > 0) {
+            if (shouldSync('biz_call_signals')) {
+                console.log('📂 biz_call_signals (关联同步)');
+                const callSignals = sqlite.prepare(`
+                    SELECT id, call_id, signal_id, timestamp_sec, confidence, context_text, reasoning, created_at 
+                    FROM biz_call_signals 
+                    WHERE call_id IN (${callIds.map(() => '?').join(',')})
+                `).all(...callIds) as any[];
+                const csCount = await batchInsert(client, 'biz_call_signals', ['id', 'call_id', 'signal_id', 'timestamp_sec', 'confidence', 'context_text', 'reasoning', 'created_at'], callSignals);
+                console.log(`   ✅ ${csCount} 行\n`);
+                total += csCount;
+            }
+
+            if (shouldSync('biz_call_tags')) {
+                console.log('📂 biz_call_tags (关联同步)');
+                const tagsData = sqlite.prepare(`
+                    SELECT id, call_id, tag_id, score, confidence, context_text, timestamp_sec, reasoning, context_events, created_at 
+                    FROM biz_call_tags 
+                    WHERE call_id IN (${callIds.map(() => '?').join(',')})
+                `).all(...callIds) as any[];
+                tagsData.forEach(a => { a.score = a.score || 0; });
+                const aCount = await batchInsert(client, 'biz_call_tags', ['id', 'call_id', 'tag_id', 'score', 'confidence', 'context_text', 'timestamp_sec', 'reasoning', 'context_events', 'created_at'], tagsData);
+                console.log(`   ✅ ${aCount} 行 (关联标签)\n`);
+                total += aCount;
+            }
+        }
+
+        // 3. === 同步全量 deals (过滤掉不存在的 agent) ===
+        if (shouldSync('sync_deals')) {
+            console.log('📂 sync_deals (全量同步, 自动过滤孤立记录)');
+            try {
+                const deals = sqlite.prepare(`
+                    SELECT id, agent_id, outcome, order_number, is_onsite_completed, leak_area, created_at 
+                    FROM sync_deals
+                    WHERE agent_id IN (SELECT id FROM sync_agents)
+                `).all() as any[];
+
+                deals.forEach(d => {
+                    d.outcome = d.outcome || 'unknown';
+                    d.is_onsite_completed = d.is_onsite_completed ?? 0;
+                });
+
+                const dealCount = await batchInsert(client, 'sync_deals', ['id', 'agent_id', 'outcome', 'order_number', 'is_onsite_completed', 'leak_area', 'created_at'], deals);
+                console.log(`   ✅ ${dealCount} 行 / 有效总计 ${deals.length} 行\n`);
+                total += dealCount;
+            } catch (e) {
+                console.log('   ⚠️ 同步 deals 失败:', e);
+            }
+        }
+
+        // 4. === 同步全量 transcripts (过滤掉不存在的 deal 或 agent) ===
+        if (shouldSync('sync_transcripts')) {
+            console.log('📂 sync_transcripts (全量同步, 自动过滤孤立记录)');
+            try {
+                const transcripts = sqlite.prepare(`
+                    SELECT id, deal_id, agent_id, content, created_at, audio_url 
+                    FROM sync_transcripts
+                    WHERE deal_id IN (SELECT id FROM sync_deals)
+                      AND agent_id IN (SELECT id FROM sync_agents)
+                `).all() as any[];
+
+                transcripts.forEach(t => {
+                    t.content = t.content || '';
+                    t.audio_url = t.audio_url || '';
+                });
+
+                const transCount = await batchInsert(client, 'sync_transcripts', ['id', 'deal_id', 'agent_id', 'content', 'created_at', 'audio_url'], transcripts);
+                console.log(`   ✅ ${transCount} 行 / 有效总计 ${transcripts.length} 行\n`);
+                total += transCount;
+            } catch (e) {
+                console.log('   ⚠️ 同步 transcript 失败:', e);
+            }
+        }
+
+        // 5. === 同步合同记录 (全量, 过滤掉不存在的 deal 或 agent) ===
+        if (shouldSync('sync_contracts')) {
+            console.log('📂 sync_contracts (全量同步, 自动过滤孤立记录)');
+            try {
+                const contracts = sqlite.prepare(`
+                    SELECT id, deal_id, agent_id, channel, team_id, created_at, signed_at, leak_area 
+                    FROM sync_contracts
+                    WHERE deal_id IN (SELECT id FROM sync_deals)
+                      AND agent_id IN (SELECT id FROM sync_agents)
+                `).all() as any[];
+
+                const contractCount = await batchInsert(client, 'sync_contracts', ['id', 'deal_id', 'agent_id', 'channel', 'team_id', 'created_at', 'signed_at', 'leak_area'], contracts);
+                console.log(`   ✅ ${contractCount} 行 / 有效总计 ${contracts.length} 行\n`);
+                total += contractCount;
+            } catch (e) {
+                console.log('   ⚠️ 同步合同记录失败:', e);
+            }
+        }
+
+        // 6. === 同步 Prompt 执行记录 (基于 Calls) ===
+        if (shouldSync('log_prompt_execution')) {
+            console.log('📂 log_prompt_execution (关联同步)');
+            try {
+                const logs = sqlite.prepare(`
+                    SELECT id, prompt_id, call_id, input_variables, raw_output, parsed_output, execution_time_ms, status, error_message, is_dry_run, created_at 
+                    FROM log_prompt_execution 
+                    WHERE call_id IN (${callIds.map(() => '?').join(',')})
+                `).all(...callIds) as any[];
+
+                const logCount = await batchInsert(client, 'log_prompt_execution', ['id', 'prompt_id', 'call_id', 'input_variables', 'raw_output', 'parsed_output', 'execution_time_ms', 'status', 'error_message', 'is_dry_run', 'created_at'], logs);
+                console.log(`   ✅ ${logCount} 行\n`);
+                total += logCount;
+            } catch (e) {
+                console.log('   ⚠️ 同步 Prompt 执行记录失败:', e);
+            }
+        }
+    } finally {
+        client.release();
+    }
+
+    console.log(`\n✨ 完成! 共同步 ${total} 行核心数据`);
+    sqlite.close();
+    await pgPool.end();
+}
+
+migrate().catch(console.error);
