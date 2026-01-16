@@ -39,7 +39,7 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           HUNYUAN_API_KEY: ${{ secrets.HUNYUAN_API_KEY }}
         run: |
-          python frontend-nextjs/scripts/analyze_faq_ci.py \
+          python backend/scripts/analyze_faq_ci.py \
             --limit ${{ github.event.inputs.limit }} \
             --days ${{ github.event.inputs.days_back }} \
             ${{ github.event.inputs.force_rerun && '--force' || '' }}
