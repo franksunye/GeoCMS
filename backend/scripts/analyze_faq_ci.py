@@ -277,17 +277,22 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                 raw_output = response.choices[0].message.content.strip()
                 execution_time = int((time.time() - start_time) * 1000)
                 
-                # 记录日志
+                # 统一使用 Upsert 逻辑记录日志
                 if db_type == 'postgres':
                     sql = """
                         INSERT INTO log_prompt_execution 
                         (id, prompt_id, call_id, input_variables, raw_output, 
                          execution_time_ms, status, error_message, is_dry_run, created_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (id) DO NOTHING
+                        ON CONFLICT (id) DO UPDATE SET
+                            raw_output = EXCLUDED.raw_output,
+                            execution_time_ms = EXCLUDED.execution_time_ms,
+                            status = EXCLUDED.status,
+                            updated_at = NOW()
                     """
+                    # 注意：如果您的表没有 updated_at，可以去掉上面的 updated_at 行
                     cur.execute(sql, (
-                        trace_id, "faq_v3_ci", call_id, prompt, raw_output,  # 使用 call_id（可能是 None/NULL）
+                        trace_id, "faq_v3_ci", call_id, prompt, raw_output, 
                         execution_time, "success", "", 0, datetime.now()
                     ))
                 else:  # SQLite
@@ -298,7 +303,7 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """
                     cur.execute(sql, (
-                        trace_id, "faq_v3_ci", call_id, prompt, raw_output,  # 使用 call_id（可能是 None）
+                        trace_id, "faq_v3_ci", call_id, prompt, raw_output, 
                         execution_time, "success", "", 0, datetime.now().isoformat()
                     ))
                 conn.commit()
@@ -383,12 +388,23 @@ def main():
     
     cursor = conn.cursor() if db_type == 'sqlite' else conn.cursor(cursor_factory=cur_factory)
     
+    # 动态构建排除逻辑 (增量处理)
+    exclude_logic = ""
+    if not args.force:
+        # 如果不是强制重新跑，则排除掉已经在日志表中存在记录（代表已经尝试处理过）的 transcript
+        # 匹配规则：log_prompt_execution.id 包含 faq_trace_{transcript_id}
+        if db_type == 'postgres':
+            exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%')"
+        else:
+            exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%')"
+
     sql = f"""
         SELECT t.id, t.deal_id, t.content, c.id as call_id
         FROM sync_transcripts t
         LEFT JOIN biz_calls c ON t.audio_url = c.audio_url
         WHERE t.content IS NOT NULL 
           AND {length_check}
+          {exclude_logic}
     """
     
     if args.days > 0:
@@ -396,7 +412,7 @@ def main():
         if db_type == 'postgres':
             cursor.execute(sql + f" AND t.created_at > {placeholder} ORDER BY t.created_at DESC LIMIT {placeholder}", (cutoff, args.limit))
         else:
-            cursor.execute(sql + f" ORDER BY t.created_at DESC LIMIT {placeholder}", (args.limit,))
+            cursor.execute(sql + f" AND t.created_at > datetime('now', '-{args.days} days') ORDER BY t.created_at DESC LIMIT {placeholder}", (args.limit,))
     else:
         cursor.execute(sql + f" ORDER BY t.created_at DESC LIMIT {placeholder}", (args.limit,))
     
