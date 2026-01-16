@@ -311,6 +311,9 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                 result = json.loads(raw_output)
                 category = result.get("category", "")
                 
+                # 清洗 category: 去除可能的序号前缀 (如 "11. 付款方式" → "付款方式")
+                category = re.sub(r'^\d+\.\s*', '', category).strip()
+                
                 # V3 策略: 严格过滤
                 if category in CATEGORIES and category not in ["非问题", "其他问题", "其他"]:
                     extracted_questions.append({
