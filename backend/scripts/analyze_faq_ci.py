@@ -287,10 +287,8 @@ def analyze_transcript(client, conn, cur, transcript_id, deal_id, call_id, conte
                         ON CONFLICT (id) DO UPDATE SET
                             raw_output = EXCLUDED.raw_output,
                             execution_time_ms = EXCLUDED.execution_time_ms,
-                            status = EXCLUDED.status,
-                            updated_at = NOW()
+                            status = EXCLUDED.status
                     """
-                    # 注意：如果您的表没有 updated_at，可以去掉上面的 updated_at 行
                     cur.execute(sql, (
                         trace_id, "faq_v3_ci", call_id, prompt, raw_output, 
                         execution_time, "success", "", 0, datetime.now()
