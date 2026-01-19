@@ -63,7 +63,9 @@ def get_db_connection(db_url=None):
         if not PSYCOPG2_AVAILABLE:
             raise RuntimeError("PostgreSQL URL 需要安装 psycopg2-binary")
         print(f"🔗 连接 PostgreSQL...")
-        return psycopg2.connect(db_url, sslmode='require'), 'postgres'
+        # 设置 60 秒超时，避免复杂查询被过早取消
+        conn = psycopg2.connect(db_url, sslmode='require', options='-c statement_timeout=60000')
+        return conn, 'postgres'
     else:
         # SQLite (文件路径)
         print(f"🔗 连接 SQLite: {db_url}")
@@ -390,42 +392,65 @@ def main():
     
     cursor = conn.cursor() if db_type == 'sqlite' else conn.cursor(cursor_factory=cur_factory)
     
-    # 动态构建排除逻辑 (增量处理)
-    exclude_logic = ""
+    # 增量处理逻辑：先查询已处理的 transcript_id，再排除
+    processed_transcript_ids = set()
     if not args.force:
-        # 如果不是强制重新跑，则排除掉已经在日志表中存在记录（代表已经尝试处理过）的 transcript
-        # 匹配规则：log_prompt_execution.id 包含 faq_trace_{transcript_id}
-        # 注意：%% 在 psycopg2 中会被转义为单个 % (用于 LIKE 匹配)
+        print(f"🔄 增量模式: 查询已处理的记录...")
         if db_type == 'postgres':
-            exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%%')"
+            # 提取已处理的 transcript_id（从 log 表的 id 中解析）
+            cursor.execute("""
+                SELECT DISTINCT 
+                    SUBSTRING(id FROM 'faq_trace_([^_]+)_') as transcript_id
+                FROM log_prompt_execution 
+                WHERE id LIKE 'faq_trace_%' 
+                  AND prompt_id = 'faq_v3_ci'
+            """)
+            processed_transcript_ids = {row['transcript_id'] for row in cursor.fetchall() if row['transcript_id']}
         else:
-            exclude_logic = "AND NOT EXISTS (SELECT 1 FROM log_prompt_execution l WHERE l.id LIKE 'faq_trace_' || t.id || '_%')"
-        print(f"🔄 增量模式: 跳过已处理的记录")
+            cursor.execute("""
+                SELECT DISTINCT 
+                    SUBSTR(id, 11, INSTR(SUBSTR(id, 11), '_') - 1) as transcript_id
+                FROM log_prompt_execution 
+                WHERE id LIKE 'faq_trace_%'
+            """)
+            processed_transcript_ids = {row[0] for row in cursor.fetchall() if row[0]}
+        print(f"   已处理记录数: {len(processed_transcript_ids)}")
     else:
         print(f"⚠️ 强制模式 (--force): 将重新处理所有记录")
 
+    # 简化主查询（不再使用 NOT EXISTS 子查询）
     sql = f"""
         SELECT t.id, t.deal_id, t.content, c.id as call_id
         FROM sync_transcripts t
         LEFT JOIN biz_calls c ON t.audio_url = c.audio_url
         WHERE t.content IS NOT NULL 
           AND {length_check}
-          {exclude_logic}
     """
     
     if args.days > 0:
         cutoff = datetime.now() - timedelta(days=args.days)
         if db_type == 'postgres':
-            cursor.execute(sql + " AND t.created_at > %s ORDER BY t.created_at DESC LIMIT %s", (cutoff, args.limit))
+            cursor.execute(sql + " AND t.created_at > %s ORDER BY t.created_at DESC LIMIT %s", (cutoff, args.limit * 3))
         else:
-            cursor.execute(sql + f" AND t.created_at > datetime('now', '-{args.days} days') ORDER BY t.created_at DESC LIMIT ?", (args.limit,))
+            cursor.execute(sql + f" AND t.created_at > datetime('now', '-{args.days} days') ORDER BY t.created_at DESC LIMIT ?", (args.limit * 3,))
     else:
         if db_type == 'postgres':
-            cursor.execute(sql + " ORDER BY t.created_at DESC LIMIT %s", (args.limit,))
+            cursor.execute(sql + " ORDER BY t.created_at DESC LIMIT %s", (args.limit * 3,))
         else:
-            cursor.execute(sql + " ORDER BY t.created_at DESC LIMIT ?", (args.limit,))
+            cursor.execute(sql + " ORDER BY t.created_at DESC LIMIT ?", (args.limit * 3,))
     
     rows = cursor.fetchall()
+    
+    # 在 Python 中过滤掉已处理的记录（比 SQL NOT EXISTS 快得多）
+    if processed_transcript_ids:
+        if db_type == 'postgres':
+            rows = [r for r in rows if r['id'] not in processed_transcript_ids]
+        else:
+            rows = [r for r in rows if r[0] not in processed_transcript_ids]
+        print(f"   过滤后剩余: {len(rows)} 条未处理记录")
+    
+    # 只取 limit 条
+    rows = rows[:args.limit]
     
     if len(rows) == 0:
         print("ℹ️  没有新的待分析记录（所有数据已处理或无符合条件的数据）")
@@ -434,7 +459,7 @@ def main():
         conn.close()
         return
     
-    print(f"✅ 获取到 {len(rows)} 条待分析记录")
+    print(f"✅ 将处理 {len(rows)} 条记录")
     
     client = OpenAI(api_key=HUNYUAN_API_KEY, base_url=HUNYUAN_BASE_URL)
     total_new = 0
