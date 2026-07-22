@@ -4,6 +4,9 @@ import "./globals.css"
 import { Providers } from "./providers"
 import { Toaster } from "@/components/ui/toaster"
 
+// Prevent static generation during build - all pages require database access at runtime
+export const dynamic = 'force-dynamic'
+
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
