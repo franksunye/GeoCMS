@@ -36,26 +36,13 @@ function createPrismaClient(): PrismaClient {
 
         // 动态导入以避免在 SQLite 环境加载 pg
         const { PrismaPg } = require('@prisma/adapter-pg')
-        const { Pool } = require('pg')
         const connectionString = process.env.DATABASE_URL
 
         if (!connectionString) {
             throw new Error('DATABASE_URL is required for PostgreSQL')
         }
 
-        // 检测是否使用 Transaction pooler (pgbouncer)
-        // Transaction pooler 不支持 prepared statements，需要禁用
-        const isPgbouncer = connectionString.includes('pgbouncer=true')
-
-        const pool = new Pool({
-            connectionString,
-            max: isPgbouncer ? 5 : 10,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 10000,
-            prepare: !isPgbouncer, // pgbouncer 模式下禁用 prepared statements
-        })
-
-        const adapter = new PrismaPg({ pool })
+        const adapter = new PrismaPg({ connectionString })
 
         return new PrismaClient({
             adapter,
