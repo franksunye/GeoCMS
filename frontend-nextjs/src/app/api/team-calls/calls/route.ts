@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+export const dynamic = 'force-dynamic'
 import prisma from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { getStorageUrl } from '@/lib/storage'
